@@ -23,8 +23,8 @@ held-out nearest-centroid accuracy of 95% or more and d-prime of 3 or more for e
 5. Gate: `Sway.Core.SeparabilityAnalyzer` (port of the Mac gate maths): per-monitor mean and standard deviation, pairwise
    d-prime along the line between centers, leave-one-round-out nearest-centroid accuracy, verdict.
 
-Run it with `SwayTools` option 3: 3a live readout, 3b gate run, 3c describe the model, 3d cold-start test (time to find a far-turned face from no face) (no camera, for diagnosing a
-failed run). Output: `sway-pose.txt` (report) and `sway-pose-trace.json` (numbers only) next to the exe.
+Run it with `SwayTools` option 3: 3a live readout, 3b gate run, 3c describe the model (no camera, for diagnosing a failed run), 3d cold-start test (how fast a far-turned face is
+found from no face). Output: `sway-pose.txt` (report) and `sway-pose-trace.json` (numbers only) next to the exe.
 
 ## The model chosen
 
