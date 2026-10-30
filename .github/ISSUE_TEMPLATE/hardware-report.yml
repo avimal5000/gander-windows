@@ -1,0 +1,21 @@
+name: Hardware report
+description: What happened on the Windows desktop with a build or a spike program
+labels: [spike]
+body:
+  - type: input
+    id: build
+    attributes:
+      label: Build (PR number or artifact name)
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Setup
+      description: Windows version, webcam, monitors and their order.
+  - type: textarea
+    id: result
+    attributes:
+      label: What you saw, or the program's output
+    validations:
+      required: true
