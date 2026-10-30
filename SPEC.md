@@ -22,15 +22,15 @@ to the last-used window there. The cursor never moves.
 | D6 | Target Windows 10 version 2004 (build 19041) and later, x64. Windows 11 is the main target | Assumption |
 | D7 | Focus Lock default shortcut `Ctrl+Alt+Shift+L` (Windows reserves Win-key combinations). Configurable | Assumption |
 | D8 | Settings are JSON under `%AppData%\Sway`; logs under `%LocalAppData%\Sway\Logs`; per-user `Run` key for "Open Sway at login" (off by default) | Assumption |
-| D9 | The synthetic Alt key workaround for foreground focus is **not used** unless spike S2 shows it is the only reliable way and the user approves, with the privacy wording changed first | Open (PLAN.md section 9, item 6) |
+| D9 | Foreground focus uses `AttachThreadInput` to the foreground thread, then `BringWindowToTop` and `SetForegroundWindow`, verified afterward. Spike S2 showed 4 of 4 successes with it (0 of 4 without), and the cursor never moved. The synthetic Alt key workaround is **not used**, so the "no synthesized input" promise stands | Spike S2, docs/decisions/02-focus.md |
 
 ## 3. The test setup (the user's desktop)
 
 | Item | Value |
 |---|---|
 | Webcam | Logitech C922 (the one used with the Mac app) |
-| Monitors | LG UltraGear on the left, BenQ on the right. Sizes, resolutions, and scaling to be read by the spike tools |
-| Windows version | To be read by the spike tools (the user has not checked it yet) |
+| Monitors | Left: 1920x1080 at 100% scale. Right (primary): 2560x1440 at 100% scale. Read by spike S3. The user believes the LG is on the left; the sizes suggest the 1440p LG is on the right |
+| Windows version | Windows 11 25H2, build 26200, x64, 16 logical processors |
 
 ## 4. Manual checks the user must do (cannot be automated here)
 

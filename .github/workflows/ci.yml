@@ -27,6 +27,11 @@ jobs:
         shell: bash
         run: scripts/privacy-guard.sh
 
+      # Development-time download of the pinned, checksum-verified face model (the shipped program has no network code).
+      - name: Fetch the face model
+        shell: bash
+        run: scripts/fetch-pose-model.sh
+
       - name: Format
         run: dotnet format Sway.sln --verify-no-changes
 
