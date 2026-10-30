@@ -14,3 +14,6 @@ artifacts/
 # Local tooling and logs
 .build-logs/
 .claude/
+
+# Fetched face model (scripts/fetch-pose-model.sh)
+src/Sway.Tools/models/*.onnx
