@@ -303,8 +303,7 @@ public sealed partial class TrackingController : IDisposable
             Layout,
             FallbackCamera,
             LostCameraId,
-            SwitchLog,
-            Hold: TrackingHold);
+            SwitchLog);
         if (Equals(snapshot, _lastPublished))
         {
             return;

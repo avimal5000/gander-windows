@@ -122,7 +122,7 @@ public sealed class Harness : IDisposable
     /// <summary>Moves the scheduler and the clock forward in small steps, draining the main thread after each so chained timers run.</summary>
     public void Advance(double seconds)
     {
-        const double step = 0.05;
+        const double step = 0.0625; // Exactly representable, so the clock sums stay exact.
         var remaining = seconds;
         while (remaining > 1e-9)
         {
