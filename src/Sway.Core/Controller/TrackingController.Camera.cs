@@ -81,8 +81,9 @@ public sealed partial class TrackingController
 
     private async Task RunAfter(Task previous, Func<Task> work, TaskCompletionSource done)
     {
-        // The previous operation completes on the main thread, so continuing without the captured context stays there.
-        await previous.ConfigureAwait(false);
+        // Continue on the captured (main thread) context: with ConfigureAwait(false), a completion on a thread that has a
+        // synchronization context would move the continuation to the thread pool, and the controller is main-thread only.
+        await previous;
         try
         {
             await work();
@@ -98,7 +99,33 @@ public sealed partial class TrackingController
     }
 
     /// <summary>Queues a reconcile: start the camera if something wants it, stop it if nothing does.</summary>
-    private Task ReconcileCamera() => EnqueueCameraWork(PerformCameraReconcileAsync);
+    private Task ReconcileCamera()
+    {
+        if (_reconcileHold > 0)
+        {
+            _reconcileQueued = true;
+            return Task.CompletedTask;
+        }
+
+        return EnqueueCameraWork(PerformCameraReconcileAsync);
+    }
+
+    // Camera work begins at once when nothing is ahead of it. A caller that is about to make more changes that the
+    // reconcile must see (the layout change, which also begins the camera grace) holds it and flushes at the end.
+    private int _reconcileHold;
+    private bool _reconcileQueued;
+
+    private void HoldReconcile() => _reconcileHold++;
+
+    private void FlushReconcile()
+    {
+        _reconcileHold--;
+        if (_reconcileHold == 0 && _reconcileQueued)
+        {
+            _reconcileQueued = false;
+            _ = ReconcileCamera();
+        }
+    }
 
     private PoseSourceConfiguration DesiredConfiguration =>
         new(FallbackCamera?.Id ?? SelectedCameraId, SwayPolicy.DefaultFrameRate, IncludeLandmarks: false);
@@ -233,6 +260,13 @@ public sealed partial class TrackingController
     private void HandleStartFailure(CameraError error)
     {
         Log($"Pose source failed to start: {error.Kind}");
+        if (!_cameraLost)
+        {
+            // A failed start leaves nothing running. A lost camera being retried stays requested until the retries give up.
+            _suspend.CaptureStopped();
+            _activeConfiguration = null;
+        }
+
         if (error.Kind == CameraErrorKind.NotAuthorized)
         {
             // The pose source disagrees with our cached permission; trust it and show the instructions.

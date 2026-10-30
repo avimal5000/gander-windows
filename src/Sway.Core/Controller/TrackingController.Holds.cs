@@ -53,6 +53,7 @@ public sealed partial class TrackingController
         }
 
         var cameraWasWanted = WantsCamera;
+        HoldReconcile();
         Layout = newLayout;
         _displayLabels = DisplayLabeler.Labels(newLayout);
 
@@ -75,6 +76,7 @@ public sealed partial class TrackingController
         }
 
         SyncCameraFallback();
+        FlushReconcile();
 
         // The new layout is known: the hold that waited for it ends (SPEC D44).
         _holds.EndDisplaysChanging(HoldEnd.Layout);

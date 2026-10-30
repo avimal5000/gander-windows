@@ -61,6 +61,7 @@ public sealed class Harness : IDisposable
         FakeHotKeys? hotKeys = null,
         Action<FakeSettingsStore>? seed = null)
     {
+        Inline.Ensure();
         layout ??= Fixtures.TwoDisplays;
         var settings = settingsStore ?? new FakeSettingsStore();
         if (savedCameraId is not null)
@@ -117,11 +118,16 @@ public sealed class Harness : IDisposable
     public Harness Relaunch(DisplayLayout? layout = null, bool autoRun = false, FakeHotKeys? hotKeys = null) =>
         Make(layout: layout ?? Fixtures.TwoDisplays, autoRun: autoRun, hotKeys: hotKeys, settingsStore: Settings);
 
-    public void Drain() => Main.Drain();
+    public void Drain()
+    {
+        Inline.Ensure();
+        Main.Drain();
+    }
 
     /// <summary>Moves the scheduler and the clock forward in small steps, draining the main thread after each so chained timers run.</summary>
     public void Advance(double seconds)
     {
+        Inline.Ensure();
         const double step = 0.0625; // Exactly representable, so the clock sums stay exact.
         var remaining = seconds;
         while (remaining > 1e-9)
@@ -136,6 +142,7 @@ public sealed class Harness : IDisposable
 
     public void Emit(PoseSourceEvent sourceEvent)
     {
+        Inline.Ensure();
         Source.Emit(sourceEvent);
         Drain();
     }
@@ -163,6 +170,7 @@ public sealed class Harness : IDisposable
 
     public async Task StartTracking()
     {
+        Inline.Ensure();
         await Controller.SetTrackingEnabledAsync(true);
         Drain();
         ReportRunning();
@@ -170,6 +178,7 @@ public sealed class Harness : IDisposable
 
     public async Task SetTracking(bool enabled)
     {
+        Inline.Ensure();
         await Controller.SetTrackingEnabledAsync(enabled);
         Drain();
     }

@@ -12,6 +12,27 @@ namespace Sway.Core.Tests.Controller;
 /// </summary>
 internal static class Inline
 {
+    /// <summary>A context that runs posted work at once, so continuations captured by the controller stay on the test thread.</summary>
+    private sealed class InlineContext : SynchronizationContext
+    {
+        public override void Post(SendOrPostCallback d, object? state) => d(state);
+
+        public override void Send(SendOrPostCallback d, object? state) => d(state);
+
+        public override SynchronizationContext CreateCopy() => this;
+    }
+
+    private static readonly InlineContext Shared = new();
+
+    /// <summary>Makes the calling thread's context the inline one (the dispatcher thread the controller expects).</summary>
+    public static void Ensure()
+    {
+        if (SynchronizationContext.Current != Shared)
+        {
+            SynchronizationContext.SetSynchronizationContext(Shared);
+        }
+    }
+
     public static void Run(Action action)
     {
         var previous = SynchronizationContext.Current;
@@ -258,7 +279,13 @@ public sealed class FakeCameraCatalog : ICameraCatalog
 
     public CameraAuthorization Authorization() => AuthorizationValue;
 
-    public IReadOnlyList<CameraDevice> AvailableDevices() => Devices.ToList();
+    public int DeviceListCalls { get; private set; }
+
+    public IReadOnlyList<CameraDevice> AvailableDevices()
+    {
+        DeviceListCalls++;
+        return Devices.ToList();
+    }
 
     /// <summary>The device for a saved id, else the built-in, else the first (the catalog's own rule).</summary>
     public CameraDevice? Resolve(string? deviceId) =>
