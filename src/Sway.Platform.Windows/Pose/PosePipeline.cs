@@ -4,7 +4,7 @@ using Sway.Core.Pose;
 using Windows.Graphics.Imaging;
 using Windows.Media.FaceAnalysis;
 
-namespace Sway.Tools.Spikes;
+namespace Sway.Platform.Windows.Pose;
 
 /// <summary>The outcome of one frame.</summary>
 /// <param name="Pose">Null when no usable face was found.</param>
@@ -43,32 +43,34 @@ internal sealed class PosePipeline : IDisposable
     /// <summary>The model's input/output description, for the report.</summary>
     internal string ModelDescription => _model.Description;
 
-    /// <summary>Opens the pipeline, or returns null and a message.</summary>
-    internal static PosePipeline? TryCreate(Report report)
+    /// <summary>Opens the pipeline from the model at <paramref name="modelPath"/> (default: next to the app), or returns null with the reason in <paramref name="failure"/>. <paramref name="log"/> receives diagnostic lines.</summary>
+    internal static PosePipeline? TryCreate(Action<string> log, out string failure, string? modelPath = null)
     {
-        var model = LandmarkModel.TryOpen(LandmarkModel.DefaultPath, out var message);
-        report.Line(message);
+        failure = string.Empty;
+        var model = LandmarkModel.TryOpen(modelPath ?? LandmarkModel.DefaultPath, out var message);
+        log(message);
         if (model is null)
         {
+            failure = message;
             return null;
         }
 
         FaceDetector? detector = null;
         if (!FaceDetector.IsSupported)
         {
-            report.Line("Windows.Media.FaceAnalysis.FaceDetector is NOT supported on this PC. Falling back to a box in the");
-            report.Line("middle of the frame; keep your face centered when a run starts.");
+            log("Windows.Media.FaceAnalysis.FaceDetector is NOT supported on this PC. Falling back to a box in the");
+            log("middle of the frame; keep your face centered when a run starts.");
         }
         else
         {
             try
             {
                 detector = FaceDetector.CreateAsync().AsTask().GetAwaiter().GetResult();
-                report.Line($"FaceDetector ready (Gray8 supported: {FaceDetector.IsBitmapPixelFormatSupported(BitmapPixelFormat.Gray8)}).");
+                log($"FaceDetector ready (Gray8 supported: {FaceDetector.IsBitmapPixelFormatSupported(BitmapPixelFormat.Gray8)}).");
             }
             catch (Exception exception)
             {
-                report.Line($"FaceDetector could not start ({exception.Message}). Falling back to a centered box.");
+                log($"FaceDetector could not start ({exception.Message}). Falling back to a centered box.");
             }
         }
 

@@ -118,3 +118,41 @@ fakes. Rules for every adapter:
 - **Settings.** Plain strings in one JSON file; writes are atomic (write temp, replace). Unknown keys are kept.
 - **Privacy.** `scripts/privacy-guard.sh` bans networking, saved images, input synthesis and capture, and cursor APIs in
   `src/`. A needed exception carries a `privacy-guard:allow` comment saying why and is called out in the PR.
+
+## W3 camera and session (issues #11, #12 and the lock/sleep events)
+
+Windows adapters in `Sway.Platform.Windows`; their decision rules are pure and live in `Sway.Core.Platform` with tests in
+`tests/Sway.Core.Tests/Platform`.
+
+- **`WindowsCameraCatalog`** `ICameraCatalog`, also `IDisposable`. Devices from `Windows.Devices.Enumeration`
+  (`VideoCapture`, enabled only); the id is the device-interface id. `IsBuiltIn` = enclosure panel Front or Back, or a
+  name hint (`CameraSelection.IsBuiltIn`). `Resolve` = saved id, else first built-in, else first
+  (`CameraSelection.Resolve`). `Authorization()` reads the consent-store `Value` for the user, the machine and
+  `NonPackaged` (desktop apps); any `Deny` is `Denied`, otherwise `Authorized` (`CameraSelection.Interpret`).
+  `DevicesChanged` comes from a `DeviceWatcher` started on the first subscriber; Added/Removed/Updated all raise it,
+  except the Added burst of the first enumeration.
+- **`WindowsPoseSource`** `IPoseSource`, also `IDisposable`; constructor `(ICameraCatalog, string? modelPath = null)`
+  (model: `models/face_landmark.onnx` under `AppContext.BaseDirectory`). `StartAsync` returns at once; a dedicated
+  thread opens the camera. Events go through a bounded channel (64, drop oldest). Order: `Starting`, `Running(device)` at
+  the first frame, `Interrupted` (no frame for 3 s, or the capture reported failure; camera released, reopened after
+  10, 30, then 60 s, `RetryBackoff`; an open that fails while the camera still exists retries after 1, 2, 5, then 10 s),
+  `Failed(error)`, and `Stopped` last. Failures: denied or restricted is `NotAuthorized`; no camera `NoDevice`; the
+  chosen camera gone from the catalog `DeviceUnavailable`; a missing or unloadable model `ConfigurationFailed`; the
+  model failing on 50 frames in a row `RuntimeFailure`. After `Failed` the stream stays open until `StopAsync`.
+  `StopAsync` returns after the camera is released and the stream completed; a second `StartAsync` before it throws
+  `InvalidOperationException`. `SetDemand` is honored (`AdaptiveFrameRate`: frames the gate refuses are never
+  converted); `SetPowerConstrained(bool)` is extra. `PoseSourceConfiguration.FrameRate` and `IncludeLandmarks` are
+  ignored (`HeadPose.LandmarkYaw`/`LandmarkPitch` stay null). Timestamps are seconds on `Stopwatch` time. The sample's
+  `HeadPose.FaceConfidence` is the model's face-presence score. The camera is opened with `ExclusiveControl`.
+- **`CaptureSupervisor`** (Core, pure) the stall watchdog and retry timing: `Opened`, `OpenFailed` (returns the delay),
+  `FrameArrived`, `Interrupt`, `Tick` returning `SupervisorAction` (`None`, `ReportInterrupted`, `Rebuild`).
+- **`WindowsSessionEvents`** `ISessionEvents`, also `IDisposable`. A message-only window on its own thread. Mapping
+  (`SessionMapping`, pure): lock/unlock to `ScreenLocked`/`ScreenUnlocked`; console disconnect/connect to
+  `SessionInactive`/`SessionActive`; `PBT_APMSUSPEND` to `SystemSleeping`; `PBT_APMRESUMEAUTOMATIC` and
+  `PBT_APMRESUMESUSPEND` to `SystemWoke` (both arrive on a user wake, so wake can repeat); `GUID_CONSOLE_DISPLAY_STATE`
+  0 or 2 to `DisplaysSleeping`, 1 to `DisplaysWoke`. Suspend/resume use `RegisterSuspendResumeNotification` because a
+  message-only window never receives the broadcast. Events are raised on the window thread, outside any lock.
+  `IsSessionInactiveNow()` is true when the session's WTS connect state is not Active, or the input desktop cannot be
+  opened or is not named "Default" (the locked workstation shows "Winlogon"). Dispose unregisters and ends the thread.
+- **Spike tools** `SwayTools` reuses the internal `CameraSource`, `LandmarkModel` and `PosePipeline` (moved to
+  `Sway.Platform.Windows.Pose`) through `InternalsVisibleTo`.

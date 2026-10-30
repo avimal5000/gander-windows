@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Sway.Core;
 using Sway.Core.Pose;
+using Sway.Platform.Windows.Pose;
 
 namespace Sway.Tools.Spikes;
 
@@ -445,7 +446,7 @@ internal static class PoseSpike
     private static PoseSession? Open(Report report, out string? failure)
     {
         failure = null;
-        var pipeline = PosePipeline.TryCreate(report);
+        var pipeline = PosePipeline.TryCreate(report.Line, out _);
         if (pipeline is null)
         {
             failure = "The face model could not be loaded, so the pose test cannot run. Use option c to see what the model looks like.";
