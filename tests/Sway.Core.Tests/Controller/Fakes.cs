@@ -89,6 +89,8 @@ public sealed class FakePoseSource : IPoseSource
 
     public CameraError? StartError { get; set; }
 
+    public Exception? ThrowOnStart { get; set; }
+
     public int StopCount { get; private set; }
 
     public IReadOnlyList<PoseSourceConfiguration> Configurations => _configurations;
@@ -113,6 +115,11 @@ public sealed class FakePoseSource : IPoseSource
     public Task<IAsyncEnumerable<PoseSourceEvent>> StartAsync(PoseSourceConfiguration configuration, CancellationToken cancellationToken = default)
     {
         _configurations.Add(configuration);
+        if (ThrowOnStart is { } thrown)
+        {
+            return Task.FromException<IAsyncEnumerable<PoseSourceEvent>>(thrown);
+        }
+
         var error = StartError ?? (_queuedStartErrors.Count > 0 ? _queuedStartErrors.Dequeue() : null);
         if (error is not null)
         {
