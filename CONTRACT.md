@@ -156,3 +156,46 @@ Windows adapters in `Sway.Platform.Windows`; their decision rules are pure and l
   opened or is not named "Default" (the locked workstation shows "Winlogon"). Dispose unregisters and ends the thread.
 - **Spike tools** `SwayTools` reuses the internal `CameraSource`, `LandmarkModel` and `PosePipeline` (moved to
   `Sway.Platform.Windows.Pose`) through `InternalsVisibleTo`.
+
+## W4 focus, displays, hotkeys, settings (issues #13, #14, #15)
+
+Windows adapters in `src/Sway.Platform.Windows`, one folder per area. Win32 calls sit behind small internal interfaces
+(`IWindowNativeCalls`, `IDisplayNative`, `IRunKeyAccess`) so the logic is tested with fakes in
+`tests/Sway.Platform.Windows.Tests`. `InternalsVisibleTo` is granted to that test project and to `SwayTools`.
+
+- **`WindowsDisplayCatalog : IDisplayCatalog`** (`Displays/`). `Current()` reads the live configuration each call
+  (EnumDisplayMonitors for rectangles, QueryDisplayConfig + DisplayConfigGetDeviceInfo for device path, friendly name,
+  output technology) and never throws (empty layout on failure). `LayoutChanged` is raised on a pump thread for
+  WM_DISPLAYCHANGE and WM_DPICHANGED, possibly repeatedly and without checking the layout really differs. The pump window
+  is hidden top-level, not message-only, because message-only windows get no broadcasts. `DisplayId` = lower-cased monitor
+  device path without the trailing interface GUID (`\\?\display#gsm5b09#5&2a5e3c3f&0&uid4352`), or `gdi:\\.\display1` when
+  Windows gives no path; duplicates get `#2`, `#3` in left-to-right order. `NativeId` = low 32 bits of the HMONITOR.
+  `DisplayLayoutBuilder` (pure) builds the `DisplayLayout`; `IsBuiltIn` = output technology internal, DisplayPort-embedded
+  or UDI-embedded. Frames are physical pixels only because the app manifest makes the process per-monitor DPI aware.
+- **`WindowSnapshot`, `WindowEligibility`, `WindowRejection`** (`Windowing/`, pure). The snapshot has handle, pid, class,
+  ex-style, owner, visible, iconic, cloaked, on-current-desktop, rect, monitor handle, process name, elevated; no title.
+  `Check` applies, in order: visible, not minimized, not cloaked, not tool-window-or-owned-popup unless `WS_EX_APPWINDOW`,
+  not `WS_EX_NOACTIVATE`, not shell chrome class, not Sway's own process, non-empty rect, on the current virtual desktop.
+  `LastUsedByDisplay(topmostFirst, ownPid, displayOfMonitor)` returns the first eligible window per display.
+  `DisplayMapper.Create(layout, boundsOfMonitor)` maps a monitor handle to a `DisplayId` (by `NativeId`, then by frame).
+- **`WindowsFocusController : IFocusController`** (`Focus/`). All native work on one dedicated worker thread
+  (`SerialWorker`); tasks complete on the thread pool. `FocusedDisplayAsync` is null for no foreground window, Sway's own
+  window, or shell chrome. `FocusAsync`: `NoWindow` when the display has no eligible window; `Focused(window, Plain, 0)`
+  when it already is foreground; otherwise restore if minimized, attach to the foreground thread (skipped, method `Plain`,
+  when that thread already owns the target), BringWindowToTop, SetForegroundWindow, detach in `finally`, then check the
+  foreground at 0, 50 ... 600 ms. `Failed` carries a reason naming the app (never a title); an elevated target with a
+  non-elevated Sway says it runs as administrator. Methods never throw. `Dispose()` stops the worker.
+- **`WindowsHotKeyRegistrar : IHotKeyRegistrar`** (`Hotkeys/`). RegisterHotKey with `MOD_NOREPEAT` on a dedicated pump
+  thread. `Register` is synchronous and throws `HotKeyException`: `InvalidShortcut` (invalid shortcut or error 87),
+  `ShortcutInUse` (1409), `RegistrationFailed` (anything else). Registering an action again replaces its shortcut.
+  **Handlers run on the pump thread**: the caller marshals to its UI thread. A handler exception is swallowed.
+  `HotKeyMapping.ToNative` maps `HotKeyModifiers` (Control = 1, Alt = 2) to Win32 `MOD_` bits (Alt = 1, Control = 2).
+- **`JsonFileSettingsStore : ISettingsStore`** (`Settings/`). One JSON object, default `%AppData%\Sway\settings.json`,
+  path injectable. Loaded once, kept in memory, every write replaces the file atomically (`.tmp` then replace). Missing
+  file = empty. Corrupt file (not JSON, or not an object) = empty plus a copy at `settings.json.bak`; the next write
+  replaces it. Unknown keys and non-string values are preserved (a non-string reads back as its JSON text). Thread-safe.
+  A failed write keeps the value in memory and sets `LastWriteError`; it does not throw.
+- **`RegistryLoginItem : ILoginItem`** (`Settings/`). HKCU `...\CurrentVersion\Run`, value `Sway` = the quoted exe path
+  (`Environment.ProcessPath`). Registry access is the `IRunKeyAccess` seam. `Status` is `Enabled` only if the value equals
+  this exe's command, `Disabled` otherwise (including a stale path), `Unavailable` if the registry throws or the path is
+  unknown. `SetEnabled` does not throw.
