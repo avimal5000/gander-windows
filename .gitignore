@@ -16,4 +16,4 @@ artifacts/
 .claude/
 
 # Fetched face model (scripts/fetch-pose-model.sh)
-src/Sway.Tools/models/*.onnx
+src/Sway.Platform.Windows/models/*.onnx
