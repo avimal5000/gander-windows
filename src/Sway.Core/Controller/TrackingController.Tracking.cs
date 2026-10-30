@@ -114,7 +114,7 @@ public sealed partial class TrackingController
     /// <summary>"Restore Defaults": hold time, pause, and confidence.</summary>
     public void RestoreSensitivityDefaults() => SetSensitivity(SwitchSensitivity.Default);
 
-    private static double Snapped(double seconds) => Math.Round(seconds / 0.05) * 0.05;
+    private static double Snapped(double seconds) => Math.Round(Math.Round(seconds / 0.05) * 0.05, 2);
 
     /// <summary>The enter margin of the current sensitivity, read per sample (for the tests and the Pose Debug view).</summary>
     public double EnterMargin => _enterMargin;
