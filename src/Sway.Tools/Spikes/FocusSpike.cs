@@ -81,7 +81,7 @@ internal static class FocusSpike
         var note = originMonitor == monitors[from].Handle ? string.Empty : "the click was not on the expected monitor";
         var describedTarget = $"{target.Process} [{target.ClassName}]";
 
-        Native.GetCursorPos(out var before);
+        Native.GetCursorPos(out var before); // privacy-guard:allow reads the position to prove it did not move
         var returned = Focus(target, origin, method);
         var focused = false;
         for (var waited = 0; waited < 600 && !focused; waited += 50)
@@ -92,7 +92,7 @@ internal static class FocusSpike
 
         var info = new Native.GuiThreadInfo { Size = System.Runtime.InteropServices.Marshal.SizeOf<Native.GuiThreadInfo>() };
         var keyboardFocus = Native.GetGUIThreadInfo(target.ThreadId, ref info) && info.Focus != IntPtr.Zero;
-        Native.GetCursorPos(out var after);
+        Native.GetCursorPos(out var after); // privacy-guard:allow reads the position to prove it did not move
         var cursorMoved = before.X != after.X || before.Y != after.Y;
 
         report.Line($"Target: {describedTarget}{(target.Elevated == true ? " (ELEVATED)" : string.Empty)}");
