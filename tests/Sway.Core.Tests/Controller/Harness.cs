@@ -56,11 +56,13 @@ public sealed class Harness : IDisposable
         CameraDevice? capturePicks = null,
         bool trackingSaved = false,
         bool sessionInactive = false,
+        double? focusPollInterval = null,
+        FakeSettingsStore? settingsStore = null,
         FakeHotKeys? hotKeys = null,
         Action<FakeSettingsStore>? seed = null)
     {
         layout ??= Fixtures.TwoDisplays;
-        var settings = new FakeSettingsStore();
+        var settings = settingsStore ?? new FakeSettingsStore();
         if (savedCameraId is not null)
         {
             settings.Values[SettingsKeys.CameraDeviceId] = savedCameraId;
@@ -93,7 +95,7 @@ public sealed class Harness : IDisposable
             Clock = () => clock.Now,
             Now = () => DateTimeOffset.FromUnixTimeSeconds(1_700_000_000),
             Engine = new FakeSwitchEngine(),
-            FocusPollInterval = null,
+            FocusPollInterval = focusPollInterval,
         };
         var controller = new TrackingController(environment);
         var harness = new Harness(environment, controller, clock);
@@ -111,19 +113,9 @@ public sealed class Harness : IDisposable
             ? JsonSerializer.Deserialize<CalibrationLibrary>(json, EngineJson.Options)
             : null;
 
-    /// <summary>A second controller on the same settings, as after a relaunch.</summary>
-    public TrackingController Relaunch(DisplayLayout? layout = null, FakeHotKeys? hotKeys = null, FakePoseSource? source = null)
-    {
-        var environment = Environment with
-        {
-            PoseSource = source ?? new FakePoseSource(),
-            Displays = new FakeDisplayCatalog(layout ?? Fixtures.TwoDisplays),
-            HotKeys = hotKeys ?? new FakeHotKeys(),
-            MainThread = new FakeMainThread(),
-            Scheduler = new ManualDelayScheduler(),
-        };
-        return new TrackingController(environment);
-    }
+    /// <summary>A second harness on the same settings, as after a relaunch (optionally on another layout).</summary>
+    public Harness Relaunch(DisplayLayout? layout = null, bool autoRun = false, FakeHotKeys? hotKeys = null) =>
+        Make(layout: layout ?? Fixtures.TwoDisplays, autoRun: autoRun, hotKeys: hotKeys, settingsStore: Settings);
 
     public void Drain() => Main.Drain();
 
@@ -151,6 +143,17 @@ public sealed class Harness : IDisposable
     /// <summary>Offers one sample stamped with <paramref name="time"/>.</summary>
     public void Feed(double time, bool face = true, double yaw = 0, double pitch = 0) =>
         Emit(new PoseSourceEvent.Sample(Fixtures.Sample(time, face, yaw, pitch)));
+
+    /// <summary>Offers several samples before the main thread runs anything, as a burst of frames would arrive.</summary>
+    public void FeedBurst(params double[] times)
+    {
+        foreach (var time in times)
+        {
+            Source.EmitSample(Fixtures.Sample(time));
+        }
+
+        Drain();
+    }
 
     /// <summary>Reports the camera as running, as the live pose source would.</summary>
     public void ReportRunning(CameraDevice? device = null) =>

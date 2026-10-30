@@ -99,6 +99,26 @@ public sealed partial class TrackingController
         Publish();
     }
 
+    /// <summary>The Hold time slider: seconds on the 0.05 s grid, inside the allowed range.</summary>
+    public void SetHoldTime(double seconds) => SetSensitivity(Sensitivity with { Dwell = Snapped(seconds) });
+
+    /// <summary>The Pause after a switch slider: seconds on the 0.05 s grid, inside the allowed range (SPEC F35).</summary>
+    public void SetCooldown(double seconds) => SetSensitivity(Sensitivity with { Cooldown = Snapped(seconds) });
+
+    /// <summary>The Switch confidence slider: 0 (Relaxed) to 4 (Strict).</summary>
+    public void SetSwitchConfidence(int level) => SetSensitivity(Sensitivity with { ConfidenceLevel = level });
+
+    /// <summary>"Use Instant timing": the shortest hold time and pause the preset sets, keeping the confidence (SPEC D49).</summary>
+    public void UseInstantTiming() => SetSensitivity(Sensitivity.ApplyingInstantTiming());
+
+    /// <summary>"Restore Defaults": hold time, pause, and confidence.</summary>
+    public void RestoreSensitivityDefaults() => SetSensitivity(SwitchSensitivity.Default);
+
+    private static double Snapped(double seconds) => Math.Round(seconds / 0.05) * 0.05;
+
+    /// <summary>The enter margin of the current sensitivity, read per sample (for the tests and the Pose Debug view).</summary>
+    public double EnterMargin => _enterMargin;
+
     private SwitchSensitivity StoredSensitivity()
     {
         if (_env.Settings.Read(SettingsKeys.SwitchSensitivity) is not { } json)

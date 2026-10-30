@@ -5,6 +5,28 @@ using Sway.Core.Runtime;
 
 namespace Sway.Core.Tests.Controller;
 
+/// <summary>
+/// xunit runs tests under its own SynchronizationContext, and a task only runs its continuations inline when the
+/// completing thread has none. The controller's tests need them inline (the dispatcher thread they stand for), so the
+/// fakes complete held tasks through this.
+/// </summary>
+internal static class Inline
+{
+    public static void Run(Action action)
+    {
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(null);
+        try
+        {
+            action();
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+}
+
 /// <summary>A main thread that queues posted work until the test drains it (like a dispatcher, minus the thread).</summary>
 public sealed class FakeMainThread : IMainThread
 {
@@ -160,7 +182,7 @@ public sealed class FakeFocus : IFocusController
 
     private TaskCompletionSource<bool>? _pollHold;
 
-    public void ReleasePoll() => _pollHold?.SetResult(true);
+    public void ReleasePoll() => Inline.Run(() => _pollHold?.SetResult(true));
 
     public void HoldFocusRequests()
     {
@@ -171,7 +193,7 @@ public sealed class FakeFocus : IFocusController
     public void Release()
     {
         _holding = false;
-        _hold?.TrySetResult(true);
+        Inline.Run(() => _hold?.TrySetResult(true));
     }
 
     public Task<IReadOnlyDictionary<DisplayId, WindowSummary>> LastUsedWindowsAsync(DisplayLayout layout) =>
