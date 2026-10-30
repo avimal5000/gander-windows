@@ -72,19 +72,38 @@ the place to look), and a third party's license field is not proof. Other candid
 the MediaPipe license for these weights and confirm redistribution is allowed, and the notice text must be added to
 the installer.** THIRD-PARTY-NOTICES.md lists the model with this caveat.
 
-## Results: pending the user's run
+## Results: first run on the user's desktop (2026-10-30)
 
-To fill in after the user runs option 3b on the Windows desktop (C922, monitor 1 left 1920x1080, monitor 2 right
-2560x1440):
+C922, monitor 1 left (1920x1080), monitor 2 right (2560x1440), 3b gate run, numbers read from `sway-pose-trace.json`
+(about 16 frames per second, roughly 62 ms between frames).
 
-- Verdict (separates clearly, marginal, does not separate):
-- Held-out accuracy:
-- Per monitor: yaw and pitch mean and standard deviation:
-- Degrees between the monitor centers, and d-prime:
-- Face found in % of frames:
-- Latency per frame (ms), frames per second, process CPU (% of the PC and of one core):
-- FaceDetector available (yes/no); camera format chosen:
-- Anything odd in the live readout (sign of yaw when looking right, jitter, roll):
+| Monitor | Round | Yaw (degrees) | Pitch (degrees) | Spread (std) |
+|---|---|---|---|---|
+| 1 (left) | 1 | no face found in any frame | | |
+| 1 (left) | 2 | about -52.3 | about +8.0 | about 1.1 yaw, 0.9 pitch |
+| 2 (right) | 1 | about -10.1 (after settling) | about -11.5 | about 0.4 yaw, 1.0 pitch |
+| 2 (right) | 2 | about -18.0 | about -14.6 | about 0.3 yaw, 0.5 pitch |
+
+- **The signal is strong.** Looking at the left monitor sits about 34 to 42 degrees of yaw away from the right
+  monitor, with each look holding within about 1 degree. The sign matches CONTRACT: turning toward the user's left is
+  negative yaw. This is comparable to the Mac gate (displays 20 to 60 degrees apart).
+- **The right monitor drifted between rounds:** yaw -10 then -18 (8 degrees), pitch -11.5 then -14.6 (3 degrees), the
+  same kind of posture drift the Mac gate showed. With the monitors this far apart it does not threaten
+  separation, but it is why calibration needs a margin and why recalibration must be easy.
+- **Cold start failed at the left monitor.** In round 1 the very first look was at the left monitor, about 50 degrees
+  off the camera, and the Windows face detector found no face in any frame (every sample `face: false`, which also
+  left the program without round 1 data for monitor 1). In round 2 the face was already being tracked from the previous
+  look, so the same pose worked. The landmark model handles the pose; the first detection does not. Tracking through a
+  large turn works. Re-acquiring a face already at 50 degrees does not.
+- **Pose zero is not at the camera.** Both monitors read negative yaw and negative pitch, so the camera is not centered
+  in front of the user. Expected for a monitor-mounted webcam; calibration absorbs it.
+
+**Verdict.** The two displays separate clearly by a wide margin once a face is found, so head pose passes the gate on
+this setup. One defect remains to fix before it is a daily driver: re-acquiring the face when it has been lost while
+the head is far turned.
+
+Not yet measured: the tool's own per-run report (d-prime, held-out accuracy, CPU, latency) was not pasted, live readout
+(3a) behavior, and CPU use.
 
 ## What it changes in SPEC.md
 
