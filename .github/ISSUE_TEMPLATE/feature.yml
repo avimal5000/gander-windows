@@ -1,0 +1,10 @@
+name: Feature
+description: Something new or better
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What should it do, and why?
+    validations:
+      required: true
