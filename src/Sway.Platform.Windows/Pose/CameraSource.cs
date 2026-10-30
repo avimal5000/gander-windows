@@ -1,12 +1,13 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Sway.Core.Platform;
 using Windows.Graphics.Imaging;
 using Windows.Media.Capture;
 using Windows.Media.Capture.Frames;
 using Windows.Media.MediaProperties;
 
-namespace Sway.Tools.Spikes;
+namespace Sway.Platform.Windows.Pose;
 
 /// <summary>One camera frame as BGRA bytes. Dispose it to give the buffer back; frames are never saved anywhere.</summary>
 internal sealed class CameraFrame : IDisposable
@@ -33,8 +34,9 @@ internal sealed class CameraFrame : IDisposable
 }
 
 /// <summary>
-/// Camera capture through Windows.Media.Capture: a MediaFrameReader on the first color source group, preferring a
-/// Logitech C922 and a format near 640x480. Only the newest frame is kept; an older one that nobody took is dropped.
+/// Camera capture through Windows.Media.Capture: a MediaFrameReader on the color source group of the chosen device
+/// (by its Windows.Devices.Enumeration id; with no id, a Logitech C922 if present, else the first), in a format near
+/// 640x480. Only the newest frame is kept; an older one that nobody took is dropped. Frames live in memory only.
 /// </summary>
 internal sealed class CameraSource : IDisposable
 {
@@ -42,30 +44,78 @@ internal sealed class CameraSource : IDisposable
     private const int TargetHeight = 480;
 
     private readonly object _gate = new();
-    private readonly Stopwatch _clock = new();
+    private readonly Stopwatch _stopwatch = new();
+    private readonly Func<double> _clock;
+    private readonly Func<double, bool>? _accept;
+    private readonly SemaphoreSlim _signal = new(0, 1);
+    private long _lastArrivalTicks = long.MinValue;
     private MediaCapture? _capture;
     private MediaFrameReader? _reader;
     private CameraFrame? _latest;
     private long _sequence;
     private int _busy;
 
+    /// <param name="clock">Seconds on a monotonic clock for frame timestamps; null means seconds since this source started.</param>
+    /// <param name="accept">
+    /// Asked for every arriving frame before it is converted; false drops the frame cheaply (the frame-rate gate).
+    /// Called on the capture callback thread.
+    /// </param>
+    internal CameraSource(Func<double>? clock = null, Func<double, bool>? accept = null)
+    {
+        _clock = clock ?? (() => _stopwatch.Elapsed.TotalSeconds);
+        _accept = accept;
+    }
+
+    /// <summary>Raised (on any thread) when the capture session reports it failed, for example the camera was unplugged.</summary>
+    internal event Action<string>? CaptureFailed;
+
+    /// <summary>The clock time of the newest frame that arrived, converted or not; null before the first one.</summary>
+    internal double? LastArrivalSeconds
+    {
+        get
+        {
+            var ticks = Interlocked.Read(ref _lastArrivalTicks);
+            return ticks == long.MinValue ? null : BitConverter.Int64BitsToDouble(ticks);
+        }
+    }
+
+    /// <summary>Waits until a converted frame is available (or the timeout / cancellation). True when one may be waiting.</summary>
+    internal bool WaitForFrame(int millisecondsTimeout, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return _signal.Wait(millisecondsTimeout, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>The system's id of the camera being read, once started.</summary>
+    internal string? DeviceId { get; private set; }
+
     /// <summary>The camera's name and chosen format, for the report.</summary>
     internal string Description { get; private set; } = "(not started)";
 
     /// <summary>Starts the camera. Returns null on success, otherwise a message a person can act on.</summary>
-    internal string? Start()
+    internal string? Start(string? deviceId = null) => OpenAsync(deviceId).GetAwaiter().GetResult().Detail;
+
+    /// <summary>Starts the camera without throwing. Kind is null on success.</summary>
+    internal async Task<CameraOpenResult> OpenAsync(string? deviceId = null)
     {
         try
         {
-            return StartAsync().GetAwaiter().GetResult();
+            var problem = await StartAsync(deviceId).ConfigureAwait(false);
+            return problem ?? CameraOpenResult.Success;
         }
         catch (UnauthorizedAccessException)
         {
-            return "Camera access is denied. Open Settings, Privacy and security, Camera, and allow desktop apps to use the camera.";
+            return new CameraOpenResult(CameraErrorKind.NotAuthorized, "Camera access is denied. Open Settings, Privacy and security, Camera, and allow desktop apps to use the camera.");
         }
         catch (Exception exception)
         {
-            return $"Could not start the camera: {exception.Message}";
+            return new CameraOpenResult(CameraErrorKind.DeviceUnavailable, $"Could not start the camera: {exception.Message}");
         }
     }
 
@@ -90,6 +140,11 @@ internal sealed class CameraSource : IDisposable
     {
         try
         {
+            if (_capture is not null)
+            {
+                _capture.Failed -= OnCaptureFailed;
+            }
+
             if (_reader is not null)
             {
                 _reader.FrameArrived -= OnFrameArrived;
@@ -112,7 +167,7 @@ internal sealed class CameraSource : IDisposable
         }
     }
 
-    private async Task<string?> StartAsync()
+    private async Task<CameraOpenResult?> StartAsync(string? deviceId)
     {
         var groups = await MediaFrameSourceGroup.FindAllAsync();
         var candidates = groups
@@ -121,14 +176,28 @@ internal sealed class CameraSource : IDisposable
             .ToList();
         if (candidates.Count == 0)
         {
-            return "No camera with color video was found. Plug in the webcam and check that no other app has it open.";
+            return new CameraOpenResult(CameraErrorKind.NoDevice, "No camera with color video was found. Plug in the webcam and check that no other app has it open.");
         }
 
-        var chosen = candidates.FirstOrDefault(candidate => candidate.Group.DisplayName.Contains("C922", StringComparison.OrdinalIgnoreCase));
-        if (chosen.Group is null)
+        (MediaFrameSourceGroup Group, MediaFrameSourceInfo? Info) chosen;
+        if (!string.IsNullOrEmpty(deviceId))
         {
-            chosen = candidates[0];
+            chosen = candidates.FirstOrDefault(candidate => string.Equals(candidate.Info?.DeviceInformation?.Id, deviceId, StringComparison.OrdinalIgnoreCase));
+            if (chosen.Group is null)
+            {
+                return new CameraOpenResult(CameraErrorKind.DeviceUnavailable, "The chosen camera is not available. It may have been unplugged.");
+            }
         }
+        else
+        {
+            chosen = candidates.FirstOrDefault(candidate => candidate.Group.DisplayName.Contains("C922", StringComparison.OrdinalIgnoreCase));
+            if (chosen.Group is null)
+            {
+                chosen = candidates[0];
+            }
+        }
+
+        DeviceId = chosen.Info?.DeviceInformation?.Id;
 
         _capture = new MediaCapture();
         await _capture.InitializeAsync(new MediaCaptureInitializationSettings
@@ -139,10 +208,11 @@ internal sealed class CameraSource : IDisposable
             StreamingCaptureMode = StreamingCaptureMode.Video,
         });
 
+        _capture.Failed += OnCaptureFailed;
         var source = _capture.FrameSources.Values.FirstOrDefault(candidate => candidate.Info.SourceKind == MediaFrameSourceKind.Color);
         if (source is null)
         {
-            return "The camera has no color frame source.";
+            return new CameraOpenResult(CameraErrorKind.ConfigurationFailed, "The camera has no color frame source.");
         }
 
         var format = ChooseFormat(source.SupportedFormats);
@@ -166,10 +236,12 @@ internal sealed class CameraSource : IDisposable
         var status = await _reader.StartAsync();
         if (status != MediaFrameReaderStartStatus.Success)
         {
-            return $"The camera would not start streaming ({status}). Another app may be using it.";
+            return new CameraOpenResult(
+                status == MediaFrameReaderStartStatus.OutputFormatNotSupported ? CameraErrorKind.ConfigurationFailed : CameraErrorKind.DeviceUnavailable,
+                $"The camera would not start streaming ({status}). Another app may be using it.");
         }
 
-        _clock.Restart();
+        _stopwatch.Restart();
         Description = $"{chosen.Group.DisplayName}, {formatText}";
         return null;
     }
@@ -188,8 +260,18 @@ internal sealed class CameraSource : IDisposable
     private static string Describe(MediaFrameFormat format) =>
         $"{format.VideoFormat.Width}x{format.VideoFormat.Height} {format.Subtype} {FrameRate(format):0.#} fps";
 
+    private void OnCaptureFailed(MediaCapture sender, MediaCaptureFailedEventArgs args) =>
+        CaptureFailed?.Invoke(args.Message);
+
     private void OnFrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
     {
+        var arrival = _clock();
+        Interlocked.Exchange(ref _lastArrivalTicks, BitConverter.DoubleToInt64Bits(arrival));
+        if (_accept is not null && !_accept(arrival))
+        {
+            return; // not wanted at this rate: the frame is never converted or copied
+        }
+
         // One conversion at a time; a frame that arrives during one is simply skipped.
         if (Interlocked.Exchange(ref _busy, 1) == 1)
         {
@@ -211,12 +293,21 @@ internal sealed class CameraSource : IDisposable
             var height = source.PixelHeight;
             var pixels = ArrayPool<byte>.Shared.Rent(width * height * 4);
             source.CopyToBuffer(pixels.AsBuffer(0, width * height * 4));
-            var frame = new CameraFrame(pixels, width, height, _clock.Elapsed.TotalSeconds);
+            var frame = new CameraFrame(pixels, width, height, arrival);
             lock (_gate)
             {
                 _latest?.Dispose(); // dropped without ever being processed
                 _latest = frame;
                 _sequence++;
+            }
+
+            try
+            {
+                _signal.Release();
+            }
+            catch (SemaphoreFullException)
+            {
+                // Already signalled: the loop will take the newest frame.
             }
         }
         catch (Exception)
@@ -228,4 +319,10 @@ internal sealed class CameraSource : IDisposable
             Volatile.Write(ref _busy, 0);
         }
     }
+}
+
+/// <summary>The outcome of opening a camera: <see cref="Kind"/> null means it is streaming.</summary>
+internal readonly record struct CameraOpenResult(CameraErrorKind? Kind, string? Detail)
+{
+    internal static CameraOpenResult Success => new(null, null);
 }

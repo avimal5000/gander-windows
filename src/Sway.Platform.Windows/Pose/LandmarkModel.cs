@@ -2,7 +2,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Sway.Core;
 
-namespace Sway.Tools.Spikes;
+namespace Sway.Platform.Windows.Pose;
 
 /// <summary>What one run of the landmark model returned.</summary>
 /// <param name="Landmarks">In frame pixels (the crop box already undone).</param>
