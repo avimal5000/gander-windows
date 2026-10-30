@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Sway.Core;
+using Sway.Core.Pose;
 using Windows.Graphics.Imaging;
 using Windows.Media.FaceAnalysis;
 
@@ -8,22 +9,27 @@ namespace Sway.Tools.Spikes;
 /// <summary>The outcome of one frame.</summary>
 /// <param name="Pose">Null when no usable face was found.</param>
 /// <param name="Milliseconds">Time spent on this frame (face finding, model, pose).</param>
-internal sealed record PoseFrame(HeadPose? Pose, double Presence, double Milliseconds, bool Detected);
+internal sealed record PoseFrame(HeadPose? Pose, double Presence, double Milliseconds, FaceSource Source);
 
 /// <summary>
 /// Frame to head pose. The system FaceDetector finds the first box (on a Gray8 copy); after that the box follows the
-/// previous frame's landmarks, enlarged 1.5x like MediaPipe does. When the model's face-presence score drops or the
-/// landmarks are unusable, the box is thrown away and the detector runs again.
+/// previous frame's landmarks, enlarged 1.5x like MediaPipe does. When the face is lost the detector runs again, and if
+/// it finds nothing (a face turned far to one side often is missed) the model is tried on a few candidate boxes per
+/// frame (<see cref="FaceSearchPlan"/>), rotating across frames.
 /// </summary>
 internal sealed class PosePipeline : IDisposable
 {
-    private const double PresenceThreshold = 0.5;
+    /// <summary>The model's face-presence score a result must reach to count as a face (tracked, detected or fallback).</summary>
+    internal const double PresenceThreshold = 0.5;
+
     private const double DetectorBoxScale = 1.6; // untested guess: the Windows detector box is tighter than MediaPipe's
     private const double TrackingBoxScale = 1.5;
 
     private readonly LandmarkModel _model;
     private readonly FaceDetector? _detector;
+    private readonly FaceSearchPlan _plan = new();
     private SquareBox? _box;
+    private SquareBox? _lastBox;
 
     private PosePipeline(LandmarkModel model, FaceDetector? detector)
     {
@@ -69,41 +75,76 @@ internal sealed class PosePipeline : IDisposable
         return new PosePipeline(model, detector);
     }
 
+    /// <summary>Forgets the tracked box and the last known face, as if the camera had just started.</summary>
+    internal void Reset()
+    {
+        _box = null;
+        _lastBox = null;
+        _plan.Reset();
+    }
+
     internal PoseFrame Process(CameraFrame frame)
     {
         var timer = Stopwatch.StartNew();
-        var detectedNow = false;
         var presence = 0.0;
 
-        // At most two tries: the tracked box, then (if that failed or there was none) a fresh detection.
-        for (var attempt = 0; attempt < 2; attempt++)
+        // 1. Tracking: one inference on the previous frame's box.
+        if (_box is { } tracked)
         {
-            if (_box is null)
-            {
-                _box = Detect(frame);
-                detectedNow = true;
-                if (_box is null)
-                {
-                    break;
-                }
-            }
-
-            var result = _model.Run(frame, _box.Value);
+            var result = _model.Run(frame, tracked);
             presence = result?.Presence ?? 0;
-            if (result is not null && result.Presence >= PresenceThreshold && PoseGeometry.TryCompute(result.Landmarks) is { } pose)
+            if (TryAccept(result, out var pose))
             {
-                _box = SquareBox.FromLandmarks(result.Landmarks, TrackingBoxScale);
-                return new PoseFrame(pose, presence, timer.Elapsed.TotalMilliseconds, detectedNow);
+                return new PoseFrame(pose, presence, timer.Elapsed.TotalMilliseconds, FaceSource.Tracked);
             }
 
-            _box = null; // lost: detect again
-            if (detectedNow)
+            _box = null; // lost
+        }
+
+        // 2. The system detector (or the centered box when there is no detector).
+        var detected = Detect(frame);
+        if (detected is { } fresh)
+        {
+            var result = _model.Run(frame, fresh);
+            presence = Math.Max(presence, result?.Presence ?? 0);
+            if (TryAccept(result, out var pose))
             {
-                break; // that box was fresh, so another detection this frame would find the same thing
+                return new PoseFrame(pose, presence, timer.Elapsed.TotalMilliseconds, FaceSource.Detector);
             }
         }
 
-        return new PoseFrame(null, presence, timer.Elapsed.TotalMilliseconds, detectedNow);
+        // 3. Fallback: the landmark model on a few candidate boxes, rotating across frames.
+        foreach (var candidate in _plan.Next(_lastBox, frame.Width, frame.Height, FaceSearchPlan.DefaultAttemptsPerFrame))
+        {
+            var result = _model.Run(frame, candidate);
+            presence = Math.Max(presence, result?.Presence ?? 0);
+            if (TryAccept(result, out var pose))
+            {
+                return new PoseFrame(pose, presence, timer.Elapsed.TotalMilliseconds, FaceSource.Fallback);
+            }
+        }
+
+        return new PoseFrame(null, presence, timer.Elapsed.TotalMilliseconds, FaceSource.NotFound);
+    }
+
+    /// <summary>Accepts a model result whose presence passes the threshold and whose landmarks give a pose; updates the tracked box.</summary>
+    private bool TryAccept(LandmarkResult? result, out HeadPose pose)
+    {
+        pose = default;
+        if (result is null || result.Presence < PresenceThreshold || PoseGeometry.TryCompute(result.Landmarks) is not { } computed)
+        {
+            return false;
+        }
+
+        pose = computed;
+        _box = SquareBox.FromLandmarks(result.Landmarks, TrackingBoxScale);
+        if (_box is not null)
+        {
+            _lastBox = _box;
+        }
+
+        _plan.Reset();
+        return true;
     }
 
     private SquareBox? Detect(CameraFrame frame)

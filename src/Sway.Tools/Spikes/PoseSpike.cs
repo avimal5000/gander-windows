@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Sway.Core;
+using Sway.Core.Pose;
 
 namespace Sway.Tools.Spikes;
 
@@ -15,8 +16,11 @@ internal static class PoseSpike
     private const double SettleSeconds = 1.5;
     private const double HoldSeconds = 3.0;
     private const double MinimumFaceRate = 0.7;
+    private const double WarmupSeconds = 2.0;
+    private const double AwaySeconds = 2.0;
+    private const double ColdHoldSeconds = 3.0;
 
-    /// <summary>Runs the sub-menu (a live readout, b gate run, c describe model).</summary>
+    /// <summary>Runs the sub-menu (a live readout, b gate run, c describe model, d cold-start test).</summary>
     internal static void Run(string? option)
     {
         if (option is null)
@@ -25,6 +29,7 @@ internal static class PoseSpike
             Console.WriteLine("  a  Live readout of yaw, pitch and roll");
             Console.WriteLine("  b  Gate run: look at each monitor and see if they separate");
             Console.WriteLine("  c  Describe the face model (no camera)");
+            Console.WriteLine("  d  Cold-start test: how fast is a far-turned face found from no face");
             Console.Write("Choose: ");
             option = Console.ReadLine()?.Trim().ToLowerInvariant();
         }
@@ -36,6 +41,9 @@ internal static class PoseSpike
                 break;
             case "b" or "gate":
                 Gate();
+                break;
+            case "d" or "cold" or "cold-start":
+                ColdStart();
                 break;
             case "c" or "describe" or "--describe-model":
                 Describe();
@@ -100,12 +108,13 @@ internal static class PoseSpike
                 var text = pose is { } p
                     ? $"yaw {p.Yaw,6:0.0}  pitch {p.Pitch,6:0.0}  roll {p.Roll,6:0.0}  face yes"
                     : "yaw    --    pitch    --    roll    --    face NO ";
-                Console.Write($"\r{text}  {meters.Fps,4:0.0} fps  {last.Milliseconds,5:0.0} ms  CPU {meters.CpuPercent,4:0.0}%   ");
+                Console.Write($"\r{text}  {meters.Fps,4:0.0} fps  {last.Milliseconds,5:0.0} ms  CPU {meters.CpuPercent,4:0.0}%  {last.Source,-8} lost-run max {meters.Find.LongestLostRun}   ");
             }
         }
 
         Console.WriteLine();
         report.Line($"Stopped. {meters.Frames} frames, face found in {meters.FaceRate:P0}.");
+        report.Line($"Finding: {meters.Find.Summary()}");
     }
 
     // ---- b) gate run ----
@@ -137,6 +146,7 @@ internal static class PoseSpike
         var samples = new List<PoseSample>();
         var meters = new Meters();
         var origin = Stopwatch.StartNew();
+        Warmup(session);
         for (var round = 1; round <= Rounds; round++)
         {
             for (var index = 0; index < monitors.Count; index++)
@@ -150,6 +160,153 @@ internal static class PoseSpike
         }
 
         Finish(report, session, samples, meters);
+    }
+
+    /// <summary>Cold-start prompt: look at the screen center for a moment so the tracker starts normally. Not recorded.</summary>
+    private static void Warmup(PoseSession session)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"First, look at the CENTER of your screen for {WarmupSeconds:0.#} seconds so tracking can start. Starting in");
+        for (var second = CountdownSeconds; second > 0; second--)
+        {
+            Console.Write($"  {second} ");
+            Thread.Sleep(1000);
+        }
+
+        Console.WriteLine();
+        Console.Beep(660, 150);
+        var phase = Stopwatch.StartNew();
+        long sequence = 0;
+        while (phase.Elapsed.TotalSeconds < WarmupSeconds)
+        {
+            using var frame = session.Camera.TryTake(ref sequence);
+            if (frame is null)
+            {
+                Thread.Sleep(2);
+                continue;
+            }
+
+            session.Pipeline.Process(frame);
+        }
+
+        Console.Beep(440, 150);
+    }
+
+    // ---- d) cold-start test ----
+
+    private static void ColdStart()
+    {
+        using var report = new Report("sway-pose-coldstart.txt");
+        report.Line($"SwayTools cold-start test, {DateTime.Now:yyyy-MM-dd HH:mm}");
+        var monitors = Survey.Monitors();
+        if (monitors.Count < 2)
+        {
+            report.Line("This test needs at least two monitors. Plug them in and run it again.");
+            return;
+        }
+
+        using var session = Open(report, out var failure);
+        if (session is null)
+        {
+            report.Line(failure!);
+            return;
+        }
+
+        report.Line();
+        report.Line($"For each monitor: look AWAY from the camera for {AwaySeconds:0.#} s (at your keyboard or a wall), a beep, then look at");
+        report.Line($"the named monitor and hold for {ColdHoldSeconds:0.#} s. We time how long after the beep your face is found.");
+
+        var all = new FindStats();
+        var results = new List<string>();
+        for (var index = 0; index < monitors.Count; index++)
+        {
+            var position = Position(index, monitors.Count);
+            report.Line();
+            report.Line($"--- Cold start: monitor {index + 1} ({position}) ---");
+            Console.WriteLine($"Get ready. You will look AWAY from the camera, then at monitor {index + 1} ({position}) after the beep. Starting in");
+            for (var second = CountdownSeconds; second > 0; second--)
+            {
+                Console.Write($"  {second} ");
+                Thread.Sleep(1000);
+            }
+
+            Console.WriteLine();
+            results.Add(ColdStartOne(session, report, index + 1, position, all));
+        }
+
+        report.Line();
+        report.Line("== Cold-start summary ==");
+        foreach (var line in results)
+        {
+            report.Line(line);
+        }
+
+        report.Line($"Finding overall: {all.Summary()}");
+        report.Line("Judge by 'seconds after the beep until face found' per monitor: under about 0.5 s is good, never found is a failure.");
+        report.Line($"Also saved to: {report.Path}");
+    }
+
+    private static string ColdStartOne(PoseSession session, Report report, int number, string position, FindStats all)
+    {
+        session.Pipeline.Reset();
+        Console.WriteLine("  look AWAY from the camera now...");
+        var away = Stopwatch.StartNew();
+        long sequence = 0;
+        var stillSeen = 0;
+        while (away.Elapsed.TotalSeconds < AwaySeconds)
+        {
+            using var frame = session.Camera.TryTake(ref sequence);
+            if (frame is null)
+            {
+                Thread.Sleep(2);
+                continue;
+            }
+
+            var result = session.Pipeline.Process(frame);
+            if (away.Elapsed.TotalSeconds > AwaySeconds - 0.5 && result.Pose is not null)
+            {
+                stillSeen++;
+            }
+        }
+
+        session.Pipeline.Reset(); // start from no face whatever happened while looking away
+        Console.Beep(880, 150);
+        Console.WriteLine($"  NOW look at monitor {number} ({position}) and hold.");
+        var hold = Stopwatch.StartNew();
+        var stats = new FindStats();
+        double? firstFound = null;
+        var firstSource = FaceSource.NotFound;
+        while (hold.Elapsed.TotalSeconds < ColdHoldSeconds)
+        {
+            using var frame = session.Camera.TryTake(ref sequence);
+            if (frame is null)
+            {
+                Thread.Sleep(2);
+                continue;
+            }
+
+            var result = session.Pipeline.Process(frame);
+            stats.Add(result.Source);
+            all.Add(result.Source);
+            if (firstFound is null && result.Pose is not null)
+            {
+                firstFound = hold.Elapsed.TotalSeconds;
+                firstSource = result.Source;
+            }
+        }
+
+        Console.Beep(440, 200);
+        var outcome = firstFound is { } t
+            ? $"face found {t:0.00} s after the beep (via {firstSource})"
+            : $"face NEVER found in {ColdHoldSeconds:0.#} s";
+        var line = $"monitor {number} ({position}): {outcome}; {stats.Summary()}";
+        report.Line(line);
+        if (stillSeen > 0)
+        {
+            report.Line($"  note: a face was still being found in the last 0.5 s of looking away ({stillSeen} frames), so this was not a clean cold start.");
+        }
+
+        return line;
     }
 
     private static void Countdown(int number, string position)
@@ -226,6 +383,7 @@ internal static class PoseSpike
         report.Line($"Face found in {result.FaceRate:P1} of recorded frames");
         report.Line($"Latency per frame: mean {meters.MeanMilliseconds:0.0} ms, worst {meters.MaxMilliseconds:0.0} ms");
         report.Line($"Frame rate: {meters.Fps:0.0} fps; process CPU {meters.CpuPercent:0.0}% of the whole PC ({meters.CpuPercentOfOneCore:0}% of one core)");
+        report.Line($"Face finding: {meters.Find.Summary()}");
         report.Line($"Face detector: {(session.Pipeline.HasDetector ? "Windows FaceDetector" : "not available (centered box fallback)")}");
         if (result.FaceRate < MinimumFaceRate)
         {
@@ -324,6 +482,8 @@ internal static class PoseSpike
             _cpuStart = _process.TotalProcessorTime;
         }
 
+        internal FindStats Find { get; } = new();
+
         internal int Frames { get; private set; }
 
         internal double MaxMilliseconds { get; private set; }
@@ -362,6 +522,7 @@ internal static class PoseSpike
         internal void Add(PoseFrame frame)
         {
             Frames++;
+            Find.Add(frame.Source);
             _totalMilliseconds += frame.Milliseconds;
             MaxMilliseconds = Math.Max(MaxMilliseconds, frame.Milliseconds);
             if (frame.Pose is not null)
