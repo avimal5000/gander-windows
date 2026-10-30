@@ -92,3 +92,29 @@ inputs and expected numbers. Representation differences only:
 - `Date` is `DateTimeOffset`; swift enums with payloads (`SwitchPhase`) are records; `Set<DisplayID>?` is `IReadOnlySet<DisplayId>?`.
 - JSON uses camelCase property names like the Mac files. `DisplayId` is `{"rawValue": ...}` as on the Mac.
 - No logging calls (the Swift code only logs at debug level).
+
+## 3. Platform interfaces (milestones W3 to W5)
+
+Defined in `Sway.Core.Platform` (portable). The Windows adapters live in `Sway.Platform.Windows` and the tests use
+fakes. Rules for every adapter:
+
+- **Threads.** Events (`DevicesChanged`, `LayoutChanged`, `SessionEvents.Occurred`, hotkey handlers) may be raised on any
+  thread, and more than once for one real change. The tracking controller serializes them; adapters never call back
+  into the controller while holding a lock.
+- **Camera.** `IPoseSource.StartAsync` is the only thing that turns the camera on, and `StopAsync` (or disposal) turns it
+  off and returns only after the capture session is released. A pose sample with a null pose means "no face this frame".
+  No frame, bitmap, or pixel leaves the adapter; only `TimedPose` numbers do. Timestamps are seconds on a monotonic
+  clock.
+- **Capture status.** Reported in order: `Starting`, `Running(device)`, then `Interrupted`, `Suspended(reason)` or
+  `Failed(error)`, and `Stopped` after a stop. A camera that disappears reports `Failed(DeviceUnavailable)`.
+- **Focus.** `FocusAsync` uses the verified recipe of docs/decisions/02-focus.md (attach to the foreground thread, bring to
+  top, set foreground, poll up to 600 ms for the foreground window to equal the target, always detach), never moves or
+  reads the cursor in shipped code, and never synthesizes input. Window enumeration follows docs/decisions/03: topmost
+  eligible window per display; windows are identified by handle, process id and app name only (no titles).
+- **Displays.** Display ids are stable for the same physical monitor across runs (derived from the monitor's device
+  path/EDID identity, not the `\\.\DISPLAYn` name, which can change); `DisplayInfo.Name` is the friendly name.
+  `DisplayRect` is in physical pixels in virtual-screen coordinates; the process is per-monitor DPI aware.
+- **Hotkeys.** `RegisterHotKey` only; no keyboard hook. `Register` throws `HotKeyException`; the caller shows it.
+- **Settings.** Plain strings in one JSON file; writes are atomic (write temp, replace). Unknown keys are kept.
+- **Privacy.** `scripts/privacy-guard.sh` bans networking, saved images, input synthesis and capture, and cursor APIs in
+  `src/`. A needed exception carries a `privacy-guard:allow` comment saying why and is called out in the PR.
