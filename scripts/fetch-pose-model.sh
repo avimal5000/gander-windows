@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Downloads the face-landmark model used by the pose spike (docs/decisions/01-pose-pipeline.md) to
-# src/Sway.Tools/models/face_landmark.onnx and checks its SHA-256. Development and CI time only: the shipped program
+# src/Sway.Platform.Windows/models/face_landmark.onnx and checks its SHA-256. Development and CI time only: the shipped program
 # contains no network code and the model is bundled, never fetched by Sway itself.
 # Skips the download when the file is already present and correct; fails loudly on any mismatch.
 set -euo pipefail
@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 COMMIT="32714088ed9830a98df6ee653ad406a3b83ef014"
 URL="https://huggingface.co/fernandotonon/QtMeshEditor-facemesh-onnx/resolve/${COMMIT}/face_landmarks.onnx"
 SHA256="d16e5a55e6a480284d468ee32469692464049518c311662ab3956681de31e3e9"
-DEST="src/Sway.Tools/models/face_landmark.onnx"
+DEST="src/Sway.Platform.Windows/models/face_landmark.onnx"
 
 sha256_of() {
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi

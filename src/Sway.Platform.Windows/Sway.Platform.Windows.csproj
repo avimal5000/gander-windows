@@ -7,6 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The one allowed third-party dependency (SPEC D4): local inference only, no network code. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The face model is fetched by scripts/fetch-pose-model.sh and never committed. It flows to every project that
+         references this one. -->
+    <Content Include="models\*.onnx" CopyToOutputDirectory="PreserveNewest" LinkBase="models" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Sway.Core\Sway.Core.csproj" />
   </ItemGroup>
 
