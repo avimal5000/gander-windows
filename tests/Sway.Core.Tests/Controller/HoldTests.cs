@@ -290,6 +290,37 @@ public class HoldTests
         Assert.Contains("Space hold ended by timeout after 0.60 s", h.Controller.LogLines);
     }
 
+    [Fact]
+    public async Task ALayoutChangeWithoutANotificationLeavesNoHold()
+    {
+        using var h = await TrackingHarness();
+
+        h.Displays.Change(Rearranged);
+        h.Drain();
+
+        Assert.Null(h.Controller.TrackingHold);
+        Assert.False(h.Scheduler.HasPending);
+    }
+
+    [Fact]
+    public async Task TheHoldsRankInThePublishedOrder()
+    {
+        using var h = await TrackingHarness();
+        h.Focus.HoldFocusRequests();
+        ScriptLook(h, Right);
+        h.Feed(1.4);
+        Assert.Equal(TrackingHold.Switching, h.Controller.TrackingHold);
+
+        h.Controller.ActiveDesktopChanged();
+        Assert.Equal(TrackingHold.SpaceChanging, h.Controller.TrackingHold);
+        ScreenParametersChanged(h);
+        Assert.Equal(TrackingHold.DisplaysChanging, h.Controller.TrackingHold);
+        h.Controller.SetSwayInFront(true);
+        Assert.Equal(TrackingHold.SwayInFront, h.Controller.TrackingHold);
+        h.Controller.SetFocusLock(true);
+        Assert.Equal(TrackingHold.FocusLock, h.Controller.TrackingHold);
+    }
+
     // MARK: Virtual desktops changing
 
     [Fact]

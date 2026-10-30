@@ -700,6 +700,110 @@ public class CameraRecoveryTests
         Assert.Equal("Camera busy", h.Controller.StatusLine);
     }
 
+    [Fact]
+    public async Task AFailedRetryWithNothingLeftToUseTurnsTrackingOffAndClearsTheRetry()
+    {
+        using var h = await FallbackHarness(calibrated: [External, BuiltIn]);
+        h.Source.FailNextStarts(new CameraError(CameraErrorKind.NoDevice));
+        UnplugExternal(h);
+        h.Advance(5);
+        Assert.True(h.Controller.TrackingEnabled); // The first failure only waits for the next try.
+        Assert.True(h.Scheduler.HasPending); // A retry is waiting.
+
+        h.Cameras.Devices = [];
+        h.Cameras.NotifyOnly();
+        h.Drain();
+        h.Advance(TrackingController.EnvironmentRefreshDelay);
+        h.Advance(TrackingController.CameraFallbackDelay);
+
+        Assert.False(h.Controller.TrackingEnabled);
+        Assert.Equal(TrackingStatus.CameraDisconnected(External.Name), h.Controller.TrackingStatus);
+        Assert.False(h.Scheduler.HasPending); // The retry is cancelled with it.
+    }
+
+    [Fact]
+    public async Task NothingTurnsOffWhileACalibrationRunsAndItDoesAfterItEnds()
+    {
+        using var h = await FallbackHarness(calibrated: [External]);
+        await h.Controller.SetCalibrationRunningAsync(true);
+        h.Drain();
+
+        UnplugExternal(h);
+        h.Advance(30);
+        Assert.True(h.Controller.TrackingEnabled);
+        Assert.True(h.Controller.IsCameraActive);
+        Assert.Null(h.Controller.LostCameraId);
+
+        await h.Controller.SetCalibrationRunningAsync(false);
+        h.Drain();
+        h.Advance(TrackingController.CameraFallbackDelay);
+        Assert.False(h.Controller.TrackingEnabled); // The wait had to run again after the calibration.
+        Assert.False(h.Controller.IsCameraActive);
+    }
+
+    [Fact]
+    public async Task NeverSwitchesCamerasWhileACalibrationRunsAndTheWaitThatRanOutEndsAfterIt()
+    {
+        using var h = await FallbackHarness();
+        await h.Controller.SetCalibrationRunningAsync(true);
+        h.Drain();
+        var starts = h.Source.StartCount;
+
+        UnplugExternal(h);
+        h.Advance(30);
+        Assert.Equal(starts, h.Source.StartCount);
+        Assert.Null(h.Controller.FallbackCamera);
+
+        await h.Controller.SetCalibrationRunningAsync(false);
+        h.Drain();
+        h.Advance(TrackingController.CameraFallbackDelay);
+        Assert.Equal(BuiltIn, h.Controller.FallbackCamera);
+        Assert.Equal(BuiltIn.Id, Ids(h).Last());
+    }
+
+    [Fact]
+    public async Task TheChosenCameraComingBackWaitsForACalibrationToEnd()
+    {
+        using var h = await FallbackHarness();
+        UnplugExternal(h);
+        h.Advance(5);
+        Assert.Equal(BuiltIn, h.Controller.FallbackCamera);
+        await h.Controller.SetCalibrationRunningAsync(true);
+        h.Drain();
+        var starts = h.Source.StartCount;
+
+        ReplugExternal(h);
+        Assert.Equal(starts, h.Source.StartCount); // A calibration is running: the camera stays as it is.
+        Assert.Equal(BuiltIn, h.Controller.FallbackCamera);
+
+        await h.Controller.SetCalibrationRunningAsync(false);
+        h.Drain();
+        h.Advance(TrackingController.EnvironmentRefreshDelay);
+        Assert.Null(h.Controller.FallbackCamera);
+        Assert.Equal(External.Id, Ids(h).Last());
+    }
+
+    [Fact]
+    public async Task NothingTurnsOffWhileTheCameraIsSuspended()
+    {
+        using var h = await FallbackHarness(calibrated: [External]);
+        UnplugExternal(h);
+        h.Advance(3);
+
+        h.ReportStatus(new CaptureStatus.Suspended(SuspendReason.ScreenLocked));
+        h.Advance(60);
+        Assert.True(h.Controller.TrackingEnabled);
+        Assert.True(h.Controller.IsCameraActive);
+        Assert.Equal(0, h.Source.StopCount);
+
+        // After the wake the camera is still missing: the five seconds start again.
+        h.ReportStatus(new CaptureStatus.Interrupted("Camera disconnected"));
+        h.Advance(4.99);
+        Assert.True(h.Controller.TrackingEnabled);
+        h.Advance(0.01);
+        Assert.False(h.Controller.TrackingEnabled);
+    }
+
     private static async Task<Harness> StandInHarness()
     {
         var h = await FallbackHarness();
