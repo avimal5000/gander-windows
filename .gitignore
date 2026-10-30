@@ -1,0 +1,16 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+publish/
+artifacts/
+
+# macOS
+.DS_Store
+
+# Local tooling and logs
+.build-logs/
+.claude/
