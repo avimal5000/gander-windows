@@ -4,6 +4,8 @@ Console.WriteLine("SwayTools: spike programs for Sway on Windows");
 Console.WriteLine();
 Console.WriteLine("  1  System info: Windows, cameras, monitors, windows   (S3)");
 Console.WriteLine("  2  Focus test: move focus between monitors             (S2)");
+Console.WriteLine("  3  Pose test: head yaw/pitch, do the monitors separate?  (S1)");
+Console.WriteLine("       3a live readout, 3b gate run, 3c describe the face model (no camera)");
 Console.WriteLine("  q  Quit");
 Console.WriteLine();
 
@@ -22,6 +24,15 @@ switch (choice)
         break;
     case "2" or "focus":
         FocusSpike.Run();
+        break;
+    case "3" or "pose":
+        PoseSpike.Run(null);
+        break;
+    case "3a" or "3b" or "3c":
+        PoseSpike.Run(choice[1..]);
+        break;
+    case "--describe-model":
+        PoseSpike.Run("c");
         break;
     default:
         return;
