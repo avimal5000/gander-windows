@@ -25,6 +25,7 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
 {
     internal const int ChannelCapacity = 64;
     private const int MaxConsecutiveInferenceFailures = 50;
+    private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(5);
 
     private readonly ICameraCatalog _catalog;
     private readonly string _modelPath;
@@ -87,7 +88,14 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
         }
 
         run.Cancel();
-        await run.Task.ConfigureAwait(false);
+
+        // Bounded: if a driver stalls the capture thread, quitting still finishes (the process exit releases the camera).
+        var finished = await Task.WhenAny(run.Task, Task.Delay(StopTimeout)).ConfigureAwait(false) == run.Task;
+        if (!finished)
+        {
+            _log?.Invoke("The camera did not stop within " + StopTimeout.TotalSeconds.ToString("0") + " s; giving up waiting.");
+        }
+
         lock (_gate)
         {
             if (ReferenceEquals(_run, run))
@@ -96,7 +104,10 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
             }
         }
 
-        run.DisposeToken();
+        if (finished)
+        {
+            run.DisposeToken(); // a stalled thread still uses the token, so it is left to the collector
+        }
     }
 
     public void SetDemand(PoseDemand demand)
@@ -156,7 +167,12 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
                 if (open)
                 {
                     open = false;
-                    var outcome = OpenCamera(run.Configuration, supervisor, out camera, out device, out var terminal);
+                    var outcome = OpenCamera(run.Configuration, supervisor, token, out camera, out device, out var terminal);
+                    if (token.IsCancellationRequested)
+                    {
+                        break; // stopped while opening: the finally releases whatever opened
+                    }
+
                     if (terminal is not null)
                     {
                         run.Emit(new CaptureStatus.Failed(terminal));
@@ -269,7 +285,7 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
     /// Opens the camera. Returns null when streaming (or when a terminal error was set), else the Interrupted status
     /// for a failure worth retrying (the supervisor then holds the retry time).
     /// </summary>
-    private CaptureStatus? OpenCamera(PoseSourceConfiguration configuration, CaptureSupervisor supervisor, out CameraSource? camera, out CameraDevice? device, out CameraError? terminal)
+    private CaptureStatus? OpenCamera(PoseSourceConfiguration configuration, CaptureSupervisor supervisor, CancellationToken token, out CameraSource? camera, out CameraDevice? device, out CameraError? terminal)
     {
         camera = null;
         device = null;
@@ -289,7 +305,21 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
         }
 
         var source = new CameraSource(() => MonotonicClock.Seconds, Accept);
-        var result = source.OpenAsync(device.Id).GetAwaiter().GetResult();
+
+        // Bounded: a stalled driver neither hangs a stop nor keeps the camera on. A result that arrives after the
+        // wait ended is disposed when it does, so a late open cannot leave the camera running.
+        var deviceId = device.Id;
+        var bounded = BoundedWait.Open(() => source.OpenAsync(deviceId), BoundedWait.CameraOpenTimeout, token, _ => source.Dispose());
+        if (bounded.Outcome == BoundedOutcome.Cancelled)
+        {
+            return null;
+        }
+
+        var result = bounded.Outcome == BoundedOutcome.TimedOut
+            ? new CameraOpenResult(CameraErrorKind.DeviceUnavailable, "The camera did not respond in time.")
+            : bounded.Fault is { } fault
+                ? new CameraOpenResult(CameraErrorKind.DeviceUnavailable, $"Could not start the camera: {fault.Message}")
+                : bounded.Value;
         if (result.Kind is null)
         {
             camera = source;
@@ -297,7 +327,11 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
             return null;
         }
 
-        source.Dispose();
+        if (bounded.Outcome == BoundedOutcome.Completed)
+        {
+            source.Dispose();
+        }
+
         var detail = result.Detail ?? "The camera could not be opened.";
         if (result.Kind == CameraErrorKind.DeviceUnavailable && IsPresent(device))
         {

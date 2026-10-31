@@ -39,6 +39,11 @@ public sealed partial class TrackingController
         }
 
         SwayInFront = inFront;
+        if (inFront)
+        {
+            CancelPendingSwitch();
+        }
+
         Publish();
     }
 

@@ -17,6 +17,11 @@ public sealed partial class TrackingController
         }
 
         FocusLocked = locked;
+        if (locked)
+        {
+            CancelPendingSwitch();
+        }
+
         SyncPoseDemand();
         Log($"Focus Lock {(locked ? "on" : "off")}");
         Publish();
@@ -91,6 +96,15 @@ public sealed partial class TrackingController
         {
             ShortcutMessage = ShortcutMessageFor(error, shortcut);
             IsShortcutRegistered = Restore(previous);
+            Publish();
+            return false;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // The platform failed in another way (for example its message window is gone): same outcome, no crash.
+            ShortcutMessage = "The shortcut could not be set up.";
+            IsShortcutRegistered = Restore(previous);
+            Log($"The Focus Lock shortcut could not be registered ({ex.GetType().Name})");
             Publish();
             return false;
         }

@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Sway.Core.Platform;
+using Sway.Core.Runtime;
 using Windows.Graphics.Imaging;
 using Windows.Media.Capture;
 using Windows.Media.Capture.Frames;
@@ -148,8 +149,13 @@ internal sealed class CameraSource : IDisposable
             if (_reader is not null)
             {
                 _reader.FrameArrived -= OnFrameArrived;
-                _reader.StopAsync().AsTask().GetAwaiter().GetResult();
-                _reader.Dispose();
+                // A driver that stalls must not hang the caller (quit): wait a few seconds, then release the camera anyway
+                // by disposing the capture below.
+                var stopped = _reader.StopAsync().AsTask();
+                if (BoundedWait.TryWait(stopped, BoundedWait.CameraStopTimeout))
+                {
+                    _reader.Dispose();
+                }
             }
         }
         catch (Exception)

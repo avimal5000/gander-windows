@@ -65,6 +65,14 @@ public sealed class TrackingLoop : IEquatable<TrackingLoop>
         }
     }
 
+    /// <summary>Ends the running request without an outcome (it was cancelled before it acted): focus is unchanged.</summary>
+    public void CancelAttempt()
+    {
+        InFlight = null;
+        _attemptBefore = null;
+        Epoch++;
+    }
+
     /// <summary>Marks the start of a focused-display poll. Hand the returned epoch to <see cref="PollFinished"/>.</summary>
     public int PollStarted() => Epoch;
 

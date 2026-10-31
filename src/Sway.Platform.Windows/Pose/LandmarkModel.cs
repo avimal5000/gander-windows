@@ -19,6 +19,9 @@ internal sealed class LandmarkModel : IDisposable
     private static readonly object TelemetryGate = new();
     private static bool _telemetryOff;
 
+    /// <summary>Intra-op threads for the session: small on purpose (see <see cref="TryOpen"/>).</summary>
+    internal const int IntraOpThreads = 2;
+
     private readonly InferenceSession _session;
     private readonly string _inputName;
     private readonly ModelLayout _layout;
@@ -49,16 +52,17 @@ internal sealed class LandmarkModel : IDisposable
             return $"Model file not found: {path}\nRun scripts/fetch-pose-model.sh in the repository and rebuild.";
         }
 
-        return Describe(File.ReadAllBytes(path), path, out layout);
-    }
-
-    /// <summary>Describes model bytes already read (and, for the product, already hash-checked).</summary>
-    private static string Describe(byte[] model, string path, out ModelLayout? layout)
-    {
-        layout = null;
+        var model = File.ReadAllBytes(path);
         EnsureTelemetryOff();
         using var session = new InferenceSession(model);
-        var lines = new List<string> { $"Model file: {path} ({model.Length:N0} bytes)" };
+        return Describe(session, model.Length, path, out layout);
+    }
+
+    /// <summary>Describes an already open session, so the product opens the model once.</summary>
+    private static string Describe(InferenceSession session, int modelLength, string path, out ModelLayout? layout)
+    {
+        layout = null;
+        var lines = new List<string> { $"Model file: {path} ({modelLength:N0} bytes)" };
         var inputShape = new List<int>();
         foreach (var (name, meta) in session.InputMetadata)
         {
@@ -115,15 +119,37 @@ internal sealed class LandmarkModel : IDisposable
                 return null;
             }
 
-            message = Describe(bytes, path, out var layout);
-            if (layout is null)
-            {
-                return null;
-            }
+            EnsureTelemetryOff();
 
-            var options = new SessionOptions { GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL };
+            // A small face-mesh model at 15 fps needs no thread per core and no spinning workers: that only burns CPU
+            // and battery on an always-on tray app. One session, opened once; the options are not needed after it exists.
+            using var options = new SessionOptions
+            {
+                GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL,
+                IntraOpNumThreads = IntraOpThreads,
+                InterOpNumThreads = 1,
+                ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
+            };
+            options.AddSessionConfigEntry("session.intra_op.allow_spinning", "0");
+            options.AddSessionConfigEntry("session.inter_op.allow_spinning", "0");
+
             var session = new InferenceSession(bytes, options);
-            return new LandmarkModel(session, session.InputNames[0], layout, message);
+            try
+            {
+                message = Describe(session, bytes.Length, path, out var layout);
+                if (layout is null)
+                {
+                    session.Dispose();
+                    return null;
+                }
+
+                return new LandmarkModel(session, session.InputNames[0], layout, message);
+            }
+            catch
+            {
+                session.Dispose();
+                throw;
+            }
         }
         catch (Exception exception)
         {
@@ -138,7 +164,7 @@ internal sealed class LandmarkModel : IDisposable
         FaceCrop.FillTensor(frame.Pixels, frame.Width, frame.Height, box, _layout.Size, _layout.ChannelsFirst, _input.Buffer.Span);
         using var results = _session.Run(new[] { NamedOnnxValue.CreateFromTensor(_inputName, _input) });
 
-        var landmarks = results.First(value => value.Name == _outputNames[_layout.LandmarkOutput]).AsEnumerable<float>().ToArray();
+        var landmarks = Output(results, _layout.LandmarkOutput).AsTensor<float>().ToArray();
         if (landmarks.Length < PoseGeometry.MinimumLandmarks * 3)
         {
             return null;
@@ -147,11 +173,26 @@ internal sealed class LandmarkModel : IDisposable
         var presence = 1.0;
         if (_layout.ScoreOutput >= 0)
         {
-            var raw = results.First(value => value.Name == _outputNames[_layout.ScoreOutput]).AsEnumerable<float>().First();
+            var raw = Output(results, _layout.ScoreOutput).AsTensor<float>().GetValue(0);
             presence = raw is >= 0 and <= 1 ? raw : FaceCrop.Sigmoid(raw); // the converted graph outputs a logit
         }
 
         return new LandmarkResult(FaceCrop.MapToFrame(landmarks, _layout.Size, box), presence);
+    }
+
+    // Outputs come back in the session's output order, so the layout's index is the position (no name search per frame).
+    private DisposableNamedOnnxValue Output(IReadOnlyCollection<DisposableNamedOnnxValue> results, int index)
+    {
+        var position = 0;
+        foreach (var value in results)
+        {
+            if (position++ == index)
+            {
+                return value;
+            }
+        }
+
+        throw new InvalidOperationException($"The model returned no output '{_outputNames[index]}'.");
     }
 
     public void Dispose() => _session.Dispose();

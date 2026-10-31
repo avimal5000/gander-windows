@@ -64,11 +64,12 @@ public sealed class WindowsFocusController : IFocusController, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<FocusResult> FocusAsync(DisplayId display, DisplayLayout layout)
+    public async Task<FocusResult> FocusAsync(DisplayId display, DisplayLayout layout, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _worker.Run(() => Focus(display, layout)).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return await _worker.Run(() => Focus(display, layout, cancellationToken)).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -102,8 +103,10 @@ public sealed class WindowsFocusController : IFocusController, IDisposable
         return DisplayMapper.Create(layout, _native.MonitorBounds)(window.MonitorHandle);
     }
 
-    private FocusResult Focus(DisplayId display, DisplayLayout layout)
+    private FocusResult Focus(DisplayId display, DisplayLayout layout, CancellationToken cancellationToken)
     {
+        // The request may have waited behind a slow call: do nothing if it is no longer wanted.
+        cancellationToken.ThrowIfCancellationRequested();
         var displayOf = DisplayMapper.Create(layout, _native.MonitorBounds);
         var candidates = WindowEligibility.LastUsedByDisplay(_native.EnumerateWindows(), _ownProcessId, displayOf);
         if (!candidates.TryGetValue(display, out var target))
@@ -128,6 +131,7 @@ public sealed class WindowsFocusController : IFocusController, IDisposable
             return new FocusResult.Focused(Summary(frontWindow, display), FocusMethod.Plain, 0);
         }
 
+        cancellationToken.ThrowIfCancellationRequested(); // last check before the first call that changes anything
         if (_native.IsIconic(target.Handle))
         {
             _native.Restore(target.Handle);
