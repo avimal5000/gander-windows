@@ -82,7 +82,7 @@ internal static class InfoSpike
         }
 
         report.Line();
-        report.Line("== Windows Sway would consider, topmost first, per monitor ==");
+        report.Line("== Windows Gander would consider, topmost first, per monitor ==");
         foreach (var (monitor, index) in monitors.Select((monitor, index) => (monitor, index)))
         {
             report.Line($"Monitor {index + 1} ({monitor.Device}):");

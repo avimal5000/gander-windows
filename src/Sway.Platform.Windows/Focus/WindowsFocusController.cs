@@ -26,7 +26,7 @@ public sealed class WindowsFocusController : IFocusController, IDisposable
 
     /// <summary>The real controller.</summary>
     public WindowsFocusController()
-        : this(new WindowNativeCalls(), Environment.ProcessId, new SerialWorker("Sway focus"))
+        : this(new WindowNativeCalls(), Environment.ProcessId, new SerialWorker("Gander focus"))
     {
     }
 
@@ -191,7 +191,7 @@ public sealed class WindowsFocusController : IFocusController, IDisposable
     {
         if (target.IsElevated == true && !_native.IsSelfElevated)
         {
-            return $"{target.ProcessName} runs as administrator and Sway does not, so Windows will not let Sway give it focus.";
+            return $"{target.ProcessName} runs as administrator and Gander does not, so Windows will not let Gander give it focus.";
         }
 
         return $"Windows did not bring {target.ProcessName} to the front within {VerifyTimeoutMilliseconds} ms.";

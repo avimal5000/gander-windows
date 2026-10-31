@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sway.App.Presentation;
 using Sway.App.Presentation.Design;
 using Drawing = System.Drawing;
@@ -8,7 +9,7 @@ using Imaging = System.Drawing.Imaging;
 namespace Sway.App.Tray;
 
 /// <summary>
-/// Draws the Swing mark with GDI+ from the Mac's geometry (<see cref="SwayMarkGeometry"/>, <see cref="TrayGlyphSpec"/>):
+/// Draws the goose mark with GDI+ from the Mac's geometry (<see cref="SwayMarkGeometry"/>, <see cref="TrayGlyphSpec"/>):
 /// the tray glyph in all four states, the colored mark for headers, and the app icon tile.
 /// </summary>
 public static class MarkPainter
@@ -54,25 +55,26 @@ public static class MarkPainter
         }
     }
 
-    /// <summary>Draws the mark at unit-square proportions: the arc in one color, the small point and the large point in their own.</summary>
+    /// <summary>Draws the goose at unit-square proportions: the body (with its eye cut out) in one color, the wing in another.</summary>
     public static void PaintMark(
-        Drawing.Graphics g, SwayMarkGeometry.Placement placement, Drawing.Color arc, Drawing.Color start, Drawing.Color end)
+        Drawing.Graphics g, SwayMarkGeometry.Placement placement, Drawing.Color body, Drawing.Color wing)
     {
         Smooth(g);
-        using (var pen = new Drawing.Pen(arc, (float)placement.Length(SwayMarkGeometry.ArcWidth)) { StartCap = Drawing2D.LineCap.Round, EndCap = Drawing2D.LineCap.Round })
+        using (var path = BodyPath(placement, placement.Length(SwayMarkGeometry.EyeRadius)))
+        using (var brush = new Drawing.SolidBrush(body))
         {
-            g.DrawPath(pen, ArcPath(placement));
+            g.FillPath(brush, path);
         }
 
-        var s = placement.Point(SwayMarkGeometry.Start);
-        var e = placement.Point(SwayMarkGeometry.End);
-        using var startBrush = new Drawing.SolidBrush(start);
-        using var endBrush = new Drawing.SolidBrush(end);
-        g.FillEllipse(startBrush, Box(s.X, s.Y, placement.Length(SwayMarkGeometry.StartRadius)));
-        g.FillEllipse(endBrush, Box(e.X, e.Y, placement.Length(SwayMarkGeometry.EndRadius)));
+        if (wing != body)
+        {
+            using var wingPath = ToPath(SwayMarkGeometry.Wing, placement);
+            using var brush = new Drawing.SolidBrush(wing);
+            g.FillPath(brush, wingPath);
+        }
     }
 
-    /// <summary>The app icon as the Mac draws it: an ivory arc on a forest rounded square, sage start point (the fallback when Sway.ico is not embedded).</summary>
+    /// <summary>The app icon as the Mac draws it: an ivory goose with a sage wing on a forest rounded square (the fallback when Gander.ico is not embedded).</summary>
     public static Drawing.Bitmap RenderAppIcon(int size)
     {
         var bitmap = new Drawing.Bitmap(size, size, Imaging.PixelFormat.Format32bppArgb);
@@ -86,8 +88,7 @@ public static class MarkPainter
         }
 
         var placement = SwayMarkGeometry.UnitSquareIn(new MarkRect(0, 0, size, size));
-        var ivory = ToColor(SwayDesign.Ivory);
-        PaintMark(g, placement, ivory, ToColor(SwayDesign.Sage), ivory);
+        PaintMark(g, placement, ToColor(SwayDesign.Ivory), ToColor(SwayDesign.Sage));
         return bitmap;
     }
 
@@ -96,26 +97,23 @@ public static class MarkPainter
 
     private static void PaintGlyphMark(Drawing.Graphics g, double k, TrayIconAppearance look, Drawing.Color color)
     {
-        var placement = TrayGlyphSpec.Placement;
-        using (var pen = new Drawing.Pen(color, (float)(TrayGlyphSpec.ArcWidth * k)) { StartCap = Drawing2D.LineCap.Round, EndCap = Drawing2D.LineCap.Round })
-        {
-            g.DrawPath(pen, ArcPath(Scaled(placement, k)));
-        }
-
-        using var brush = new Drawing.SolidBrush(color);
-        var s = placement.Point(SwayMarkGeometry.Start);
-        var e = placement.Point(SwayMarkGeometry.End);
-        g.FillEllipse(brush, Box(s.X * k, s.Y * k, TrayGlyphSpec.StartRadius * k));
+        var scaled = Scaled(TrayGlyphSpec.Placement, k);
+        var eyeRadius = TrayGlyphSpec.EyeRadius * k;
         if (look.HollowEnd)
         {
-            // A ring whose outer edge is where the disc's edge would be; the arc stops at the ring.
-            CutOut(g, Disc(e.X * k, e.Y * k, (TrayGlyphSpec.EndRadius - TrayGlyphSpec.RingWidth) * k));
-            using var ring = new Drawing.Pen(color, (float)(TrayGlyphSpec.RingWidth * k));
-            g.DrawEllipse(ring, Box(e.X * k, e.Y * k, (TrayGlyphSpec.EndRadius - TrayGlyphSpec.RingWidth / 2) * k));
+            // The paused goose is an outline with its eye kept as a dot.
+            using var outline = ToPath(SwayMarkGeometry.Silhouette, scaled);
+            using var pen = new Drawing.Pen(color, (float)(TrayGlyphSpec.OutlineWidth * k)) { LineJoin = Drawing2D.LineJoin.Round };
+            g.DrawPath(pen, outline);
+            var eye = scaled.Point(SwayMarkGeometry.EyeCenter);
+            using var dot = new Drawing.SolidBrush(color);
+            g.FillEllipse(dot, Box(eye.X, eye.Y, eyeRadius));
         }
         else
         {
-            g.FillEllipse(brush, Box(e.X * k, e.Y * k, TrayGlyphSpec.EndRadius * k));
+            using var body = BodyPath(scaled, eyeRadius);
+            using var brush = new Drawing.SolidBrush(color);
+            g.FillPath(brush, body);
         }
     }
 
@@ -143,15 +141,46 @@ public static class MarkPainter
     private static SwayMarkGeometry.Placement Scaled(SwayMarkGeometry.Placement p, double k) =>
         new(p.Scale * k, new MarkPoint(p.Offset.X * k, p.Offset.Y * k));
 
-    private static Drawing2D.GraphicsPath ArcPath(SwayMarkGeometry.Placement placement)
+    /// <summary>The outline as a GDI+ path.</summary>
+    private static Drawing2D.GraphicsPath ToPath(IReadOnlyList<MarkStep> steps, SwayMarkGeometry.Placement placement)
     {
-        var (c1, c2) = SwayMarkGeometry.CubicControls();
-        var a = placement.Point(SwayMarkGeometry.Start);
-        var b = placement.Point(c1);
-        var c = placement.Point(c2);
-        var d = placement.Point(SwayMarkGeometry.End);
-        var path = new Drawing2D.GraphicsPath();
-        path.AddBezier((float)a.X, (float)a.Y, (float)b.X, (float)b.Y, (float)c.X, (float)c.Y, (float)d.X, (float)d.Y);
+        var path = new Drawing2D.GraphicsPath(Drawing2D.FillMode.Alternate);
+        MarkPoint current = default;
+        foreach (var step in steps)
+        {
+            switch (step.Kind)
+            {
+                case MarkStepKind.Move:
+                    path.StartFigure();
+                    current = placement.Point(step.A);
+                    break;
+                case MarkStepKind.Line:
+                    var line = placement.Point(step.A);
+                    path.AddLine((float)current.X, (float)current.Y, (float)line.X, (float)line.Y);
+                    current = line;
+                    break;
+                case MarkStepKind.Cubic:
+                    var c1 = placement.Point(step.A);
+                    var c2 = placement.Point(step.B);
+                    var end = placement.Point(step.C);
+                    path.AddBezier((float)current.X, (float)current.Y, (float)c1.X, (float)c1.Y, (float)c2.X, (float)c2.Y, (float)end.X, (float)end.Y);
+                    current = end;
+                    break;
+                default:
+                    path.CloseFigure();
+                    break;
+            }
+        }
+
+        return path;
+    }
+
+    /// <summary>The goose's outline with its eye as a hole (alternate fill).</summary>
+    private static Drawing2D.GraphicsPath BodyPath(SwayMarkGeometry.Placement placement, double eyeRadius)
+    {
+        var path = ToPath(SwayMarkGeometry.Silhouette, placement);
+        var eye = placement.Point(SwayMarkGeometry.EyeCenter);
+        path.AddEllipse(Box(eye.X, eye.Y, eyeRadius));
         return path;
     }
 

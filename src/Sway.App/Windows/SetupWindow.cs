@@ -13,7 +13,7 @@ using Sway.Core.Calibration;
 namespace Sway.App.Windows;
 
 /// <summary>
-/// The "Set up Sway" window. Thin: the <see cref="SetupSession"/> decides what happens, <see cref="SetupViewBuilder"/>
+/// The "Set up Gander" window. Thin: the <see cref="SetupSession"/> decides what happens, <see cref="SetupViewBuilder"/>
 /// decides what is shown, and this copies the view onto a fixed set of controls (so keyboard focus is not lost when the
 /// state ticks ten times a second). Esc cancels a running calibration.
 /// </summary>
@@ -47,7 +47,7 @@ public sealed class SetupWindow : Window
     public SetupWindow(SetupSession session)
     {
         _session = session;
-        Title = "Set up Sway";
+        Title = "Set up Gander";
         Width = SwayDesign.Size.SetupWidth;
         SizeToContent = SizeToContent.Height;
         MinHeight = SwayDesign.Size.SetupHeight;
@@ -79,8 +79,8 @@ public sealed class SetupWindow : Window
         AutomationProperties.SetLiveSetting(_highlight, AutomationLiveSetting.Polite);
         AutomationProperties.SetLiveSetting(_message, AutomationLiveSetting.Polite);
 
-        // Header of every numbered step: the mark in Sway green, "Step N of M", and the title.
-        _header.Children.Add(SwayStyle.MakeMark(SwayDesign.Size.SetupMark, theme.Green, theme.Green, theme.Green));
+        // Header of every numbered step: the mark in Gander green, "Step N of M", and the title.
+        _header.Children.Add(SwayStyle.MakeMark(SwayDesign.Size.SetupMark, theme.Green, theme.Green));
         var titles = new StackPanel { Margin = new Thickness(10, 0, 0, 0) };
         titles.Children.Add(_stepLine);
         titles.Children.Add(_title);
@@ -126,7 +126,7 @@ public sealed class SetupWindow : Window
         };
     }
 
-    // The welcome step: the mark on a tile like the app icon, what Sway does, and the privacy promise.
+    // The welcome step: the mark on a tile like the app icon, what Gander does, and the privacy promise.
     private void BuildWelcome(SwayTheme theme)
     {
         var side = SwayDesign.Size.WelcomeTile;
@@ -139,7 +139,7 @@ public sealed class SetupWindow : Window
             BorderBrush = _style.Line,
             BorderThickness = new Thickness(SwayDesign.Space.Hairline),
             HorizontalAlignment = HorizontalAlignment.Center,
-            Child = SwayStyle.MakeMark(side, theme.Green, SwayDesign.Sage, theme.Green, unitSquare: true),
+            Child = SwayStyle.MakeMark(side, theme.Green, SwayDesign.Sage, unitSquare: true),
         };
         _welcomeTitle = _style.Label(string.Empty, SwayDesign.Type.Title);
         _welcomeTitle.TextAlignment = TextAlignment.Center;

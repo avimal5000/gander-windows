@@ -56,7 +56,7 @@ public sealed class SettingsWindow : Window
     private TextBlock _cameraHint = null!;
     private StackPanel _calibrationRows = null!;
 
-    /// <summary>Creates the window. <paramref name="calibrateAgain"/> opens the Set up Sway window.</summary>
+    /// <summary>Creates the window. <paramref name="calibrateAgain"/> opens the Set up Gander window.</summary>
     public SettingsWindow(TrackingController controller, ILoginItem loginItem, Action calibrateAgain, AppPreferences preferences)
     {
         _controller = controller;
@@ -64,7 +64,7 @@ public sealed class SettingsWindow : Window
         _calibrateAgain = calibrateAgain;
         _preferences = preferences;
 
-        Title = "Sway Settings";
+        Title = "Gander Settings";
         Width = SwayDesign.Size.SettingsWidth;
         Height = Math.Min(640, Math.Max(400, SystemParameters.WorkArea.Height * 0.92));
         ResizeMode = ResizeMode.NoResize;
@@ -88,7 +88,7 @@ public sealed class SettingsWindow : Window
         _style.ApplyTo(this);
         var s = _style;
 
-        _accentSway = s.MakeSegment(AccentChoices.Title(AccentChoice.Sway), "accent");
+        _accentSway = s.MakeSegment(AccentChoices.Title(AccentChoice.Gander), "accent");
         _accentSystem = s.MakeSegment(AccentChoices.Title(AccentChoice.System), "accent");
         _glow = s.MakeSwitch(SettingsWording.GlowToggle);
         _notice = s.MakeSwitch(SettingsWording.NoticeToggle);
@@ -115,7 +115,7 @@ public sealed class SettingsWindow : Window
         _cameraHint = s.Label(string.Empty, SwayDesign.Type.Caption, secondary: true);
         _calibrationRows = new StackPanel();
 
-        AutomationProperties.SetName(_accentSway, AccentChoices.Title(AccentChoice.Sway));
+        AutomationProperties.SetName(_accentSway, AccentChoices.Title(AccentChoice.Gander));
         AutomationProperties.SetName(_accentSystem, AccentChoices.Title(AccentChoice.System));
         AutomationProperties.SetName(_hold, "Hold time in seconds");
         AutomationProperties.SetName(_pause, "Pause after a switch in seconds");
@@ -309,7 +309,7 @@ public sealed class SettingsWindow : Window
     private UIElement AboutBody()
     {
         var panel = new StackPanel();
-        panel.Children.Add(_style.Label($"Sway for Windows. {SettingsText.Version(SystemInfo.SwayVersion())}", SwayDesign.Type.Body));
+        panel.Children.Add(_style.Label($"Gander for Windows. {SettingsText.Version(SystemInfo.SwayVersion())}", SwayDesign.Type.Body));
         var privacy = _style.Label(SettingsText.PrivacyLine, SwayDesign.Type.Headline);
         privacy.Margin = new Thickness(0, SwayDesign.Space.Md, 0, 0);
         panel.Children.Add(privacy);
@@ -321,7 +321,7 @@ public sealed class SettingsWindow : Window
 
     private void WireEvents()
     {
-        _accentSway.Checked += (_, _) => ChooseAccent(AccentChoice.Sway);
+        _accentSway.Checked += (_, _) => ChooseAccent(AccentChoice.Gander);
         _accentSystem.Checked += (_, _) => ChooseAccent(AccentChoice.System);
         _glow.Click += (_, _) => _preferences.SetEdgeGlow(_glow.IsChecked == true);
         _notice.Click += (_, _) => _preferences.SetFocusLockNotice(_notice.IsChecked == true);
@@ -478,7 +478,7 @@ public sealed class SettingsWindow : Window
         _updating = true;
         try
         {
-            _accentSway.IsChecked = _preferences.Accent == AccentChoice.Sway;
+            _accentSway.IsChecked = _preferences.Accent == AccentChoice.Gander;
             _accentSystem.IsChecked = _preferences.Accent == AccentChoice.System;
             _glow.IsChecked = _preferences.EdgeGlowEnabled;
             _notice.IsChecked = _preferences.FocusLockNoticeEnabled;

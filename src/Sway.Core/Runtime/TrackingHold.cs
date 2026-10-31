@@ -8,7 +8,7 @@ public enum TrackingHold
     /// <summary>The user turned Focus Lock on.</summary>
     FocusLock,
 
-    /// <summary>Sway's tray menu or one of its windows is in front.</summary>
+    /// <summary>Gander's tray menu or one of its windows is in front.</summary>
     SwayInFront,
 
     /// <summary>A Focus Test countdown or request is running.</summary>
@@ -20,7 +20,7 @@ public enum TrackingHold
     /// <summary>A virtual desktop just changed, so the idea of the front window is still settling. Not shown in the menu.</summary>
     SpaceChanging,
 
-    /// <summary>Sway's own focus request is in flight.</summary>
+    /// <summary>Gander's own focus request is in flight.</summary>
     Switching,
 }
 
@@ -46,7 +46,7 @@ public static class TrackingHolds
     public const double SpaceChangingDuration = 0.6;
 
     /// <summary>
-    /// The first hold that applies, in priority order: Focus Lock, Sway in front, Focus Test, displays changing,
+    /// The first hold that applies, in priority order: Focus Lock, Gander in front, Focus Test, displays changing,
     /// virtual desktop changing, Switching. Null when none applies.
     /// </summary>
     public static TrackingHold? Resolve(TrackingHoldInputs inputs)
@@ -86,7 +86,7 @@ public static class TrackingHolds
     public static string Text(this TrackingHold hold) => hold switch
     {
         TrackingHold.FocusLock => "Focus Lock on",
-        TrackingHold.SwayInFront => "Sway's menu or window is in front",
+        TrackingHold.SwayInFront => "Gander's menu or window is in front",
         TrackingHold.FocusTest => "Focus Test running",
         TrackingHold.DisplaysChanging => "Displays changing…",
         TrackingHold.SpaceChanging => "Virtual desktop changing…",

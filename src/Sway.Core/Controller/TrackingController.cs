@@ -4,7 +4,7 @@ using Sway.Core.Runtime;
 namespace Sway.Core.Controller;
 
 /// <summary>
-/// The tracking brain of Sway for Windows, a UI-free port of the Mac <c>AppModel</c> (tracking, camera lifecycle, holds,
+/// The tracking brain of Gander for Windows, a UI-free port of the Mac <c>AppModel</c> (tracking, camera lifecycle, holds,
 /// Focus Lock, calibration library, camera fallback). It owns the camera lifecycle (the pose source runs only while
 /// Tracking is on and a calibration fits the current layout), runs every pose sample through the switch decider, and
 /// moves focus when a look is held. State is exposed as read-only properties plus one <see cref="StateChanged"/> event.
@@ -176,10 +176,10 @@ public sealed partial class TrackingController : IDisposable
     /// <summary>What the tracking loop believes has keyboard focus.</summary>
     public DisplayId? TrackingFocus => _loop.FocusedDisplay;
 
-    /// <summary>True while Sway's own focus request runs.</summary>
+    /// <summary>True while Gander's own focus request runs.</summary>
     public bool IsSwitching => _loop.IsFocusing;
 
-    /// <summary>Sway's tray menu or one of its windows is in front (SPEC D28); set by the UI.</summary>
+    /// <summary>Gander's tray menu or one of its windows is in front (SPEC D28); set by the UI.</summary>
     public bool SwayInFront { get; private set; }
 
     /// <summary>Focus Lock (SPEC D27): the camera stays on and no switch fires. Not saved; off at launch.</summary>

@@ -1,4 +1,4 @@
-# Sway for Windows: Contract
+# Gander for Windows: Contract
 
 Code-level interfaces and rules. Each milestone adds its section here before a builder starts on it. The Mac app's
 `CONTRACT.md` is the reference for the engine sections (calibration, classifier, decider, sensitivity); they are ported
@@ -11,7 +11,7 @@ with golden vectors (PLAN.md section 4), not reinterpreted.
   Windows behavior sits behind interfaces that Core defines (`IPoseSource`, `IFocusPlatform`, `IDisplayCatalog`,
   `ISessionEvents`).
 - **Time.** Anything that waits takes an injected scheduler or clock, so tests never sleep.
-- **Errors.** A failure that makes Sway unable to track is shown in the tray status and logged; it never throws past a
+- **Errors.** A failure that makes Gander unable to track is shown in the tray status and logged; it never throws past a
   module boundary.
 - **Style.** `dotnet format` clean, nullable on, warnings as errors, file-scoped namespaces, `_camelCase` private
   fields.
@@ -45,7 +45,7 @@ reads a clock or sleeps: time comes in as arguments or through `IDelayScheduler`
   face is 10 fps.
 - **`TrackingHold`** `FocusLock`, `SwayInFront`, `FocusTest`, `DisplaysChanging`, `SpaceChanging`, `Switching`.
   `TrackingHolds.Resolve(TrackingHoldInputs)` returns the first that applies in that order (null if none);
-  `IsLocked` is true when any applies and is what the decider is told. `Text()` is the Pose Debug wording ("Sway's
+  `IsLocked` is true when any applies and is what the decider is told. `Text()` is the Pose Debug wording ("Gander's
   menu or window is in front", "Virtual desktop changing..." are the Windows wording). Constants
   `DisplaysChangingTimeout` 0.75 s, `DisplaysChangingCap` 3 s, `SpaceChangingDuration` 0.6 s.
 - **`ChangeHolds`** the timing for the two timed holds: `DisplayParametersDidChange()`, `EndDisplaysChanging(HoldEnd)`
@@ -175,27 +175,27 @@ Windows adapters in `src/Sway.Platform.Windows`, one folder per area. Win32 call
 - **`WindowSnapshot`, `WindowEligibility`, `WindowRejection`** (`Windowing/`, pure). The snapshot has handle, pid, class,
   ex-style, owner, visible, iconic, cloaked, on-current-desktop, rect, monitor handle, process name, elevated; no title.
   `Check` applies, in order: visible, not minimized, not cloaked, not tool-window-or-owned-popup unless `WS_EX_APPWINDOW`,
-  not `WS_EX_NOACTIVATE`, not shell chrome class, not Sway's own process, non-empty rect, on the current virtual desktop.
+  not `WS_EX_NOACTIVATE`, not shell chrome class, not Gander's own process, non-empty rect, on the current virtual desktop.
   `LastUsedByDisplay(topmostFirst, ownPid, displayOfMonitor)` returns the first eligible window per display.
   `DisplayMapper.Create(layout, boundsOfMonitor)` maps a monitor handle to a `DisplayId` (by `NativeId`, then by frame).
 - **`WindowsFocusController : IFocusController`** (`Focus/`). All native work on one dedicated worker thread
-  (`SerialWorker`); tasks complete on the thread pool. `FocusedDisplayAsync` is null for no foreground window, Sway's own
+  (`SerialWorker`); tasks complete on the thread pool. `FocusedDisplayAsync` is null for no foreground window, Gander's own
   window, or shell chrome. `FocusAsync`: `NoWindow` when the display has no eligible window; `Focused(window, Plain, 0)`
   when it already is foreground; otherwise restore if minimized, attach to the foreground thread (skipped, method `Plain`,
   when that thread already owns the target), BringWindowToTop, SetForegroundWindow, detach in `finally`, then check the
   foreground at 0, 50 ... 600 ms. `Failed` carries a reason naming the app (never a title); an elevated target with a
-  non-elevated Sway says it runs as administrator. Methods never throw. `Dispose()` stops the worker.
+  non-elevated Gander says it runs as administrator. Methods never throw. `Dispose()` stops the worker.
 - **`WindowsHotKeyRegistrar : IHotKeyRegistrar`** (`Hotkeys/`). RegisterHotKey with `MOD_NOREPEAT` on a dedicated pump
   thread. `Register` is synchronous and throws `HotKeyException`: `InvalidShortcut` (invalid shortcut or error 87),
   `ShortcutInUse` (1409), `RegistrationFailed` (anything else). Registering an action again replaces its shortcut.
   **Handlers run on the pump thread**: the caller marshals to its UI thread. A handler exception is swallowed.
   `HotKeyMapping.ToNative` maps `HotKeyModifiers` (Control = 1, Alt = 2) to Win32 `MOD_` bits (Alt = 1, Control = 2).
-- **`JsonFileSettingsStore : ISettingsStore`** (`Settings/`). One JSON object, default `%AppData%\Sway\settings.json`,
+- **`JsonFileSettingsStore : ISettingsStore`** (`Settings/`). One JSON object, default `%AppData%\Gander\settings.json`,
   path injectable. Loaded once, kept in memory, every write replaces the file atomically (`.tmp` then replace). Missing
   file = empty. Corrupt file (not JSON, or not an object) = empty plus a copy at `settings.json.bak`; the next write
   replaces it. Unknown keys and non-string values are preserved (a non-string reads back as its JSON text). Thread-safe.
   A failed write keeps the value in memory and sets `LastWriteError`; it does not throw.
-- **`RegistryLoginItem : ILoginItem`** (`Settings/`). HKCU `...\CurrentVersion\Run`, value `Sway` = the quoted exe path
+- **`RegistryLoginItem : ILoginItem`** (`Settings/`). HKCU `...\CurrentVersion\Run`, value `Gander` = the quoted exe path
   (`Environment.ProcessPath`). Registry access is the `IRunKeyAccess` seam. `Status` is `Enabled` only if the value equals
   this exe's command, `Disabled` otherwise (including a stale path), `Unavailable` if the registry throws or the path is
   unknown. `SetEnabled` does not throw.
@@ -263,7 +263,7 @@ Tracking off for a camera failure, a stream that ends, a lost camera or quit cha
 ### Behavior notes
 
 - Loop: a sample goes to the decider only while the camera is running and a calibration fits. Holds (priority: Focus
-  Lock, Sway in front, displays changing, desktop changing, switching) lock the decider and refuse requests. "No face" is
+  Lock, Gander in front, displays changing, desktop changing, switching) lock the decider and refuse requests. "No face" is
   steadied by `FaceDebounce` (0.5 s); the decider sees the raw sample.
 - Camera: `SuspendTracker` decides lock, sleep, display-off and session switches from `ISessionEvents`, seeded at launch
   from `IsSessionInactiveNow()`. Display changes that leave no calibration give the camera a 2 s grace. A chosen camera
@@ -287,7 +287,7 @@ Tracking off for a camera failure, a stream that ends, a lost camera or quit cha
 5. The display layout is applied at once on `LayoutChanged`. The Mac waits for a notification plus a read; here the
    catalog hands the layout over. The display-change hold, its 0.75 s timeout and 3 s cap are unchanged.
 6. Focus polling uses the scheduler (`FocusPollInterval`) and `ForegroundChanged()` replaces "app activation".
-   "Sway in front" is set by the UI (`SetSwayInFront`); the controller has no window list.
+   "Gander in front" is set by the UI (`SetSwayInFront`); the controller has no window list.
 7. Setup, the Gate test and the Focus Test are replaced by `SetCalibrationRunningAsync` (the camera runs at the full pose
    rate, switching is held, the camera is not swapped). `SetFocusTestVisible` only changes the pose demand; the Focus
    Test hold is not modeled. Fitting a profile from a trace is the calibration UI's job; it hands the result to
@@ -313,18 +313,18 @@ shell calls), `Presentation/` (pure: icon appearance and palette, menu model, di
 tracker), `Tray/` (GDI+ icon renderer, `TrayHost` with the `NotifyIcon`), `Windows/` (Diagnostics and a calibration
 placeholder).
 
-- **Composition** (`App.Compose`): `JsonFileSettingsStore` at `%AppData%\Sway\settings.json`, `WindowsCameraCatalog`,
+- **Composition** (`App.Compose`): `JsonFileSettingsStore` at `%AppData%\Gander\settings.json`, `WindowsCameraCatalog`,
   `WindowsPoseSource`, `WindowsDisplayCatalog`, `WindowsFocusController`, `WindowsHotKeyRegistrar`,
   `WindowsSessionEvents`, `RegistryLoginItem`, `DispatcherMainThread` (`BeginInvoke`, always queues), `TimerDelayScheduler`,
   a `Stopwatch` clock, `Log` into `RotatingFileLog`. The dispatcher's `SynchronizationContext` is installed before the
-  controller is created. Single instance by named mutex `Local\Sway.TrayApp.SingleInstance`; a second launch exits.
+  controller is created. Single instance by named mutex `Local\Gander.TrayApp.SingleInstance`; a second launch exits.
   Tracking is restored by the controller from `sway.trackingEnabled`.
 - **Shutdown**: Quit and `SessionEnding` both `await controller.ShutdownAsync()` (5 s cap; session end pumps a nested
   dispatcher frame), then adapters are disposed in `OnExit`.
-- **Logging**: `%LocalAppData%\Sway\Logs\sway.log`, 1 MB, one rotation (`sway.log.1`). Dispatcher, AppDomain and
+- **Logging**: `%LocalAppData%\Gander\Logs\gander.log`, 1 MB, one rotation (`gander.log.1`). Dispatcher, AppDomain and
   unobserved task exceptions are logged; UI-thread exceptions are marked handled so the tray stays up (except OOM and
   similar). Only controller log lines (no titles) and exceptions are written.
-- **Who calls the controller**: tray menu open/close and the active Sway window feed `SetSwayInFront` through
+- **Who calls the controller**: tray menu open/close and the active Gander window feed `SetSwayInFront` through
   `InFrontTracker` (any source true means in front). `ForegroundChanged()` comes from a `SetWinEventHook`
   (`EVENT_SYSTEM_FOREGROUND`, out of context, reports only) on the UI thread; `TrackingTick` is the controller's own
   1 s timer. `ActiveDesktopChanged()` is NOT wired: no cheap trigger exists (the foreground hook does not tell a desktop
@@ -342,7 +342,7 @@ placeholder).
 
 ## W6 calibration flow (issue #19, logic only)
 
-`Sway.Core.Calibration` (`src/Sway.Core/Calibration`) is the Mac guided calibration, Set Up Sway flow and result
+`Sway.Core.Calibration` (`src/Sway.Core/Calibration`) is the Mac guided calibration, Set Up Gander flow and result
 wording with the UI taken out. Sources: `AppModel+Calibration/Gate/Setup`, `GateTestSession`, `SetupFlow`,
 `SetupResult`, `FramingAdvice`. It sits on `TrackingController` (`SetCalibrationRunningAsync`, `SaveToLibrary`,
 `Layout`, `Status`) and the Core `ProfileFitter` and `SeparabilityAnalyzer`. No Windows API, no clock reads, no
@@ -404,7 +404,7 @@ use the camera. This window carries on by itself."
 
 - No Accessibility step, no skip, no permission explanation: camera Denied/Restricted is one "Needs you" step; steps are
   numbered 1 to 4.
-- No overlays: the window draws the prompt from `Progress`/`Prompt`; "Sway no longer the active app" does not cancel (the
+- No overlays: the window draws the prompt from `Progress`/`Prompt`; "Gander no longer the active app" does not cancel (the
   window calls `Cancel`). A monitor without a window to show on is not checked (`overlay.canPresent`).
 - The gate test window, its analysis report, trace files, trace saving and the live guess are not ported (not in the
   Windows scope). `GateTestSession` is ported because the calibration is built on it.
@@ -475,12 +475,12 @@ Their logic is in `Presentation/PoseDebugModel.cs`, `GateTestModel.cs` and `Focu
 - **Pose Debug.** Follows `PoseObserved`. Readout refreshes every 0.2 s of sample time (`LiveReadout`); two 10 s plots (yaw,
   pitch) draw the face samples and, with an active calibration, one band per display (mean plus or minus 2 standard deviations,
   at least 1 degree). Recording is `TraceRecorder` (numbers, face flag, times from the first sample; stops at 9000 samples) written
-  by `TraceStore` as the Core `PoseTrace` JSON to `%LocalAppData%\Sway\Traces\pose-trace-<local time>.json` when the user presses
+  by `TraceStore` as the Core `PoseTrace` JSON to `%LocalAppData%\Gander\Traces\pose-trace-<local time>.json` when the user presses
   Stop and save, the camera stops, or the window closes. "Copy summary" writes `PoseDebugSummary` to the clipboard on click only.
 - **Gate Test.** `GateRun` (camera wait with a 10 s timeout, the Core `GateTestSession`, `SeparabilityAnalyzer`) and `GateReport`
   (badge GO / MARGINAL / NO-GO / INSUFFICIENT DATA, tables, Markdown). The marker on each display is the existing prompt overlay
   (`PromptOverlayHost.Show`). The trace is not saved and no calibration is fitted from it.
-- **Focus Test.** Rows from the layout with the last-used window's app name (never a title, which Windows never gives Sway),
+- **Focus Test.** Rows from the layout with the last-used window's app name (never a title, which Windows never gives Gander),
   Focus and Focus in 3 s per display, one request at a time, a log of the last 10 results. Calls `IFocusController.FocusAsync`
   directly (the same adapter the controller uses); no cursor API.
 - Differences from the Mac: no Accessibility card; no live guess or switch preview card (the "Looking at" line is shown); no

@@ -205,7 +205,7 @@ public sealed class PoseDebugModelTests
     [Fact]
     public void TraceFilesGoUnderLocalAppDataSwayTracesWithASortableName()
     {
-        Assert.EndsWith(Path.Combine("Sway", "Traces"), TraceStore.DefaultDirectory, StringComparison.Ordinal);
+        Assert.EndsWith(Path.Combine("Gander", "Traces"), TraceStore.DefaultDirectory, StringComparison.Ordinal);
         var name = TraceStore.FileName(new DateTimeOffset(2026, 10, 31, 14, 25, 30, TimeSpan.Zero));
         Assert.StartsWith("pose-trace-", name, StringComparison.Ordinal);
         Assert.EndsWith(".json", name, StringComparison.Ordinal);

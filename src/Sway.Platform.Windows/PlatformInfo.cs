@@ -3,6 +3,6 @@ namespace Sway.Platform.Windows;
 /// <summary>What the running system is, for the checks every Windows adapter makes before it starts.</summary>
 public static class PlatformInfo
 {
-    /// <summary>Sway targets Windows 10 version 2004 (build 19041) and later.</summary>
+    /// <summary>Gander targets Windows 10 version 2004 (build 19041) and later.</summary>
     public static bool IsSupported => OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041);
 }

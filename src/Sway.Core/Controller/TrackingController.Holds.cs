@@ -30,7 +30,7 @@ public sealed partial class TrackingController
         Publish();
     }
 
-    /// <summary>Sway's tray menu or one of its windows is in front (or no longer): automatic switching holds while it is (SPEC D28).</summary>
+    /// <summary>Gander's tray menu or one of its windows is in front (or no longer): automatic switching holds while it is (SPEC D28).</summary>
     public void SetSwayInFront(bool inFront)
     {
         if (inFront == SwayInFront)

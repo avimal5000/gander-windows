@@ -404,7 +404,7 @@ public class CameraRecoveryTests
         h.ReportStatus(new CaptureStatus.Running(External));
         h.Advance(10);
 
-        Assert.Equal(1, h.Source.StartCount); // Sway never restarted anything.
+        Assert.Equal(1, h.Source.StartCount); // Gander never restarted anything.
         Assert.Null(h.Controller.FallbackCamera);
         Assert.Equal(TrackingStatus.NoFace, h.Controller.TrackingStatus);
     }

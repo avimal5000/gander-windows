@@ -33,7 +33,7 @@ internal interface IWindowNativeCalls
     /// <summary>SetForegroundWindow's return value.</summary>
     bool SetForeground(long handle);
 
-    /// <summary>Sway itself runs elevated (then elevated targets are reachable).</summary>
+    /// <summary>Gander itself runs elevated (then elevated targets are reachable).</summary>
     bool IsSelfElevated { get; }
 
     /// <summary>The monitor's rectangle in physical pixels, null if the handle is no longer valid.</summary>

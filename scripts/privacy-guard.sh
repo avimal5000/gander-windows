@@ -21,7 +21,7 @@ PATTERNS=(
   'Bitmap\.Save\(' 'Image\.Save\(' 'SaveAsync\(' 'SoftwareBitmap.*Encoder' 'MediaEncodingProfile'
   'LowLagMediaRecording' 'LowLagPhotoCapture' 'StartRecordToStorageFile' 'CapturePhotoToStorageFile'
   'IMFSinkWriter' 'MFCreateSinkWriter' 'EncodeToStream' 'ImageFormat\.' 'CopyToStreamAsync' 'FileSavePicker'
-  # The cursor is never moved, and Sway neither synthesizes nor captures input events
+  # The cursor is never moved, and Gander neither synthesizes nor captures input events
   'SetCursorPos' 'mouse_event' 'keybd_event' 'SendInput' 'SetWindowsHookEx' 'WH_KEYBOARD' 'WH_MOUSE'
   'RegisterRawInputDevices' 'GetRawInputData' 'GetAsyncKeyState' 'GetKeyboardState' 'GetKeyState' 'GetCursorPos'
   'ClipCursor' 'BlockInput' 'GetLastInputInfo' 'PostMessage.*WM_(KEY|MOUSE|CHAR)' 'SendMessage.*WM_(KEY|MOUSE|CHAR)'

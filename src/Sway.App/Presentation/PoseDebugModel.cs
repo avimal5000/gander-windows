@@ -282,10 +282,10 @@ public static class PlotGeometry
 public static class PoseDebugWording
 {
     /// <summary>The window title.</summary>
-    public const string Title = "Sway Pose Debug";
+    public const string Title = "Gander Pose Debug";
 
     /// <summary>The note under the readout (no video is shown or kept).</summary>
-    public const string PrivacyNote = "Sway never shows or stores video. A trace holds numbers only.";
+    public const string PrivacyNote = "Gander never shows or stores video. A trace holds numbers only.";
 
     /// <summary>Shown while no camera is running.</summary>
     public const string CameraOffHint = "Turn the camera on to record.";
@@ -343,7 +343,7 @@ public static class PoseDebugSummary
     public static string Build(PoseDebugSummaryInput input)
     {
         var text = new StringBuilder();
-        text.AppendLine("Sway pose debug summary");
+        text.AppendLine("Gander pose debug summary");
         text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Taken: {input.Now.UtcDateTime:yyyy-MM-dd HH:mm:ss} UTC"));
         text.AppendLine($"Status: {input.StatusLine}");
         text.AppendLine($"Camera: {input.CameraLine}");

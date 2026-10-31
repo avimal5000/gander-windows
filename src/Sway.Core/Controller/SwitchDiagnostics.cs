@@ -9,7 +9,7 @@ namespace Sway.Core.Controller;
 /// </summary>
 public sealed class SwitchDiagnostics
 {
-    /// <summary>Pose samples the camera delivered, with or without a face, since Sway started or Tracking was turned on.</summary>
+    /// <summary>Pose samples the camera delivered, with or without a face, since Gander started or Tracking was turned on.</summary>
     public int SamplesReceived { get; private set; }
 
     /// <summary>Samples that carried a face pose.</summary>

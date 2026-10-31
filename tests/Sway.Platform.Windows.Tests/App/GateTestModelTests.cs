@@ -52,7 +52,7 @@ public sealed class GateTestModelTests
         Assert.Equal("Rounds: 2", GateTestWording.RoundsText(2));
         Assert.Equal("Hold time: 5 s per display", GateTestWording.HoldText(5));
         Assert.StartsWith("About 26 s, including a short countdown before each hold.", GateTestWording.EstimateText(new GateTestConfiguration(2, 5), 2), StringComparison.Ordinal);
-        Assert.Equal("Sway v1 will track 3 displays. This test measures all 4 connected displays.", GateTestWording.TrackedNote(4));
+        Assert.Equal("Gander v1 will track 3 displays. This test measures all 4 connected displays.", GateTestWording.TrackedNote(4));
         Assert.Equal("The gate test needs at least 2 displays. Connect another display to continue.", GateTestWording.NeedsTwoDisplays);
     }
 
@@ -185,7 +185,7 @@ public sealed class GateTestModelTests
     {
         var run = RunToTheEnd();
         var markdown = run.Report!.Markdown();
-        Assert.StartsWith("# Sway head-pose gate test", markdown, StringComparison.Ordinal);
+        Assert.StartsWith("# Gander head-pose gate test", markdown, StringComparison.Ordinal);
         Assert.Contains("**Result: GO** (separates clearly). Head pose separates your displays reliably.", markdown, StringComparison.Ordinal);
         Assert.Contains($"| Left | {run.Report.Result.Labels[0].Count} |", markdown, StringComparison.Ordinal);
         Assert.Contains("| Left and Right |", markdown, StringComparison.Ordinal);

@@ -5,7 +5,7 @@ using Sway.Core.Runtime;
 namespace Sway.Core.Controller;
 
 // The automatic tracking loop (SPEC F16, D28, D29): every pose sample goes through the switch decider; when it fires,
-// Sway focuses the last-used window on that display. TrackingLoop holds the pure bookkeeping; this file feeds it and
+// Gander focuses the last-used window on that display. TrackingLoop holds the pure bookkeeping; this file feeds it and
 // does the I/O. The focused display is polled once a second and on every foreground change, and only while the camera
 // runs for tracking.
 public sealed partial class TrackingController
@@ -25,7 +25,7 @@ public sealed partial class TrackingController
 
     // Repeat guard. When Windows (or the app that had focus) hands focus straight back after a switch that verified,
     // the poll shows the old display again and the look is still held, so the decider would ask again and again for the
-    // same window. A repeat request for the display Sway last focused waits 2 s, then 4 s, 8 s, up to 10 s.
+    // same window. A repeat request for the display Gander last focused waits 2 s, then 4 s, 8 s, up to 10 s.
     private const double RepeatWaitBase = 2;
     private const double RepeatWaitCap = 10;
     private const double RepeatForgetAfter = 30;
@@ -169,7 +169,7 @@ public sealed partial class TrackingController
             return;
         }
 
-        // Sway's own request in flight is not a lock: a lock cancels the decider's cooldown, which must run from the
+        // Gander's own request in flight is not a lock: a lock cancels the decider's cooldown, which must run from the
         // switch. The loop already reports the target as focused and refuses a second request.
         _diagnostics.RecordProcessed();
         var hold = TrackingHold;
@@ -232,7 +232,7 @@ public sealed partial class TrackingController
                 _repeatLogged = true;
                 Log(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Not asking again for {DisplayName(target)}: Sway focused it a moment ago and focus did not stay; waiting {wait:F1} s"));
+                    $"Not asking again for {DisplayName(target)}: Gander focused it a moment ago and focus did not stay; waiting {wait:F1} s"));
             }
 
             return;
@@ -240,7 +240,7 @@ public sealed partial class TrackingController
 
         if (!_loop.BeginAttempt(target))
         {
-            // The Switching hold is Sway's own request in flight, so it counts here and not as a hold.
+            // The Switching hold is Gander's own request in flight, so it counts here and not as a hold.
             _diagnostics.RecordSkippedInFlight();
             return;
         }
@@ -317,7 +317,7 @@ public sealed partial class TrackingController
         }
     }
 
-    /// <summary>Seconds a request for <paramref name="target"/> must still wait because Sway already focused it recently; 0 for none.</summary>
+    /// <summary>Seconds a request for <paramref name="target"/> must still wait because Gander already focused it recently; 0 for none.</summary>
     private double RepeatWait(DisplayId target, double now)
     {
         if (_lastFocused is not { } last || last.Display != target)
@@ -340,7 +340,7 @@ public sealed partial class TrackingController
         _takenBackLogged = false;
     }
 
-    // Evidence for the repeat guard: the first poll that finds focus elsewhere shortly after Sway focused a display.
+    // Evidence for the repeat guard: the first poll that finds focus elsewhere shortly after Gander focused a display.
     private void LogFocusTakenBack(DisplayId? polled)
     {
         if (_lastFocused is not { } last || _takenBackLogged || polled == last.Display)
@@ -357,7 +357,7 @@ public sealed partial class TrackingController
         _takenBackLogged = true;
         Log(string.Create(
             CultureInfo.InvariantCulture,
-            $"Focus left {DisplayName(last.Display)} {age:F1} s after Sway focused it; the front window is now on {(polled is { } d ? DisplayName(d) : "no known display")}"));
+            $"Focus left {DisplayName(last.Display)} {age:F1} s after Gander focused it; the front window is now on {(polled is { } d ? DisplayName(d) : "no known display")}"));
     }
 
     /// <summary>A log line for a focus request's result. Names the app and the display, never a window title.</summary>

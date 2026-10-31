@@ -12,7 +12,7 @@ public sealed record DiagnosticsCamera(string Name, bool IsBuiltIn, bool IsSelec
 /// <summary>One monitor in the diagnostics. <see cref="ScalePercent"/> is null when Windows would not say.</summary>
 public sealed record DiagnosticsDisplay(string Name, int Width, int Height, int? ScalePercent, bool IsMain, bool IsFocused);
 
-/// <summary>The live switching state: why Sway is or is not switching. Plain values; the defaults mean "nothing known".</summary>
+/// <summary>The live switching state: why Gander is or is not switching. Plain values; the defaults mean "nothing known".</summary>
 public sealed record DiagnosticsSwitching
 {
     public bool IsTrackingActive { get; init; }
@@ -105,7 +105,7 @@ public sealed record DiagnosticsSwitching
 /// <summary>Everything the diagnostics show, as plain values, so the text is built without a controller.</summary>
 public sealed record DiagnosticsSnapshot
 {
-    /// <summary>Sway's version.</summary>
+    /// <summary>Gander's version.</summary>
     public string SwayVersion { get; init; } = "unknown";
 
     /// <summary>For example "Windows 11 25H2, build 26200.1234".</summary>
@@ -188,8 +188,8 @@ public static class DiagnosticsText
     public static string Build(DiagnosticsSnapshot s)
     {
         var text = new StringBuilder();
-        text.AppendLine("Sway diagnostics");
-        text.AppendLine($"Sway version: {s.SwayVersion}");
+        text.AppendLine("Gander diagnostics");
+        text.AppendLine($"Gander version: {s.SwayVersion}");
         text.AppendLine($"Windows: {s.WindowsVersion}");
         text.AppendLine($"Architecture: {s.Architecture}");
         text.AppendLine();
@@ -316,7 +316,7 @@ public static class DiagnosticsText
         text.AppendLine($"Capture status: {w.CaptureText}, IsCameraActive: {YesNo(w.IsCameraActive)}");
         text.AppendLine($"Hold: {w.HoldText ?? "none"}");
         text.AppendLine(
-            $"Hold inputs: focus lock {YesNo(w.FocusLocked)}, Sway in front {YesNo(w.SwayInFront)}, displays changing {YesNo(w.DisplaysChanging)}, "
+            $"Hold inputs: focus lock {YesNo(w.FocusLocked)}, Gander in front {YesNo(w.SwayInFront)}, displays changing {YesNo(w.DisplaysChanging)}, "
             + $"desktop changing {YesNo(w.DesktopChanging)}, switching in flight {YesNo(w.SwitchingInFlight)}");
         text.AppendLine($"Display believed to have focus: {w.BelievedFocus ?? "unknown"}");
         text.AppendLine($"Tracked targets: {(w.Targets.Count > 0 ? string.Join(", ", w.Targets) : "none")}");

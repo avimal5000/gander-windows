@@ -35,7 +35,7 @@ public enum FocusActivityKind
 public static class FocusTestWording
 {
     /// <summary>The window title.</summary>
-    public const string Title = "Sway Focus Test";
+    public const string Title = "Gander Focus Test";
 
     /// <summary>The heading inside the window.</summary>
     public const string Heading = "Focus test";
@@ -79,7 +79,7 @@ public static class FocusTestWording
         }).ToList();
     }
 
-    /// <summary>The app name, or "No window" when the display has none. Windows never gives Sway a title.</summary>
+    /// <summary>The app name, or "No window" when the display has none. Windows never gives Gander a title.</summary>
     public static string WindowText(WindowSummary? window) => window is null ? "No window" : window.AppName;
 
     /// <summary>The log line for a result. Names the app and the display, never a window title.</summary>

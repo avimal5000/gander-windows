@@ -30,7 +30,7 @@ namespace Sway.App;
 /// </summary>
 public partial class App : Application
 {
-    private const string MutexName = @"Local\Sway.TrayApp.SingleInstance";
+    private const string MutexName = @"Local\Gander.TrayApp.SingleInstance";
 
     private readonly RotatingFileLog _log = new(RotatingFileLog.DefaultDirectory);
     private readonly InFrontTracker _inFront = new();
@@ -58,7 +58,7 @@ public partial class App : Application
     private AppPreferences? _preferences;
     private bool _quitting;
 
-    /// <summary>Opens (or raises) the Set up Sway window.</summary>
+    /// <summary>Opens (or raises) the Set up Gander window.</summary>
     public void OpenCalibration()
     {
         if (_setup is null)
@@ -193,7 +193,7 @@ public partial class App : Application
         _instance = new Mutex(true, MutexName, out var first);
         if (!first)
         {
-            // Another Sway is already in the tray. Leave quietly.
+            // Another Gander is already in the tray. Leave quietly.
             _instance.Dispose();
             _instance = null;
             _quitting = true;
@@ -212,7 +212,7 @@ public partial class App : Application
 
         // The controller captures this context for its awaits.
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher));
-        _log.Write($"Sway {SystemInfo.SwayVersion()} starting on {SystemInfo.WindowsVersion()}");
+        _log.Write($"Gander {SystemInfo.SwayVersion()} starting on {SystemInfo.WindowsVersion()}");
 
         try
         {
@@ -267,6 +267,7 @@ public partial class App : Application
     private void Compose()
     {
         var clock = Stopwatch.StartNew();
+        EarlierNameMigration.Run();
         _settings = new JsonFileSettingsStore();
         _cameras = new WindowsCameraCatalog();
         var poseSource = new WindowsPoseSource(_cameras, null, line => _log.Write(line));

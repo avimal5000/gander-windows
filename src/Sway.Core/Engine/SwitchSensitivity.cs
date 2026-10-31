@@ -8,7 +8,7 @@ public readonly record struct DoubleRange(double Lower, double Upper);
 
 /// <summary>
 /// The switching settings the user can change (SPEC F21, F35): how long to hold a look, how long to pause after a
-/// switch, and how sure Sway must be. The other <see cref="SwitchSettings"/> fields keep their defaults.
+/// switch, and how sure Gander must be. The other <see cref="SwitchSettings"/> fields keep their defaults.
 /// </summary>
 [JsonConverter(typeof(SwitchSensitivityConverter))]
 public readonly record struct SwitchSensitivity

@@ -217,7 +217,7 @@ internal static class ThemedMenu
             e.Graphics.DrawLine(pen, inset, y, e.Item.Width - inset, y);
         }
 
-        // The Swing mark in Sway green sits in the check column, left of "Sway".
+        // The Swing mark in Gander green sits in the check column, left of "Gander".
         private void DrawHeaderMark(Forms.ToolStripItemTextRenderEventArgs e, float scale)
         {
             var side = (float)(SwayDesign.Size.HeaderMark * scale);
@@ -225,7 +225,7 @@ internal static class ThemedMenu
             var y = e.TextRectangle.Y + (e.TextRectangle.Height - side) / 2f;
             var placement = SwayMarkGeometry.Fitting(new MarkRect(x, y, side, side));
             var green = ToColor(_theme.Green);
-            MarkPainter.PaintMark(e.Graphics, placement, green, green, green);
+            MarkPainter.PaintMark(e.Graphics, placement, green, green);
         }
 
         // A colored dot for the tone of the status line (Mac StatusBadge): forest, amber, brick, or secondary gray.

@@ -18,18 +18,18 @@ need "version define" '^AppVersion=\{#AppVersion\}'
 need "version required" '^#ifndef AppVersion'
 need "source dir define" '\{#SourceDir\}'
 need "fixed AppId" '^AppId=\{\{[0-9A-F-]{36}\}'
-need "output name" '^OutputBaseFilename=Sway-\{#AppVersion\}-win-x64-setup'
+need "output name" '^OutputBaseFilename=Gander-\{#AppVersion\}-win-x64-setup'
 need "lzma2" '^Compression=lzma2'
 need "modern wizard" '^WizardStyle=modern'
 need "min Windows version" '^MinVersion=10\.0\.19041'
-need "icon" '^SetupIconFile=.*Sway\.ico'
+need "icon" '^SetupIconFile=.*Gander\.ico'
 need "startup task unchecked" '^Name: "startup".*Flags: unchecked'
 need "desktop icon unchecked" '^Name: "desktopicon".*Flags: unchecked'
 need "Run value removed on uninstall" 'uninsdeletevalue'
-need "uninstall closes Sway" 'InitializeUninstall'
+need "uninstall closes Gander" 'InitializeUninstall'
 need "uninstall asks about settings, default No" 'MB_YESNO or MB_DEFBUTTON2'
-need "deletes %AppData%\\Sway" "userappdata\}\\\\Sway"
-need "deletes %LocalAppData%\\Sway" "localappdata\}\\\\Sway"
+need "deletes %AppData%\\Gander" "userappdata\}\\\\Gander"
+need "deletes %LocalAppData%\\Gander" "localappdata\}\\\\Gander"
 need "launch after install" 'postinstall'
 
 # The Run value name must match the app.

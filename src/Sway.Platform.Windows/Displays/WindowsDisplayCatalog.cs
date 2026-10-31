@@ -29,7 +29,7 @@ public sealed class WindowsDisplayCatalog : IDisplayCatalog, IDisposable
         _native = native;
         if (listen)
         {
-            _pump = new MessagePumpThread("Sway display changes", OnMessage);
+            _pump = new MessagePumpThread("Gander display changes", OnMessage);
         }
     }
 

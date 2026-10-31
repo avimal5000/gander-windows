@@ -61,7 +61,7 @@ public static class FramingAdvices
     /// <summary>The words shown for <paramref name="advice"/>.</summary>
     public static string Text(this FramingAdvice advice) => advice switch
     {
-        FramingAdvice.NoFace => "Sway can't see your face yet.",
+        FramingAdvice.NoFace => "Gander can't see your face yet.",
         FramingAdvice.Closer => "Move a little closer to the camera.",
         FramingAdvice.Back => "Move back a little.",
         FramingAdvice.Center => "Center your face in the camera's view.",

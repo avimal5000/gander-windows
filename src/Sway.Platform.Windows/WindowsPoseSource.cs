@@ -351,7 +351,7 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
         pipeline = null!;
         if (!File.Exists(_modelPath))
         {
-            failure = $"The face model is missing: {_modelPath}. Reinstall Sway, or run scripts/fetch-pose-model.sh and rebuild.";
+            failure = $"The face model is missing: {_modelPath}. Reinstall Gander, or run scripts/fetch-pose-model.sh and rebuild.";
             return false;
         }
 

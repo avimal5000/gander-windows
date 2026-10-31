@@ -27,7 +27,7 @@ public sealed class PromptOverlayWindow : Window
     /// <summary>Creates the (hidden) overlay.</summary>
     public PromptOverlayWindow()
     {
-        OverlayNative.Configure(this, "Sway prompt");
+        OverlayNative.Configure(this, "Gander prompt");
         var style = SwayStyle.Current();
         var green = style.Theme.Green;
         _ring.Stroke = SwayStyle.Brush(green);

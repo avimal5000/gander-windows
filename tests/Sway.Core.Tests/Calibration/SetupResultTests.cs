@@ -83,7 +83,7 @@ public sealed class SetupResultTests
         Assert.Equal("A, B, and C", SetupResult.Listed(["A", "B", "C"]));
         var result = SetupResult.MissingDisplays(["Left", "Far"]);
         Assert.False(result.IsSaved);
-        Assert.StartsWith("Sway couldn't see your face well enough while you looked at Left and Far.", result.Text);
+        Assert.StartsWith("Gander couldn't see your face well enough while you looked at Left and Far.", result.Text);
     }
 
     [Fact]

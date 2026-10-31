@@ -6,7 +6,7 @@ using System.Text;
 namespace Sway.App.Hosting;
 
 /// <summary>
-/// A text log in one folder, capped at <see cref="MaxBytes"/> with one rotation (sway.log and sway.log.1), so it never
+/// A text log in one folder, capped at <see cref="MaxBytes"/> with one rotation (gander.log and gander.log.1), so it never
 /// grows past about twice the cap. Thread-safe. It never throws: logging must not be the thing that crashes the app.
 /// Callers write status text and exceptions only, never window titles or image data.
 /// </summary>
@@ -20,17 +20,17 @@ public sealed class RotatingFileLog
     private readonly long _maxBytes;
     private readonly Func<DateTimeOffset> _now;
 
-    /// <summary>Creates a log writing <c>sway.log</c> in <paramref name="directory"/>.</summary>
+    /// <summary>Creates a log writing <c>gander.log</c> in <paramref name="directory"/>.</summary>
     public RotatingFileLog(string directory, long maxBytes = DefaultMaxBytes, Func<DateTimeOffset>? now = null)
     {
-        _path = Path.Combine(directory, "sway.log");
+        _path = Path.Combine(directory, "gander.log");
         _maxBytes = maxBytes;
         _now = now ?? (() => DateTimeOffset.Now);
     }
 
-    /// <summary>The folder under %LocalAppData%\Sway\Logs.</summary>
+    /// <summary>The folder under %LocalAppData%\Gander\Logs.</summary>
     public static string DefaultDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Sway", "Logs");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Gander", "Logs");
 
     /// <summary>The file being written.</summary>
     public string CurrentPath => _path;

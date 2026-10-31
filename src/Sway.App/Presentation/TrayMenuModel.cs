@@ -31,7 +31,7 @@ public enum TrayEntryRole
     /// <summary>An ordinary row.</summary>
     Normal,
 
-    /// <summary>The Swing mark and "Sway" at the top.</summary>
+    /// <summary>The Swing mark and "Gander" at the top.</summary>
     Header,
 
     /// <summary>The status line: a colored dot and the text.</summary>
@@ -64,11 +64,11 @@ public sealed record TrayMenuEntry(
 /// <summary>The one banner the menu can show above the switches (Mac MenuBanner). Pure, so the order and words are tested.</summary>
 public sealed record TrayBanner(string Text, string? ButtonText, TrayCommand Command)
 {
-    /// <summary>"Sway needs a quick setup, about a minute."</summary>
-    public const string FirstSetupText = "Sway needs a quick setup, about a minute.";
+    /// <summary>"Gander needs a quick setup, about a minute."</summary>
+    public const string FirstSetupText = "Gander needs a quick setup, about a minute.";
 
-    /// <summary>"New display setup. Calibrate so Sway can switch between them."</summary>
-    public const string NeedsCalibrationText = "New display setup. Calibrate so Sway can switch between them.";
+    /// <summary>"New display setup. Calibrate so Gander can switch between them."</summary>
+    public const string NeedsCalibrationText = "New display setup. Calibrate so Gander can switch between them.";
 
     /// <summary>The button of both needs-calibration banners.</summary>
     public const string CalibrateButton = "Calibrate (about 20 s)…";
@@ -175,7 +175,7 @@ public static class TrayMenuModel
     {
         var entries = new List<TrayMenuEntry>
         {
-            new("Sway", Enabled: false, Role: TrayEntryRole.Header),
+            new("Gander", Enabled: false, Role: TrayEntryRole.Header),
             new(input.StatusLine, Enabled: false, Role: TrayEntryRole.Status, Tone: input.Tone),
         };
 
@@ -206,7 +206,7 @@ public static class TrayMenuModel
         entries.Add(new TrayMenuEntry(FocusTestText, TrayCommand.FocusTest));
         entries.Add(new TrayMenuEntry("Diagnostics…", TrayCommand.Diagnostics));
         entries.Add(TrayMenuEntry.Separator);
-        entries.Add(new TrayMenuEntry("Quit Sway", TrayCommand.Quit));
+        entries.Add(new TrayMenuEntry("Quit Gander", TrayCommand.Quit));
         return entries;
     }
 
@@ -268,7 +268,7 @@ public static class TrayMenuModel
 }
 
 /// <summary>
-/// Decides whether Sway counts as "in front" (SPEC D28): its tray menu is open or one of its windows is active.
+/// Decides whether Gander counts as "in front" (SPEC D28): its tray menu is open or one of its windows is active.
 /// Each source reports its own state; the answer is true while any is set.
 /// </summary>
 public sealed class InFrontTracker

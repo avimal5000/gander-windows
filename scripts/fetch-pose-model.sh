@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Downloads the face-landmark model used by the pose spike (docs/decisions/01-pose-pipeline.md) to
 # src/Sway.Platform.Windows/models/face_landmark.onnx and checks its SHA-256. Development and CI time only: the shipped program
-# contains no network code and the model is bundled, never fetched by Sway itself.
+# contains no network code and the model is bundled, never fetched by Gander itself.
 # Skips the download when the file is already present and correct; fails loudly on any mismatch.
 set -euo pipefail
 cd "$(dirname "$0")/.."

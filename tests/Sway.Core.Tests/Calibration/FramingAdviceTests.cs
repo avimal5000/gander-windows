@@ -13,7 +13,7 @@ public sealed class FramingAdviceTests
     {
         Assert.Equal(FramingAdvice.NoFace, FramingAdvices.For(null));
         Assert.Equal(FramingAdvice.NoFace, FramingAdvices.For(new HeadPose(0, 0, 0)));
-        Assert.Equal("Sway can't see your face yet.", FramingAdvice.NoFace.Text());
+        Assert.Equal("Gander can't see your face yet.", FramingAdvice.NoFace.Text());
     }
 
     [Fact]

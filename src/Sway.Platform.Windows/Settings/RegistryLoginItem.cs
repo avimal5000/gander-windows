@@ -43,7 +43,7 @@ public sealed class CurrentUserRunKey : IRunKeyAccess
 }
 
 /// <summary>
-/// Start Sway at login through the per-user Run key: value <c>Sway</c> holds the quoted exe path. Off unless the user
+/// Start Gander at login through the per-user Run key: value <c>Gander</c> holds the quoted exe path. Off unless the user
 /// turns it on. <see cref="Status"/> is Enabled only when the value equals this exe's command (so a moved exe reads as
 /// Disabled and turning it on repairs it); Unavailable when the registry cannot be read (policy, permissions).
 /// <see cref="SetEnabled"/> does not throw: check <see cref="Status"/> afterwards.
@@ -51,7 +51,7 @@ public sealed class CurrentUserRunKey : IRunKeyAccess
 public sealed class RegistryLoginItem : ILoginItem
 {
     /// <summary>The Run value name.</summary>
-    public const string ValueName = "Sway";
+    public const string ValueName = "Gander";
 
     private readonly IRunKeyAccess _key;
     private readonly string _command;

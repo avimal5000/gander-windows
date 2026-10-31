@@ -159,7 +159,7 @@ public static class PoseDemandPolicy
     /// <summary>
     /// Full for everything but plain tracking: the gate test, a calibration or Setup's camera check, the Pose Debug
     /// window, and the Focus Test window. Otherwise Reduced while nothing is switched on the poses (Focus Lock is on,
-    /// or <c>SwitchingUnavailable</c>: Sway cannot focus windows right now). Otherwise Adaptive.
+    /// or <c>SwitchingUnavailable</c>: Gander cannot focus windows right now). Otherwise Adaptive.
     /// </summary>
     public static PoseDemand Wanted(PoseDemandInputs inputs)
     {

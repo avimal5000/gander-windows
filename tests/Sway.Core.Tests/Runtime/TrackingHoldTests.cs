@@ -8,7 +8,7 @@ public class TrackingHoldTests
     public void TheHoldReasonsReadAsInTheContract()
     {
         Assert.Equal("Focus Lock on", TrackingHold.FocusLock.Text());
-        Assert.Equal("Sway's menu or window is in front", TrackingHold.SwayInFront.Text());
+        Assert.Equal("Gander's menu or window is in front", TrackingHold.SwayInFront.Text());
         Assert.Equal("Switching…", TrackingHold.Switching.Text());
         Assert.Equal("Focus Test running", TrackingHold.FocusTest.Text());
     }

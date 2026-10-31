@@ -51,7 +51,7 @@ internal static class Survey
     }
 
     /// <summary>
-    /// The windows Sway would consider (visible, not minimized, not cloaked, not a tool window, not shell chrome, on
+    /// The windows Gander would consider (visible, not minimized, not cloaked, not a tool window, not shell chrome, on
     /// the current virtual desktop), topmost first, with a count of what was left out and why.
     /// </summary>
     internal static (List<WindowInfo> Windows, SortedDictionary<string, int> Skipped) Windows()

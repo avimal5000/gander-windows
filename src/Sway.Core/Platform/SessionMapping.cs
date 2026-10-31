@@ -20,7 +20,7 @@ public static class SessionMapping
     /// <summary>GUID_CONSOLE_DISPLAY_STATE: 0 off, 1 on, 2 dimmed.</summary>
     public static readonly Guid ConsoleDisplayState = new("6FE69556-704A-47A0-8F24-C28D936FDA47");
 
-    /// <summary>The wParam of WM_WTSSESSION_CHANGE; null for codes Sway does not act on (remote connects, logon, logoff).</summary>
+    /// <summary>The wParam of WM_WTSSESSION_CHANGE; null for codes Gander does not act on (remote connects, logon, logoff).</summary>
     public static SessionEvent? FromSessionChange(int code) => code switch
     {
         WtsSessionLock => SessionEvent.ScreenLocked,

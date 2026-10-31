@@ -111,7 +111,7 @@ internal sealed class MessagePumpThread : IDisposable
 
         if (RegisterClassExW(ref windowClass) != 0)
         {
-            _window = CreateWindowExW(0, _className, "Sway", 0, 0, 0, 0, 0, 0, 0, instance, 0);
+            _window = CreateWindowExW(0, _className, "Gander", 0, 0, 0, 0, 0, 0, 0, instance, 0);
         }
 
         _ready.Set();
@@ -131,7 +131,7 @@ internal sealed class MessagePumpThread : IDisposable
         catch (Exception exception) when (exception is not (OutOfMemoryException or AccessViolationException))
         {
             // A stray exception here would end the process; the window procedure already guards its own work.
-            System.Diagnostics.Trace.TraceError($"Sway message pump ended: {exception.GetType().Name}");
+            System.Diagnostics.Trace.TraceError($"Gander message pump ended: {exception.GetType().Name}");
         }
 
         _stopped = true;
