@@ -16,6 +16,7 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <ProjectReference Include="..\..\src\Sway.Platform.Windows\Sway.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\src\Sway.App\Sway.App.csproj" />
   </ItemGroup>
 
 </Project>
