@@ -75,12 +75,13 @@ SOFTWARE.
   the model.
 - Origin: Google MediaPipe Face Mesh / Face Landmarker, converted to ONNX by the repository's author. Copyright Google
   LLC and the MediaPipe authors; the conversion is a derived work.
-- License: Apache License 2.0 (full text below). This is the license stated on the converter's repository and model
-  card, and it matches the Apache-2.0 license of the upstream MediaPipe project and of Google's MediaPipe model card as
-  recorded in docs/decisions/01-pose-pipeline.md. We have **not** independently verified Google's terms for these
-  specific weights, that the converted weights are an unmodified or complete copy of Google's, or that the converter's
-  repository may redistribute them; the claim rests on the converter's repository and that recorded reading of Google's
-  model card.
+- License: Apache License 2.0 (full text below). Google's own model card for "MediaPipe Face Mesh V2" (authors Geng Yan
+  and Ivan Grishchenko, Google; model date September 15, 2022; PDF at
+  https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Face%20Mesh%20V2.pdf, read 2026-10-31) states
+  "LICENSED UNDER Apache License, Version 2.0". That matches the converter's repository and the upstream MediaPipe
+  project. Apache-2.0 permits redistribution and modification with the license text and attribution. The ONNX file is a
+  third-party conversion of Google's model; we have not compared its weights with Google's own files, so the conversion
+  itself is the converter's work under the same license.
 - NOTICE: no NOTICE file was found for the model or the converter at the pinned commit. If one is published, it must
   be added here.
 - The model file is fetched at development and CI time by `scripts/fetch-pose-model.sh`; it is not committed to git.
