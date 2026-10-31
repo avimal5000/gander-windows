@@ -51,8 +51,15 @@ public sealed partial class TrackingController : IDisposable
         _holds = new ChangeHolds(_scheduler, _env.Clock, Log);
         _holds.DisplayChangeAccepted += ResetTracking;
         _holds.SpaceChangeNotified += CancelFocusPoll;
-        _holds.HoldEnded += (_, _) =>
+        _holds.HoldEnded += (kind, end) =>
         {
+            // The wait ran out without a new layout: Windows may have finished changing after the notification, so
+            // read the layout once more before switching resumes.
+            if (kind == HoldKind.Displays && end != HoldEnd.Layout)
+            {
+                LayoutDidChange(_env.Displays.Current());
+            }
+
             if (_isPollingFocus)
             {
                 PollFocusedDisplay();

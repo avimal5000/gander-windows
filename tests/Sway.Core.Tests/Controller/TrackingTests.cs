@@ -196,6 +196,57 @@ public class TrackingTests
     // MARK: Results
 
     [Fact]
+    public async Task FocusTakenBackRightAfterASwitchIsNotAskedForAgainAtOnce()
+    {
+        using var h = await TrackingHarness();
+        h.Focus.Result = FocusedRight();
+        ScriptLook(h, Right);
+        h.Feed(1.4);
+        Assert.Equal([Right], h.Focus.FocusCalls);
+
+        // The previous app reclaims focus: the poll says left, the look is still on the right.
+        h.Focus.FocusedDisplay = Left;
+        h.Controller.TrackingTick();
+        h.Drain();
+        Assert.Equal(Left, h.Controller.TrackingFocus);
+        Assert.Contains(h.Controller.LogLines, l => l.Contains("Focus left Right", StringComparison.Ordinal));
+
+        h.Feed(1.5);
+        h.Feed(1.6);
+        Assert.Equal([Right], h.Focus.FocusCalls);
+        Assert.Single(h.Controller.LogLines, l => l.StartsWith("Not asking again for Right", StringComparison.Ordinal));
+
+        // After 2 s one more try is allowed; if it is taken back again the next wait is 4 s.
+        h.Advance(2.1);
+        h.Feed(3.7);
+        Assert.Equal([Right, Right], h.Focus.FocusCalls);
+        h.Focus.FocusedDisplay = Left;
+        h.Controller.TrackingTick();
+        h.Drain();
+        h.Advance(2.1);
+        h.Feed(5.9);
+        Assert.Equal(2, h.Focus.FocusCalls.Count);
+        h.Advance(2.1);
+        h.Feed(8.1);
+        Assert.Equal(3, h.Focus.FocusCalls.Count);
+    }
+
+    [Fact]
+    public async Task ASwitchThatStaysFocusedNeverLogsTakenBackOrWaits()
+    {
+        using var h = await TrackingHarness();
+        h.Focus.Result = FocusedRight();
+        h.Focus.FocusedDisplay = Right;
+        ScriptLook(h, Right);
+        h.Feed(1.4);
+        h.Controller.TrackingTick();
+        h.Drain();
+
+        Assert.DoesNotContain(h.Controller.LogLines, l => l.StartsWith("Focus left", StringComparison.Ordinal));
+        Assert.Equal(Right, h.Controller.TrackingFocus);
+    }
+
+    [Fact]
     public async Task ADisplayWithNoWindowIsTreatedAsFocusedSoItIsNotRetried()
     {
         using var h = await TrackingHarness();
