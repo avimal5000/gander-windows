@@ -1,6 +1,6 @@
 # Gander for Windows: working rules
 
-Read PLAN.md, SPEC.md, and CONTRACT.md first. This is the Windows port of Gander for macOS (`avimal5000/sway`, private).
+Read PLAN.md, SPEC.md, and CONTRACT.md first. This is the Windows port of Gander for macOS (`avimal5000/gander`, private).
 
 - The orchestrator creates and edits solution and project files, CI, and the docs. Builders implement one module per
   PR and do not touch `*.csproj`, `*.sln`, `Directory.Build.props`, or `.github/`.
