@@ -411,3 +411,20 @@ use the camera. This window carries on by itself."
 - The Core `SeparabilityAnalyzer` (diagonal d-prime, held-out accuracy) replaces the Mac `GateAnalysis` Vision report;
   the verdict names are mapped as above. `FeaturesMissing` gets a generic message.
 - The session fits with `PoseSwitchEngine` (injectable `ISwitchEngineMaking`); the controller's own engine is not exposed.
+
+## W6 calibration window
+
+`src/Sway.App/Windows/SetupWindow.cs` replaces the placeholder. It is driven by a `SetupSession` built in
+`App.Compose` (controller, `DispatcherMainThread`, `TimerDelayScheduler`, the Stopwatch clock): `Open()` on Loaded,
+`Close()` on Closed, and the window closes itself when the session closes (Start tracking). What each step shows is
+decided by the pure `SetupViewBuilder` (`Presentation/SetupView.cs`); the window only copies the `SetupView` onto fixed
+controls. Esc cancels a running calibration. The tray's "Calibrate..." and a first launch (no saved Tracking choice and
+an empty library) open it.
+
+`PromptOverlayHost` follows `CalibrationSession.Changed` and shows one `PromptOverlayWindow` (borderless, topmost,
+`WS_EX_TRANSPARENT | NOACTIVATE | TOOLWINDOW`, placed with `SetWindowPos` in physical pixels from
+`Progress.Display.Frame`) on the monitor being asked about, with a ring, the step number and "Look here". Opacity comes
+from `PromptOverlayMath.Opacity` (fade in during the settle, out at the end of the hold).
+
+`WindowsPoseSource` now fills `HeadPose.FaceBounds` from the landmark box (`FaceBoundsMapper`, frame pixels to
+fractions, clamped), which the camera check's framing advice reads.
