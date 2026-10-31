@@ -14,9 +14,11 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json
 
@@ -27,6 +29,12 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           if [[ "${GITHUB_REF_TYPE}" != "tag" || ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
             echo "Run this workflow on a tag like v0.2.0 (got '${GITHUB_REF_NAME}')." >&2
+            exit 1
+          fi
+          # Only commits that reached main can be released.
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "The tagged commit is not on main." >&2
             exit 1
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
@@ -81,7 +89,8 @@ jobs:
           tag="${{ steps.version.outputs.tag }}"
           notes="Unsigned build. Windows SmartScreen will warn the first time: choose More info, then Run anyway. See INSTALL.md inside the zip. Verify the download against the .sha256 file."
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" artifacts/Sway-*.zip artifacts/Sway-*.zip.sha256 --clobber
+            echo "Release $tag already exists; refusing to overwrite its files." >&2
+            exit 1
           else
             gh release create "$tag" artifacts/Sway-*.zip artifacts/Sway-*.zip.sha256 --title "Sway for Windows $tag" --notes "$notes" --prerelease
           fi
