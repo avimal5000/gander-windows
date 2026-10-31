@@ -33,7 +33,7 @@ public class NativeStructLayoutTests
     [Fact]
     public void WindowNativeCallsStructsMatchWin32()
     {
-        Assert.Equal(40, SizeOf(typeof(WindowNativeCalls), "MonitorInfo")); // MONITORINFO
+        Assert.Equal(104, SizeOf(typeof(WindowNativeCalls), "MonitorInfo")); // MONITORINFOEXW (has the device name)
         Assert.Equal(16, SizeOf(typeof(WindowNativeCalls), "Rect"));
     }
 
