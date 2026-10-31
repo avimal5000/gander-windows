@@ -24,6 +24,17 @@ public sealed class JsonFileSettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void AnOversizedFileIsTreatedAsCorruptAndBackedUp()
+    {
+        File.WriteAllText(FilePath, "{\"a\":\"" + new string('x', (int)JsonFileSettingsStore.MaxFileBytes) + "\"}");
+
+        var store = new JsonFileSettingsStore(FilePath);
+
+        Assert.Null(store.Read("a"));
+        Assert.True(File.Exists(FilePath + ".bak"));
+    }
+
+    [Fact]
     public void WriteThenReadRoundTripsAcrossInstances()
     {
         new JsonFileSettingsStore(FilePath).Write("a", "1");

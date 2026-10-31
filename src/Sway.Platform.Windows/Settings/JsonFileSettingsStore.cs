@@ -14,6 +14,9 @@ namespace Sway.Platform.Windows.Settings;
 /// </summary>
 public sealed class JsonFileSettingsStore : ISettingsStore
 {
+    /// <summary>A settings file larger than this is treated as corrupt (real files are a few KB).</summary>
+    internal const long MaxFileBytes = 1024 * 1024;
+
     private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
 
     private readonly object _gate = new();
@@ -92,9 +95,16 @@ public sealed class JsonFileSettingsStore : ISettingsStore
                 return _root;
             }
 
+            if (new FileInfo(_path).Length > MaxFileBytes)
+            {
+                // Far larger than any real settings file: treat as corrupt instead of parsing it.
+                KeepBackup();
+                return _root;
+            }
+
             text = File.ReadAllText(_path);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is not (OutOfMemoryException or AccessViolationException))
         {
             return _root;
         }
@@ -151,7 +161,7 @@ public sealed class JsonFileSettingsStore : ISettingsStore
 
             LastWriteError = null;
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is not (OutOfMemoryException or AccessViolationException))
         {
             LastWriteError = exception;
             try

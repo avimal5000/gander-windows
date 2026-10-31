@@ -110,10 +110,18 @@ public sealed class WindowsSessionEvents : ISessionEvents, IDisposable
             return;
         }
 
-        while (SessionNative.GetMessageW(out var message, IntPtr.Zero, 0, 0) > 0)
+        try
         {
-            SessionNative.TranslateMessage(ref message);
-            SessionNative.DispatchMessageW(ref message);
+            while (SessionNative.GetMessageW(out var message, IntPtr.Zero, 0, 0) > 0)
+            {
+                SessionNative.TranslateMessage(ref message);
+                SessionNative.DispatchMessageW(ref message);
+            }
+        }
+        catch (Exception exception) when (exception is not (OutOfMemoryException or AccessViolationException))
+        {
+            // A stray exception here would end the process; the window procedure already guards its own work.
+            System.Diagnostics.Trace.TraceError($"Sway session events loop ended: {exception.GetType().Name}");
         }
 
         if (_classRegistered)

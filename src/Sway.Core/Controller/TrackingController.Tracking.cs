@@ -145,7 +145,7 @@ public sealed partial class TrackingController
         {
             return System.Text.Json.JsonSerializer.Deserialize<SwitchSensitivity>(json, EngineJson.Options);
         }
-        catch (System.Text.Json.JsonException)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             return SwitchSensitivity.Default;
         }

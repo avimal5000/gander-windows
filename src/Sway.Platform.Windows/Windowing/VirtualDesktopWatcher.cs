@@ -16,10 +16,13 @@ public sealed class VirtualDesktopWatcher : IDisposable
 
     private readonly ManualResetEventSlim _stop = new(false);
     private readonly Thread _thread;
+    private readonly Action<string>? _log;
 
     /// <summary>Starts watching.</summary>
-    public VirtualDesktopWatcher()
+    /// <param name="log">Receives one line when a poll or a <see cref="Changed"/> subscriber fails unexpectedly. Null for none.</param>
+    public VirtualDesktopWatcher(Action<string>? log = null)
     {
+        _log = log;
         _thread = new Thread(Run) { IsBackground = true, Name = "Sway desktop watcher" };
         _thread.Start();
     }
@@ -40,6 +43,7 @@ public sealed class VirtualDesktopWatcher : IDisposable
     private void Run()
     {
         var detector = new DesktopFlipDetector();
+        var failing = false;
         while (!_stop.Wait(PollMilliseconds))
         {
             try
@@ -48,10 +52,21 @@ public sealed class VirtualDesktopWatcher : IDisposable
                 {
                     Changed?.Invoke();
                 }
+
+                failing = false;
             }
             catch (Exception exception) when (exception is COMException or InvalidOperationException)
             {
                 // Windows could not say this round; try the next.
+            }
+            catch (Exception exception) when (exception is not (OutOfMemoryException or AccessViolationException))
+            {
+                // A stray exception on this background thread would end the process. Keep watching; log once per run of failures.
+                if (!failing)
+                {
+                    failing = true;
+                    _log?.Invoke($"The desktop watcher hit an unexpected {exception.GetType().Name}: {exception.Message}");
+                }
             }
         }
     }

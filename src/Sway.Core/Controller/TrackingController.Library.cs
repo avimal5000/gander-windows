@@ -128,8 +128,9 @@ public sealed partial class TrackingController
         {
             return JsonSerializer.Deserialize<CalibrationLibrary>(json, EngineJson.Options) ?? new CalibrationLibrary();
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
+            // Corrupt or hostile data (including JSON null in a required field) is treated as no library.
             return new CalibrationLibrary();
         }
     }

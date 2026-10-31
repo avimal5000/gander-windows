@@ -17,7 +17,7 @@ public sealed record HotKeyShortcut(uint VirtualKey, HotKeyModifiers Modifiers, 
     public static readonly HotKeyShortcut FocusLockDefault = new(0x4C, HotKeyModifiers.Control | HotKeyModifiers.Alt | HotKeyModifiers.Shift, "L");
 
     /// <summary>Valid when it has at least one of Control, Alt, or Win, and a label.</summary>
-    public bool IsValid => (Modifiers & (HotKeyModifiers.Control | HotKeyModifiers.Alt | HotKeyModifiers.Win)) != 0 && KeyLabel.Length > 0;
+    public bool IsValid => (Modifiers & (HotKeyModifiers.Control | HotKeyModifiers.Alt | HotKeyModifiers.Win)) != 0 && KeyLabel is { Length: > 0 };
 
     public string DisplayString
     {

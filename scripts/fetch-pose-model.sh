@@ -10,6 +10,7 @@ cd "$(dirname "$0")/.."
 # The URL is pinned to a commit, so the content cannot change underneath us.
 COMMIT="32714088ed9830a98df6ee653ad406a3b83ef014"
 URL="https://huggingface.co/fernandotonon/QtMeshEditor-facemesh-onnx/resolve/${COMMIT}/face_landmarks.onnx"
+# Keep in step with ModelIntegrity.PinnedSha256 in src/Sway.Core/ModelIntegrity.cs (scripts/privacy-guard.sh checks it).
 SHA256="d16e5a55e6a480284d468ee32469692464049518c311662ab3956681de31e3e9"
 DEST="src/Sway.Platform.Windows/models/face_landmark.onnx"
 
@@ -27,7 +28,7 @@ tmp="$(mktemp "${DEST}.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 
 echo "Downloading the face model from $URL"
-curl --fail --location --silent --show-error --retry 3 --output "$tmp" "$URL"
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --location --silent --show-error --retry 3 --output "$tmp" "$URL"
 
 actual="$(sha256_of "$tmp")"
 if [[ "$actual" != "$SHA256" ]]; then

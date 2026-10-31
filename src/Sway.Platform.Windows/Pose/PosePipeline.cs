@@ -30,6 +30,7 @@ internal sealed class PosePipeline : IDisposable
     private readonly LandmarkModel _model;
     private readonly FaceDetector? _detector;
     private readonly FaceSearchPlan _plan = new();
+    private byte[] _gray = [];
     private SquareBox? _box;
     private SquareBox? _lastBox;
     private (double X, double Y)? _drift;
@@ -225,7 +226,13 @@ internal sealed class PosePipeline : IDisposable
             return new SquareBox(frame.Width / 2.0, frame.Height / 2.0, side);
         }
 
-        var gray = new byte[frame.Width * frame.Height];
+        var length = frame.Width * frame.Height;
+        if (_gray.Length != length)
+        {
+            _gray = new byte[length]; // only when the frame size changes; CreateCopyFromBuffer copies, so the buffer is reusable at once
+        }
+
+        var gray = _gray;
         for (var i = 0; i < gray.Length; i++)
         {
             var at = i * 4; // BGRA; integer luma

@@ -16,6 +16,9 @@ internal sealed record LandmarkResult(Landmark[] Landmarks, double Presence);
 /// </summary>
 internal sealed class LandmarkModel : IDisposable
 {
+    private static readonly object TelemetryGate = new();
+    private static bool _telemetryOff;
+
     private readonly InferenceSession _session;
     private readonly string _inputName;
     private readonly ModelLayout _layout;
@@ -46,8 +49,16 @@ internal sealed class LandmarkModel : IDisposable
             return $"Model file not found: {path}\nRun scripts/fetch-pose-model.sh in the repository and rebuild.";
         }
 
-        using var session = new InferenceSession(path);
-        var lines = new List<string> { $"Model file: {path} ({new FileInfo(path).Length:N0} bytes)" };
+        return Describe(File.ReadAllBytes(path), path, out layout);
+    }
+
+    /// <summary>Describes model bytes already read (and, for the product, already hash-checked).</summary>
+    private static string Describe(byte[] model, string path, out ModelLayout? layout)
+    {
+        layout = null;
+        EnsureTelemetryOff();
+        using var session = new InferenceSession(model);
+        var lines = new List<string> { $"Model file: {path} ({model.Length:N0} bytes)" };
         var inputShape = new List<int>();
         foreach (var (name, meta) in session.InputMetadata)
         {
@@ -75,19 +86,43 @@ internal sealed class LandmarkModel : IDisposable
         static string outputName(InferenceSession s, int index) => s.OutputNames[index];
     }
 
+    /// <summary>
+    /// ONNX Runtime's Windows build can emit trace events to the OS diagnostic-data provider. Sway promises nothing
+    /// leaves the PC, so turn that off before any session exists.
+    /// </summary>
+    private static void EnsureTelemetryOff()
+    {
+        lock (TelemetryGate)
+        {
+            if (!_telemetryOff)
+            {
+                OrtEnv.Instance().DisableTelemetryEvents();
+                _telemetryOff = true;
+            }
+        }
+    }
+
     /// <summary>Opens the model, or returns null and a reason.</summary>
     internal static LandmarkModel? TryOpen(string path, out string message)
     {
         try
         {
-            message = Describe(path, out var layout);
+            // Read once, hash, then build the session from the very bytes that were hashed (no swap between check and use).
+            var bytes = File.ReadAllBytes(path);
+            if (!ModelIntegrity.Verify(bytes, out var integrityMessage))
+            {
+                message = integrityMessage;
+                return null;
+            }
+
+            message = Describe(bytes, path, out var layout);
             if (layout is null)
             {
                 return null;
             }
 
             var options = new SessionOptions { GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL };
-            var session = new InferenceSession(path, options);
+            var session = new InferenceSession(bytes, options);
             return new LandmarkModel(session, session.InputNames[0], layout, message);
         }
         catch (Exception exception)

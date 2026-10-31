@@ -24,6 +24,18 @@ hardware checks below have not been run by a person yet.
 | The model is the one we chose | One face model is bundled, never downloaded by Sway, and its SHA-256 is pinned | `scripts/fetch-pose-model.sh` pins the hash; `scripts/audit-privacy.sh` checks the published `models/face_landmark.onnx` against that pin and that it is the only `.onnx` file |
 | The only native dependencies are expected | ONNX Runtime (head pose), the .NET runtime, WPF's native pieces, Windows API-set stubs | `scripts/audit-privacy.sh` step 4 lists every native `.dll`/`.exe` in the folder that is not on the allow-list and fails on it (extend with `--allow-native <glob>` after review) |
 
+## ONNX Runtime telemetry and model integrity
+
+- ONNX Runtime's official Windows build can write trace events (TraceLogging, ETW) that Windows may upload to
+  Microsoft when the user allows optional diagnostic data (see the `Privacy.md` in the Microsoft.ML.OnnxRuntime
+  package). That is not a network call from Sway, and the runtime socket check below cannot see it. Sway therefore
+  calls `OrtEnv.Instance().DisableTelemetryEvents()` before it creates any session (`LandmarkModel`), and
+  `scripts/privacy-guard.sh` fails if that call disappears. This is compiled but not yet checked on a Windows PC (for
+  example by listing ETW providers while Sway runs).
+- At startup Sway reads the model file once, checks its SHA-256 against `ModelIntegrity.PinnedSha256`, and builds the
+  session from those same bytes. A mismatch means the camera and tracking are unavailable and the log says so. The
+  privacy guard fails if this pin and the one in `scripts/fetch-pose-model.sh` differ.
+
 ## What the static audit cannot see
 
 - A self-contained publish contains the .NET runtime's own `System.Net.*.dll` files. They sit in the folder, but Sway's

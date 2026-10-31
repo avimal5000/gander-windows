@@ -116,10 +116,18 @@ internal sealed class MessagePumpThread : IDisposable
             return;
         }
 
-        while (GetMessageW(out var message, 0, 0, 0) > 0)
+        try
         {
-            TranslateMessage(ref message);
-            DispatchMessageW(ref message);
+            while (GetMessageW(out var message, 0, 0, 0) > 0)
+            {
+                TranslateMessage(ref message);
+                DispatchMessageW(ref message);
+            }
+        }
+        catch (Exception exception) when (exception is not (OutOfMemoryException or AccessViolationException))
+        {
+            // A stray exception here would end the process; the window procedure already guards its own work.
+            System.Diagnostics.Trace.TraceError($"Sway message pump ended: {exception.GetType().Name}");
         }
 
         UnregisterClassW(_className, instance);

@@ -200,8 +200,7 @@ public partial class App : Application
     private void Compose()
     {
         var clock = Stopwatch.StartNew();
-        var settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Sway", "settings.json");
-        _settings = new JsonFileSettingsStore(settingsPath);
+        _settings = new JsonFileSettingsStore();
         _cameras = new WindowsCameraCatalog();
         var poseSource = new WindowsPoseSource(_cameras, null, line => _log.Write(line));
         var displays = new WindowsDisplayCatalog();
@@ -248,7 +247,7 @@ public partial class App : Application
         }
 
         // A virtual desktop switch settles for 0.6 s before switching resumes. The watcher raises on its own thread.
-        _desktops = new VirtualDesktopWatcher();
+        _desktops = new VirtualDesktopWatcher(line => _log.Write(line));
         _desktops.Changed += () => Dispatcher.BeginInvoke(() => _controller?.ActiveDesktopChanged());
 
         // The tray shows the latest state when a switch lands or the Focus Lock shortcut is pressed.

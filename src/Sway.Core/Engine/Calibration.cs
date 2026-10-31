@@ -237,19 +237,31 @@ public sealed class CalibrationLibraryConverter : JsonConverter<CalibrationLibra
         {
             try
             {
-                if (element.Deserialize<CalibrationProfile>(EngineJson.Options) is { } profile)
+                if (element.Deserialize<CalibrationProfile>(EngineJson.Options) is { } profile && IsWellFormed(profile))
                 {
                     stored.Add(profile);
                 }
             }
-            catch (JsonException)
+            catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                // A broken profile is dropped, not fatal.
+                // A broken profile (bad JSON, or null where a value is required) is dropped, not fatal.
             }
         }
 
         return new CalibrationLibrary(stored);
     }
+
+    /// <summary>
+    /// System.Text.Json accepts JSON null for non-nullable reference properties, so a decoded profile can still hold
+    /// nulls or nonsense numbers. Anything unusable is dropped.
+    /// </summary>
+    private static bool IsWellFormed(CalibrationProfile profile) =>
+        profile.Displays is not null
+        && profile.LayoutFingerprint is not null
+        && profile.Displays.All(d => d is not null && d.DisplayId.RawValue is not null && double.IsFinite(d.Yaw)
+            && double.IsFinite(d.Pitch) && double.IsFinite(d.YawStd) && double.IsFinite(d.PitchStd) && d.SampleCount >= 0)
+        && double.IsFinite(profile.YawScale) && profile.YawScale > 0
+        && double.IsFinite(profile.PitchScale) && profile.PitchScale > 0;
 
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, CalibrationLibrary value, JsonSerializerOptions options)
