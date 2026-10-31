@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Static checks on installer/Sway.iss (no Inno Setup needed). Fails if a must-have property is missing.
+# Static checks on installer/Gander.iss (no Inno Setup needed). Fails if a must-have property is missing.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-iss=installer/Sway.iss
+iss=installer/Gander.iss
 fail=0
 need() { # description, extended regex
   if grep -Eqi -- "$2" "$iss"; then echo "ok   $1"; else echo "FAIL $1"; fail=1; fi
@@ -33,7 +33,7 @@ need "deletes %LocalAppData%\\Gander" "localappdata\}\\\\Gander"
 need "launch after install" 'postinstall'
 
 # The Run value name must match the app.
-cs=src/Sway.Platform.Windows/Settings/RegistryLoginItem.cs
+cs=src/Gander.Platform.Windows/Settings/RegistryLoginItem.cs
 app_name=$(sed -n 's/.*public const string ValueName = "\([^"]*\)".*/\1/p' "$cs")
 iss_name=$(sed -n 's/^#define RunValueName "\([^"]*\)".*/\1/p' "$iss")
 if [[ -n "$app_name" && "$app_name" == "$iss_name" ]]; then echo "ok   Run value name matches app ($app_name)"; else echo "FAIL Run value name (app '$app_name', installer '$iss_name')"; fail=1; fi

@@ -21,7 +21,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ProcessName = 'Gander'
-$SwayLog = Join-Path $env:LOCALAPPDATA 'Gander\Logs\gander.log'
+$GanderLog = Join-Path $env:LOCALAPPDATA 'Gander\Logs\gander.log'
 $Culture = [System.Globalization.CultureInfo]::InvariantCulture
 
 function Get-PowerSource {
@@ -37,15 +37,15 @@ function Get-PowerSource {
 # New lines of gander.log since the last call. $State.Pos is the byte offset already copied; a shorter file means it rotated.
 function Copy-NewLogLines([hashtable]$State, [string]$Destination) {
   try {
-    if (-not (Test-Path -LiteralPath $SwayLog)) { return }
-    $length = (Get-Item -LiteralPath $SwayLog).Length
+    if (-not (Test-Path -LiteralPath $GanderLog)) { return }
+    $length = (Get-Item -LiteralPath $GanderLog).Length
     $chunks = @()
     if ($length -lt $State.Pos) {
-      $older = $SwayLog + '.1'
+      $older = $GanderLog + '.1'
       if (Test-Path -LiteralPath $older) { $chunks += Read-FromOffset $older $State.Pos }
       $State.Pos = 0
     }
-    $chunks += Read-FromOffset $SwayLog $State.Pos
+    $chunks += Read-FromOffset $GanderLog $State.Pos
     $State.Pos = $length
     $text = ($chunks -join '')
     if ($text.Length -gt 0) { [System.IO.File]::AppendAllText($Destination, $text, [System.Text.Encoding]::UTF8) }
@@ -70,7 +70,7 @@ function Invoke-Sample {
   $logFile = [System.IO.Path]::ChangeExtension($Out, 'log')
   Set-Content -LiteralPath $logFile -Value '' -NoNewline
   $state = @{ Pos = 0L }
-  if (Test-Path -LiteralPath $SwayLog) { $state.Pos = (Get-Item -LiteralPath $SwayLog).Length }  # only lines from now on
+  if (Test-Path -LiteralPath $GanderLog) { $state.Pos = (Get-Item -LiteralPath $GanderLog).Length }  # only lines from now on
   Write-Host "Sampling Gander every $Interval s into $Out and its log lines into $logFile (Ctrl+C to stop)."
   $cores = [Environment]::ProcessorCount
   while ($true) {

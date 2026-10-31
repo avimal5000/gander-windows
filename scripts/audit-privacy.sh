@@ -2,7 +2,7 @@
 # Privacy audit for the Windows build (mirrors the Mac app's scripts/audit-privacy.sh). It checks a published output
 # folder, so run it on what you ship:
 #
-#   dotnet publish src/Sway.App -c Release -r win-x64 -o publish/Gander-win-x64
+#   dotnet publish src/Gander.App -c Release -r win-x64 -o publish/Gander-win-x64
 #   scripts/audit-privacy.sh publish/Gander-win-x64 [--allow-native <glob>]...
 #
 # Checks: 1 the source guard; 2 Gander's own assemblies reference no networking assembly and import no networking DLL;
@@ -107,7 +107,7 @@ allowed_native=(
   'mscorrc.dll' 'msquic.dll' 'ucrtbase.dll' 'vcruntime140*.dll' 'msvcp140*.dll' 'concrt140.dll' 'api-ms-win-*.dll'
   'System.IO.Compression.Native.dll' 'Microsoft.DiaSymReader.Native.*.dll' 'createdump.exe'
   'D3DCompiler_47_cor3.dll' 'PenImc_cor3.dll' 'PresentationNative_cor3.dll' 'wpfgfx_cor3.dll' 'vcruntime140_cor3.dll'
-  'Gander.exe' 'SwayTools.exe'
+  'Gander.exe' 'GanderTools.exe'
 )
 allowed_native+=("${extra_native[@]+"${extra_native[@]}"}")
 unexpected=""

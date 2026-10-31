@@ -16,15 +16,15 @@ held-out nearest-centroid accuracy of 95% or more and d-prime of 3 or more for e
    frame's landmarks (bounding box, squared, enlarged 1.5x, as MediaPipe does) and the detector runs again only when
    the face-presence score falls below 0.5 or the landmarks are unusable.
 3. Landmarks: the ONNX model below, run with ONNX Runtime 1.20.1 (CPU).
-4. Pose: `Sway.Core.PoseGeometry` turns landmarks into yaw, pitch, roll. Head frame from the outer eye corners
+4. Pose: `Gander.Core.PoseGeometry` turns landmarks into yaw, pitch, roll. Head frame from the outer eye corners
    (33, 263) and the nose-bridge-to-chin line (168, 152); the nose tip (1) only rejects a flipped fit. Yaw is positive
    toward the user's right, pitch positive looking up, roll positive right ear toward right shoulder, for an unmirrored
    image. Unit tested with synthetic faces rotated by known angles.
-5. Gate: `Sway.Core.SeparabilityAnalyzer` (port of the Mac gate maths): per-monitor mean and standard deviation, pairwise
+5. Gate: `Gander.Core.SeparabilityAnalyzer` (port of the Mac gate maths): per-monitor mean and standard deviation, pairwise
    d-prime along the line between centers, leave-one-round-out nearest-centroid accuracy, verdict.
 
-Run it with `SwayTools` option 3: 3a live readout, 3b gate run, 3c describe the model (no camera, for diagnosing a failed run), 3d cold-start test (how fast a far-turned face is
-found from no face). Output: `sway-pose.txt` (report) and `sway-pose-trace.json` (numbers only) next to the exe.
+Run it with `GanderTools` option 3: 3a live readout, 3b gate run, 3c describe the model (no camera, for diagnosing a failed run), 3d cold-start test (how fast a far-turned face is
+found from no face). Output: `gander-pose.txt` (report) and `gander-pose-trace.json` (numbers only) next to the exe.
 
 ## The model chosen
 
@@ -75,7 +75,7 @@ rotation roughly right, which matches the face-loss behavior seen at large head 
 
 ## Results: first run on the user's desktop (2026-10-30)
 
-C922, monitor 1 left (1920x1080), monitor 2 right (2560x1440), 3b gate run, numbers read from `sway-pose-trace.json`
+C922, monitor 1 left (1920x1080), monitor 2 right (2560x1440), 3b gate run, numbers read from `gander-pose-trace.json`
 (about 16 frames per second, roughly 62 ms between frames).
 
 | Monitor | Round | Yaw (degrees) | Pitch (degrees) | Spread (std) |

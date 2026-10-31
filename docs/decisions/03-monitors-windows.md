@@ -1,6 +1,6 @@
 # 03: Monitors and windows (spike S3)
 
-**Run.** 2026-10-30 on the user's desktop. `SwayTools info`.
+**Run.** 2026-10-30 on the user's desktop. `GanderTools info`.
 
 - **System.** Windows 11 25H2 (build 26200; the registry product name still says "Windows 10"), x64, 16 logical
   processors, Logitech C922 found, camera access allowed for the user, the machine, and desktop apps.

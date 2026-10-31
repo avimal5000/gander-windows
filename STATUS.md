@@ -9,7 +9,7 @@ Last updated: 2026-10-31
 | W2 Core engine port | Runtime pieces merged (PR 37). Engine (calibration, classifier, switch decider) with 320 tests awaits review |
 | W3 to W8 | Not started |
 
-Next: merge the engine, then W3 (camera and live pose behind the engine) and W4 (focus and displays). The user tries SwayTools 3d.
+Next: merge the engine, then W3 (camera and live pose behind the engine) and W4 (focus and displays). The user tries GanderTools 3d.
 
 W7 hardening (branch feat/w7-hardening): focus verification needs the window in front on two reads and a display that
 already has the front window is left alone; a repeat request for the display Gander just focused waits 2, 4, 8, 10 s and
@@ -33,5 +33,5 @@ the PC: virtual desktop switching, the unplug and replug of the webcam, hot-plug
 - The product is called Gander and the mark is a goose (same forest, sage and ivory colours). New app icon, tray glyph (solid, hollow outline when paused, lock badge, alert dot) and installer; `scripts/make-icon.swift` redraws the icon.
 - The program is `Gander.exe`; releases are `Gander-<version>-win-x64.zip` and `...-setup.exe`. Settings are in `%AppData%\Gander`, logs in `%LocalAppData%\Gander\Logs\gander.log`.
 - An install of the earlier name keeps working: `EarlierNameMigration` copies `%AppData%\Sway\settings.json` if there is none under the new name and moves the "start with Windows" entry; the installer removes the old `Sway.exe` and shortcuts, and the uninstaller also offers to delete the old data folders.
-- Code names stay as they were (projects and namespaces `Sway.*`, `SwayTools.exe`) so history and tests are undisturbed.
+- Code names follow: solution `Gander.sln`, projects and namespaces `Gander.*`, `GanderTools.exe`, `installer/Gander.iss`. Only the migration and the installer's clean-up keep the old name `Sway`, on purpose.
 - Name risk: a 2012 US trademark filing for GANDER (software, owner Great Heights Inc.) turned up in a web search. Its status is not checked; the owner should run a USPTO search before any public launch.

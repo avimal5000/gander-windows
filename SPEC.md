@@ -15,8 +15,8 @@ to the last-used window there. The cursor never moves.
 | # | Decision | Source |
 |---|---|---|
 | D1 | Behavior matches the Mac app (per-display focus, head pose only, last-used window, cursor never moved, uncertain = no switch). Differences are numbered decisions here | PLAN.md |
-| D2 | .NET 8, C#, WPF shell, WinForms `NotifyIcon` for the tray. `Sway.Core` is portable and references no Windows API | PLAN.md |
-| D3 | Work happens on the Mac; every PR builds on a Windows runner and publishes `Gander-win-x64` and `SwayTools-win-x64` for the user to try on the Windows desktop | User, 2026-10-30 |
+| D2 | .NET 8, C#, WPF shell, WinForms `NotifyIcon` for the tray. `Gander.Core` is portable and references no Windows API | PLAN.md |
+| D3 | Work happens on the Mac; every PR builds on a Windows runner and publishes `Gander-win-x64` and `GanderTools-win-x64` for the user to try on the Windows desktop | User, 2026-10-30 |
 | D4 | One third-party dependency is allowed for head pose: ONNX Runtime plus a bundled face model. Audited for network use; the model is never downloaded | User, 2026-10-30 |
 | D5 | Unsigned test programs and builds may be run on the user's desktop (SmartScreen: More info, Run anyway) | User, 2026-10-30 |
 | D6 | Target Windows 10 version 2004 (build 19041) and later, x64. Windows 11 is the main target | Assumption |

@@ -3,7 +3,7 @@
 **Question.** Can a background program give another window the keyboard focus, without moving the cursor and without
 synthesizing input?
 
-**Run.** 2026-10-30 on the user's desktop (Windows 11 25H2, build 26200, x64). `SwayTools focus`: for each attempt the
+**Run.** 2026-10-30 on the user's desktop (Windows 11 25H2, build 26200, x64). `GanderTools focus`: for each attempt the
 user clicked a window on one monitor, so the foreground belonged to another app, then the program tried to focus the
 topmost window on the other monitor. Two rounds in each direction. Targets were Chrome and Discord (both Chromium).
 

@@ -12,7 +12,7 @@ Read PLAN.md, SPEC.md, and CONTRACT.md first. This is the Windows port of Gander
 - Merging needs the user's approval each time.
 - Privacy is enforced: `scripts/privacy-guard.sh` must pass. No networking, no saved frames, no synthesized or captured
   input, cursor never moved.
-- Build and test locally with `dotnet build` and `dotnet test tests/Sway.Core.Tests` (the .NET 8 SDK is in
+- Build and test locally with `dotnet build` and `dotnet test tests/Gander.Core.Tests` (the .NET 8 SDK is in
   `~/.dotnet` on the Mac; add it to PATH). The Windows-only projects compile on macOS but run only on Windows CI.
 - Lessons from the Mac project: sticky suspend for lock and sleep, camera-loss turns Tracking off, adaptive frame rate,
   verified focus (raise, check, fall back), and ask before changing a privacy promise.

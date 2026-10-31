@@ -1,5 +1,5 @@
-// Renders Gander's Windows icon (the goose mark; Sway.App's SwayMarkGeometry holds the same outline) as a multi-size .ico
-// with PNG frames, plus a preview PNG. Runs on a Mac:  swift scripts/make-icon.swift src/Sway.App/Assets/Gander.ico src/Sway.App/Assets/Gander.preview.png
+// Renders Gander's Windows icon (the goose mark; Gander.App's GanderMarkGeometry holds the same outline) as a multi-size .ico
+// with PNG frames, plus a preview PNG. Runs on a Mac:  swift scripts/make-icon.swift src/Gander.App/Assets/Gander.ico src/Gander.App/Assets/Gander.preview.png
 import AppKit
 import CoreGraphics
 import ImageIO
