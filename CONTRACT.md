@@ -428,3 +428,34 @@ from `PromptOverlayMath.Opacity` (fade in during the settle, out at the end of t
 
 `WindowsPoseSource` now fills `HeadPose.FaceBounds` from the landmark box (`FaceBoundsMapper`, frame pixels to
 fractions, clamped), which the camera check's framing advice reads.
+
+## W6 settings window
+
+`src/Sway.App/Windows/SettingsWindow.cs`, opened by the tray's "Settings…" item (`TrayCommand.Settings`, new
+`openSettings` parameter of `TrayHost`, `App.OpenSettings`). Code-built like the setup window, same ivory/charcoal
+surface and forest/sage accent from the app theme; it counts as "in front" while active. All logic that can be tested is
+in `Presentation/SettingsModel.cs` (tests in `tests/Sway.Platform.Windows.Tests/App/SettingsModelTests.cs`).
+
+- **Switching timing.** `TimingPresets`: Slow (0.70 s hold, 1.00 s pause), Default and Instant (from
+  `SwitchSensitivity.Default` and `.Instant`), Quick (0.25, 0.50). A preset changes hold and pause only and keeps the
+  confidence. Two sliders (hold 0.05 to 1.5 s, pause 0.2 to 1.5 s, 0.05 s steps) call `SetHoldTime` / `SetCooldown`;
+  the preset radio matches the current values, or none for a custom mix. Everything goes through
+  `TrackingController.SetSensitivity`, which saves it.
+- **Focus Lock shortcut.** "Change" arms the window's own `PreviewKeyDown` (no keyboard hook, nothing global);
+  `ShortcutCapture.From(virtualKey, modifiers)` accepts letters, digits, F1 to F24, Space, arrows, Insert, Delete, Home,
+  End, Page Up/Down with at least one of Ctrl, Alt, Win; Shift alone is refused with a hint. An accepted shortcut goes to
+  `TrackingController.SetFocusLockShortcut` (registers through `IHotKeyRegistrar`, saves through `ISettingsStore`, keeps
+  the previous one and shows `ShortcutMessage` when the registration fails). "Reset" calls `ResetFocusLockShortcut`
+  (default Ctrl+Alt+Shift+L). Esc or leaving the window cancels the capture.
+- **Start with Windows** is `ILoginItem`; disabled when `Unavailable`. **Camera** is `SelectCameraAsync` (saved in
+  `sway.cameraDeviceID`). **Calibration** shows `SettingsText.Calibration` and "Calibrate again" opens the setup window.
+  **About** shows the version, "Camera frames never leave this PC." and a THIRD-PARTY-NOTICES summary.
+
+### Tray menu look
+
+`Tray/ThemedMenu.cs` applies a `ToolStripProfessionalRenderer` with a custom `ProfessionalColorTable` from
+`MenuPalette.For(SystemInfo.IsLightApps())` every time the menu opens: `SystemFonts.MenuFont`, DPI-scaled padding and
+minimum width, rounded anti-aliased hover, accent-colored drawn check marks (Tracking, Focus Lock, camera, login),
+muted disabled text, a bold accent status line at the top (first entry, tagged "status"), and Windows 11 rounded corners
+through `DwmSetWindowAttribute` (ignored on older Windows). `TrayMenuModel` gained one entry, "Settings…", before
+"Calibrate…". Only compiled on the Mac; the look needs a check on the PC.

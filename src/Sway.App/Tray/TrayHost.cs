@@ -21,6 +21,7 @@ public sealed class TrayHost : IDisposable
     private readonly TrackingController _controller;
     private readonly ILoginItem _loginItem;
     private readonly Action _openCalibration;
+    private readonly Action _openSettings;
     private readonly Action _openDiagnostics;
     private readonly Action _quit;
     private readonly Action<string> _log;
@@ -36,6 +37,7 @@ public sealed class TrayHost : IDisposable
         TrackingController controller,
         ILoginItem loginItem,
         Action openCalibration,
+        Action openSettings,
         Action openDiagnostics,
         Action quit,
         Action<bool> menuOpen,
@@ -44,6 +46,7 @@ public sealed class TrayHost : IDisposable
         _controller = controller;
         _loginItem = loginItem;
         _openCalibration = openCalibration;
+        _openSettings = openSettings;
         _openDiagnostics = openDiagnostics;
         _quit = quit;
         _menuOpen = menuOpen;
@@ -55,6 +58,7 @@ public sealed class TrayHost : IDisposable
             Rebuild();
         };
         _menu.Closed += (_, _) => _menuOpen(false);
+        _menu.HandleCreated += (_, _) => ThemedMenu.Round(_menu.Handle);
         _tray = new Forms.NotifyIcon { ContextMenuStrip = _menu, Visible = false };
         _tray.MouseClick += OnMouseClick;
         _controller.StateChanged += Refresh;
@@ -133,10 +137,21 @@ public sealed class TrayHost : IDisposable
             _controller.Devices,
             _controller.SelectedCameraId ?? _controller.RunningDevice?.Id ?? FirstId(_controller.Devices),
             _loginItem.Status);
+        ThemedMenu.Apply(_menu, SystemInfo.IsLightApps());
+        var scale = _menu.DeviceDpi / 96f;
         _menu.Items.Clear();
+        var first = true;
         foreach (var entry in TrayMenuModel.Build(input))
         {
-            _menu.Items.Add(ToItem(entry));
+            var item = ToItem(entry);
+            if (first)
+            {
+                item.Tag = "status";
+                first = false;
+            }
+
+            ThemedMenu.PadItem(item, scale);
+            _menu.Items.Add(item);
         }
     }
 
@@ -154,7 +169,16 @@ public sealed class TrayHost : IDisposable
         {
             foreach (var child in children)
             {
-                item.DropDownItems.Add(ToItem(child));
+                if (item.DropDown is Forms.ToolStripDropDownMenu dropDown)
+                {
+                    dropDown.ShowImageMargin = false;
+                    dropDown.ShowCheckMargin = true;
+                    dropDown.HandleCreated += (_, _) => ThemedMenu.Round(dropDown.Handle);
+                }
+
+                var sub = ToItem(child);
+                sub.Padding = new Forms.Padding(6);
+                item.DropDownItems.Add(sub);
             }
         }
         else if (entry.Command != TrayCommand.None)
@@ -180,6 +204,9 @@ public sealed class TrayHost : IDisposable
                 break;
             case TrayCommand.Calibrate:
                 _openCalibration();
+                break;
+            case TrayCommand.Settings:
+                _openSettings();
                 break;
             case TrayCommand.Diagnostics:
                 _openDiagnostics();

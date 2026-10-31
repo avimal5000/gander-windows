@@ -68,7 +68,7 @@ public sealed class TrayPresentationTests
         var menu = TrayMenuModel.Build(Input());
         var texts = menu.Where(e => !e.IsSeparator).Select(e => e.Text).ToList();
         Assert.Equal(
-            ["Tracking · Cam", "Tracking", "Focus Lock (Ctrl+Alt+Shift+L)", "Camera", "Calibrate…", "Diagnostics…", "Open Sway at login", "Quit Sway"],
+            ["Tracking · Cam", "Tracking", "Focus Lock (Ctrl+Alt+Shift+L)", "Camera", "Settings…", "Calibrate…", "Diagnostics…", "Open Sway at login", "Quit Sway"],
             texts);
         Assert.False(menu[0].Enabled);
     }
