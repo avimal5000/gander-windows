@@ -132,8 +132,9 @@ internal sealed class WindowNativeCalls : IWindowNativeCalls
             using var process = Process.GetProcessById((int)processId);
             return process.ProcessName;
         }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        catch (Exception exception) when (exception is not (OutOfMemoryException or AccessViolationException))
         {
+            // Includes Win32Exception (access denied, counters): this runs inside the EnumWindows callback, where nothing may escape.
             return "?";
         }
     }

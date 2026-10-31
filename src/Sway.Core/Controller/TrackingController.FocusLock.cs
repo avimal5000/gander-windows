@@ -52,6 +52,13 @@ public sealed partial class TrackingController
             IsShortcutRegistered = false;
             Log("The Focus Lock shortcut could not be registered");
         }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // For example the platform's message window could not be created: startup must go on without a shortcut.
+            ShortcutMessage = "The Focus Lock shortcut could not be set up.";
+            IsShortcutRegistered = false;
+            Log($"The Focus Lock shortcut could not be registered ({ex.GetType().Name})");
+        }
     }
 
     /// <summary>The menu warns only while the chosen shortcut doesn't work.</summary>
@@ -144,7 +151,7 @@ public sealed partial class TrackingController
             var shortcut = JsonSerializer.Deserialize<HotKeyShortcut>(json, EngineJson.Options);
             return shortcut is { IsValid: true } ? shortcut : HotKeyShortcut.FocusLockDefault;
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             return HotKeyShortcut.FocusLockDefault;
         }

@@ -27,8 +27,9 @@ compare it with the file's contents.
 - Tray menu: Tracking on or off, Focus Lock, Calibrate, Settings, Diagnostics, Quit.
 - Focus Lock freezes switching: **Ctrl+Alt+Shift+L** by default.
 - Switching waits while a Sway window or the tray menu is in front.
-- Windows running as administrator cannot be focused by a normal program. Run Sway as administrator to switch to
-  those, or accept that they are skipped.
+- Windows running as administrator cannot be focused by a normal program, so Sway skips them. Do not run Sway as
+  administrator to work around this: anyone who can write to the folder you unzipped it into could then run code with
+  administrator rights. If you ever do, install it under `C:\Program Files\Sway`, which only administrators can change.
 
 ## Start with Windows
 

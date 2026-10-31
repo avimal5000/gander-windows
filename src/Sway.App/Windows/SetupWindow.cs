@@ -211,7 +211,7 @@ public sealed class SetupWindow : Window
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo(SetupPresentation.CameraSettingsUri) { UseShellExecute = true });
+            using var process = Process.Start(new ProcessStartInfo(SetupPresentation.CameraSettingsUri) { UseShellExecute = true }); // privacy-guard:allow opens the ms-settings camera privacy page
         }
         catch (Exception)
         {
