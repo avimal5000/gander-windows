@@ -179,7 +179,7 @@ public partial class App : Application
         var settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Sway", "settings.json");
         _settings = new JsonFileSettingsStore(settingsPath);
         _cameras = new WindowsCameraCatalog();
-        var poseSource = new WindowsPoseSource(_cameras);
+        var poseSource = new WindowsPoseSource(_cameras, null, line => _log.Write(line));
         var displays = new WindowsDisplayCatalog();
         var focus = new WindowsFocusController();
         var hotKeys = new WindowsHotKeyRegistrar();
