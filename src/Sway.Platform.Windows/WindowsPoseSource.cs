@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using Sway.Core;
 using Sway.Core.Platform;
+using Sway.Core.Pose;
 using Sway.Core.Runtime;
 using Sway.Platform.Windows.Pose;
 
@@ -27,6 +28,7 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
 
     private readonly ICameraCatalog _catalog;
     private readonly string _modelPath;
+    private readonly Action<string>? _log;
     private readonly object _gate = new();
     private readonly object _rateGate = new();
     private readonly AdaptiveFrameRate _rate = new();
@@ -36,8 +38,10 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
 
     /// <param name="catalog">Used to pick the device, check permission and notice a camera that went away.</param>
     /// <param name="modelPath">Defaults to <c>models/face_landmark.onnx</c> next to the app.</param>
-    public WindowsPoseSource(ICameraCatalog catalog, string? modelPath = null)
+    /// <param name="log">Receives numbers-only lines when the face is tracked, lost or re-found. Null for none.</param>
+    public WindowsPoseSource(ICameraCatalog catalog, string? modelPath = null, Action<string>? log = null)
     {
+        _log = log;
         _catalog = catalog;
         _modelPath = modelPath ?? LandmarkModel.DefaultPath;
     }
@@ -326,6 +330,7 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
                 return false;
             }
 
+            created.StateLog = _log;
             pipeline = created;
             failure = string.Empty;
             return true;
@@ -345,7 +350,7 @@ public sealed class WindowsPoseSource : IPoseSource, IDisposable
         try
         {
             var result = pipeline.Process(frame);
-            pose = result.Pose is { } found ? found with { FaceConfidence = Math.Clamp(result.Presence, 0, 1) } : null;
+            pose = result.Pose is { } found ? found with { FaceConfidence = Math.Clamp(result.LowPresence ? FaceRecovery.ColdThreshold : result.Presence, 0, 1) } : null;
         }
         catch (Exception)
         {

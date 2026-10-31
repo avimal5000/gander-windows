@@ -17,6 +17,9 @@ public sealed class FaceSearchPlan
 
     private int _cursor;
 
+    /// <summary>The index of the next candidate to be tried (for diagnostics).</summary>
+    public int Cursor => _cursor;
+
     /// <summary>Starts over at the first candidate (call when a face is found).</summary>
     public void Reset() => _cursor = 0;
 
