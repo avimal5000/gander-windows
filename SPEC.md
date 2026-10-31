@@ -1,7 +1,7 @@
 # Gander for Windows: Spec (current phase: W0, foundations)
 
 Derived from PLAN.md, which stays the source of truth for scope. The Mac app's `SPEC.md` and `CONTRACT.md`
-(`avimal5000/sway`) define the behavior; this file lists only what is decided for Windows. CONTRACT.md defines the
+(`avimal5000/gander`) define the behavior; this file lists only what is decided for Windows. CONTRACT.md defines the
 code-level interfaces.
 
 ## 1. Product

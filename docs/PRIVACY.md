@@ -76,7 +76,7 @@ I check this in the project's own audit notes (`docs/PRIVACY-AUDIT.md`) with aut
 
 ## Downloads and GitHub
 
-Gander is distributed through the GitHub Releases page of its repository ([macOS](https://github.com/avimal5000/sway), [Windows](https://github.com/avimal5000/sway-windows)). When you visit GitHub or download a file, GitHub processes your visit (for example your IP address) under GitHub's own privacy statement. I do not get that data from the app, and this policy does not cover GitHub's handling of it. Each release has a `.sha256` file so you can check the download.
+Gander is distributed through the GitHub Releases page of its repository ([macOS](https://github.com/avimal5000/gander), [Windows](https://github.com/avimal5000/gander-windows)). When you visit GitHub or download a file, GitHub processes your visit (for example your IP address) under GitHub's own privacy statement. I do not get that data from the app, and this policy does not cover GitHub's handling of it. Each release has a `.sha256` file so you can check the download.
 
 The downloads may not be signed or notarized, so macOS or Windows SmartScreen may warn you when you first open them. That warning is about who signed the file. It is not about network use.
 
@@ -90,7 +90,7 @@ I hold no personal data about you, so there is nothing for me to access, correct
 
 **Delete your data**
 
-*macOS:* quit Gander, then in Terminal run `defaults delete com.avimal5000.sway`, and delete `~/Library/Application Support/Sway` if it exists. Delete Gander from Applications. To remove permissions, open System Settings, Privacy & Security, and remove Gander from Camera and Accessibility. If you enabled start at login, turn it off first in Gander's settings or in System Settings, General, Login Items.
+*macOS:* quit Gander, then in Terminal run `defaults delete com.avimal5000.sway`, and delete `~/Library/Application Support/Gander` if it exists. Delete Gander from Applications. To remove permissions, open System Settings, Privacy & Security, and remove Gander from Camera and Accessibility. If you enabled start at login, turn it off first in Gander's settings or in System Settings, General, Login Items.
 
 *Windows:* turn off "Start with Windows" in Gander's Settings if you turned it on, then quit Gander from the tray. Delete the Gander folder you unzipped. Delete `%AppData%\Gander` (settings and calibration) and `%LocalAppData%\Gander` (logs).
 
