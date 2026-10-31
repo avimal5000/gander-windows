@@ -12,6 +12,7 @@ public enum TrayCommand
     ToggleFocusLock,
     SelectCamera,
     Calibrate,
+    Settings,
     Diagnostics,
     ToggleLoginItem,
     Quit,
@@ -63,6 +64,7 @@ public static class TrayMenuModel
 
         entries.Add(TrayMenuEntry.Separator);
         entries.Add(CameraMenu(input));
+        entries.Add(new TrayMenuEntry("Settings…", TrayCommand.Settings));
         entries.Add(new TrayMenuEntry("Calibrate…", TrayCommand.Calibrate));
         entries.Add(new TrayMenuEntry("Diagnostics…", TrayCommand.Diagnostics));
         entries.Add(TrayMenuEntry.Separator);

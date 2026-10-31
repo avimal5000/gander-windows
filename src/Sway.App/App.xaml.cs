@@ -40,8 +40,10 @@ public partial class App : Application
     private WindowsCameraCatalog? _cameras;
     private JsonFileSettingsStore? _settings;
     private DiagnosticsWindow? _diagnostics;
+    private SettingsWindow? _settingsWindow;
     private SetupWindow? _calibration;
     private SetupSession? _setup;
+    private RegistryLoginItem? _loginItem;
     private PromptOverlayHost? _overlay;
     private bool _quitting;
 
@@ -62,6 +64,25 @@ public partial class App : Application
 
         _calibration.Show();
         _calibration.Activate();
+    }
+
+    /// <summary>Opens (or raises) the Settings window.</summary>
+    public void OpenSettings()
+    {
+        if (_controller is null || _loginItem is null)
+        {
+            return;
+        }
+
+        if (_settingsWindow is null)
+        {
+            _settingsWindow = new SettingsWindow(_controller, _loginItem, OpenCalibration);
+            Track(_settingsWindow, "settings");
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        }
+
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
     }
 
     /// <summary>Opens (or raises) the diagnostics window.</summary>
@@ -186,7 +207,7 @@ public partial class App : Application
         var session = new WindowsSessionEvents();
         _adapters.AddRange([poseSource, _cameras, displays, focus, hotKeys, session]);
 
-        var loginItem = new RegistryLoginItem();
+        var loginItem = _loginItem = new RegistryLoginItem();
         var environment = new TrackingEnvironment
         {
             PoseSource = poseSource,
@@ -210,6 +231,7 @@ public partial class App : Application
             _controller,
             loginItem,
             OpenCalibration,
+            OpenSettings,
             OpenDiagnostics,
             () => _ = QuitAsync(),
             open => SetInFront("menu", open),
