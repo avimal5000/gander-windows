@@ -35,6 +35,19 @@ public class HoldTests
     // MARK: Displays changing
 
     [Fact]
+    public async Task ALayoutThatSettlesAfterTheNotificationIsReadWhenTheHoldTimesOut()
+    {
+        using var h = await TrackingHarness();
+        ScreenParametersChanged(h); // The catalog still reports the old layout here.
+        h.Displays.Layout = Rearranged; // ... and changes without another notification.
+
+        h.Advance(TrackingHolds.DisplaysChangingTimeout + 0.1);
+
+        Assert.Equal(Rearranged, h.Controller.Layout);
+        Assert.Null(h.Controller.TrackingHold);
+    }
+
+    [Fact]
     public async Task AScreenParameterChangeHoldsSwitchingAndLocksTheDecider()
     {
         using var h = await TrackingHarness();

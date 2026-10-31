@@ -117,6 +117,17 @@ public sealed class WindowsFocusController : IFocusController, IDisposable
             return new FocusResult.Focused(summary, FocusMethod.Plain, 0);
         }
 
+        // The display already has the front window (another window of the same display, or the target's own dialog):
+        // nothing to do. Moving focus between two windows of one display would only fight the user's choice.
+        var front = _native.ForegroundWindow();
+        if (front != 0 && _native.Describe(front) is { } frontWindow
+            && !WindowEligibility.IsOwnOrShell(frontWindow, _ownProcessId)
+            && frontWindow.MonitorHandle != 0
+            && displayOf(frontWindow.MonitorHandle) == display)
+        {
+            return new FocusResult.Focused(Summary(frontWindow, display), FocusMethod.Plain, 0);
+        }
+
         if (_native.IsIconic(target.Handle))
         {
             _native.Restore(target.Handle);
@@ -138,18 +149,35 @@ public sealed class WindowsFocusController : IFocusController, IDisposable
             }
         }
 
+        // The target must be in front on two reads one step apart. A window that is in front for an instant and then
+        // loses focus again (the previous app reclaiming it) is not a switch.
         var method = attached ? FocusMethod.AttachInput : FocusMethod.Plain;
+        var firstSeen = -1;
         for (var waited = 0; waited <= VerifyTimeoutMilliseconds; waited += VerifyStepMilliseconds)
         {
             if (_native.ForegroundWindow() == target.Handle)
             {
-                return new FocusResult.Focused(summary, method, waited);
+                if (firstSeen >= 0)
+                {
+                    return new FocusResult.Focused(summary, method, firstSeen);
+                }
+
+                firstSeen = waited;
+            }
+            else
+            {
+                firstSeen = -1;
             }
 
             if (waited < VerifyTimeoutMilliseconds)
             {
                 _native.Sleep(VerifyStepMilliseconds);
             }
+        }
+
+        if (firstSeen >= 0 && _native.ForegroundWindow() == target.Handle)
+        {
+            return new FocusResult.Focused(summary, method, firstSeen);
         }
 
         return new FocusResult.Failed(summary, FailureReason(target));

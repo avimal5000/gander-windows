@@ -23,6 +23,16 @@ public sealed partial class TrackingController
     private (DisplayId Display, double Timestamp)? _dwellStart;
     private int _nextLogId;
 
+    // Repeat guard. When Windows (or the app that had focus) hands focus straight back after a switch that verified,
+    // the poll shows the old display again and the look is still held, so the decider would ask again and again for the
+    // same window. A repeat request for the display Sway last focused waits 2 s, then 4 s, 8 s, up to 10 s.
+    private const double RepeatWaitBase = 2;
+    private const double RepeatWaitCap = 10;
+    private const double RepeatForgetAfter = 30;
+    private (DisplayId Display, double At, int Repeats)? _lastFocused;
+    private bool _repeatLogged;
+    private bool _takenBackLogged;
+
     /// <summary>
     /// The Tracking switch. The choice is saved, so the next launch restores it. Completes when the camera has been
     /// started or stopped to match.
@@ -80,6 +90,7 @@ public sealed partial class TrackingController
     private void ClearTrackingState()
     {
         _loop.Reset();
+        _lastFocused = null;
         _switchCts?.Cancel();
         _switchCts = null;
         CancelFocusPoll();
@@ -213,6 +224,20 @@ public sealed partial class TrackingController
             return;
         }
 
+        var wait = RepeatWait(target, _env.Clock());
+        if (wait > 0)
+        {
+            if (!_repeatLogged)
+            {
+                _repeatLogged = true;
+                Log(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Not asking again for {DisplayName(target)}: Sway focused it a moment ago and focus did not stay; waiting {wait:F1} s"));
+            }
+
+            return;
+        }
+
         if (!_loop.BeginAttempt(target))
         {
             // The Switching hold is Sway's own request in flight, so it counts here and not as a hold.
@@ -264,8 +289,52 @@ public sealed partial class TrackingController
         LogSwitch(result, display);
         if (result is FocusResult.Focused)
         {
+            NoteFocused(target);
             FocusSwitched?.Invoke(target);
         }
+    }
+
+    /// <summary>Seconds a request for <paramref name="target"/> must still wait because Sway already focused it recently; 0 for none.</summary>
+    private double RepeatWait(DisplayId target, double now)
+    {
+        if (_lastFocused is not { } last || last.Display != target)
+        {
+            return 0;
+        }
+
+        var wait = Math.Min(RepeatWaitCap, RepeatWaitBase * Math.Pow(2, last.Repeats));
+        return Math.Max(0, last.At + wait - now);
+    }
+
+    private void NoteFocused(DisplayId target)
+    {
+        var now = _env.Clock();
+        var repeats = _lastFocused is { } last && last.Display == target && now - last.At < RepeatForgetAfter
+            ? last.Repeats + 1
+            : 0;
+        _lastFocused = (target, now, repeats);
+        _repeatLogged = false;
+        _takenBackLogged = false;
+    }
+
+    // Evidence for the repeat guard: the first poll that finds focus elsewhere shortly after Sway focused a display.
+    private void LogFocusTakenBack(DisplayId? polled)
+    {
+        if (_lastFocused is not { } last || _takenBackLogged || polled == last.Display)
+        {
+            return;
+        }
+
+        var age = _env.Clock() - last.At;
+        if (age > RepeatWaitCap)
+        {
+            return;
+        }
+
+        _takenBackLogged = true;
+        Log(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Focus left {DisplayName(last.Display)} {age:F1} s after Sway focused it; the front window is now on {(polled is { } d ? DisplayName(d) : "no known display")}"));
     }
 
     /// <summary>A log line for a focus request's result. Names the app and the display, never a window title.</summary>
@@ -452,6 +521,10 @@ public sealed partial class TrackingController
 
             _pollCts = null;
             _loop.PollFinished(display, epoch);
+            if (_loop.Polled == display && _loop.Override is null && !_loop.IsFocusing)
+            {
+                LogFocusTakenBack(display);
+            }
         });
     }
 }

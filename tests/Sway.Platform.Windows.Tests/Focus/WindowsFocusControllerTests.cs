@@ -143,6 +143,34 @@ public sealed class WindowsFocusControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task FocusWhenAnotherWindowOfTheDisplayIsAlreadyInFrontDoesNothing()
+    {
+        _native.Windows.Add(WindowEligibilityTests.Window(handle: 1, monitor: 10, name: "notepad"));
+        _native.Windows.Add(WindowEligibilityTests.Window(handle: 3, monitor: 10, name: "chrome"));
+        _native.Foreground = 3;
+
+        var focused = Assert.IsType<FocusResult.Focused>(await _controller.FocusAsync("left", Layout));
+
+        Assert.Equal(3, focused.Window.Handle);
+        Assert.Equal(FocusMethod.Plain, focused.Method);
+        Assert.Empty(_native.Calls);
+    }
+
+    [Fact]
+    public async Task FocusThatIsTakenBackRightAwayIsNotReportedAsFocused()
+    {
+        _native.Windows.Add(WindowEligibilityTests.Window(handle: 1, monitor: 10));
+        _native.Foreground = 2;
+        _native.Threads[1] = 11;
+        _native.Threads[2] = 22;
+        _native.SetForegroundWorks = true;
+        _native.RevertAfterSleeps = 1;
+        _native.RevertTo = 2;
+
+        Assert.IsType<FocusResult.Failed>(await _controller.FocusAsync("left", Layout));
+    }
+
+    [Fact]
     public async Task FocusReportsHowLongItWaited()
     {
         _native.Windows.Add(WindowEligibilityTests.Window(handle: 1, monitor: 10));
@@ -255,6 +283,10 @@ public sealed class WindowsFocusControllerTests : IDisposable
 
         public int ForegroundChangesAfterSleeps { get; set; } = -1;
 
+        public int RevertAfterSleeps { get; set; } = -1;
+
+        public long RevertTo { get; set; }
+
         public bool ThrowOnTop { get; set; }
 
         public bool ThrowOnEnumerate { get; set; }
@@ -280,6 +312,11 @@ public sealed class WindowsFocusControllerTests : IDisposable
         public long ForegroundWindow()
         {
             Touch();
+            if (RevertAfterSleeps >= 0 && _sleeps >= RevertAfterSleeps && TargetOfLastSetForeground != 0)
+            {
+                return RevertTo;
+            }
+
             if (ForegroundChangesAfterSleeps >= 0 && _sleeps >= ForegroundChangesAfterSleeps && TargetOfLastSetForeground != 0)
             {
                 return TargetOfLastSetForeground;

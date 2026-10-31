@@ -456,8 +456,18 @@ public sealed partial class TrackingController
         ResetTracking();
     }
 
+    /// <summary>One log line for a camera status report: the state, and its error kind or detail. No window or image data.</summary>
+    internal static string StatusLogLine(CaptureStatus status) => status switch
+    {
+        CaptureStatus.Failed failed => $"Camera status: Failed ({failed.Error.Kind})",
+        CaptureStatus.Interrupted interrupted => $"Camera status: Interrupted ({interrupted.Detail})",
+        CaptureStatus.Suspended suspended => $"Camera status: Suspended ({suspended.Reason})",
+        _ => $"Camera status: {status.GetType().Name}",
+    };
+
     private void HandleStatus(CaptureStatus newStatus)
     {
+        Log(StatusLogLine(newStatus));
         var wasSuspended = Status is CaptureStatus.Suspended;
         if (newStatus is CaptureStatus.Failed failed && IsRecoverableLoss(failed.Error))
         {

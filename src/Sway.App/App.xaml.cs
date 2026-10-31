@@ -18,6 +18,7 @@ using Sway.Platform.Windows.Displays;
 using Sway.Platform.Windows.Focus;
 using Sway.Platform.Windows.Hotkeys;
 using Sway.Platform.Windows.Settings;
+using Sway.Platform.Windows.Windowing;
 
 namespace Sway.App;
 
@@ -37,6 +38,7 @@ public partial class App : Application
     private TrackingController? _controller;
     private TrayHost? _tray;
     private ForegroundWatcher? _foreground;
+    private VirtualDesktopWatcher? _desktops;
     private WindowsCameraCatalog? _cameras;
     private JsonFileSettingsStore? _settings;
     private DiagnosticsWindow? _diagnostics;
@@ -162,6 +164,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _foreground?.Dispose();
+        _desktops?.Dispose();
         _overlay?.Dispose();
         _setup?.Dispose();
         _tray?.Dispose();
@@ -243,6 +246,18 @@ public partial class App : Application
         {
             _log.Write("The foreground change hook was refused; the one-second poll covers it.");
         }
+
+        // A virtual desktop switch settles for 0.6 s before switching resumes. The watcher raises on its own thread.
+        _desktops = new VirtualDesktopWatcher();
+        _desktops.Changed += () => Dispatcher.BeginInvoke(() => _controller?.ActiveDesktopChanged());
+
+        // The tray shows the latest state when a switch lands or the Focus Lock shortcut is pressed.
+        _controller.FocusSwitched += _ => _tray?.Refresh();
+        _controller.FocusLockToggledByShortcut += locked =>
+        {
+            _log.Write($"Focus Lock turned {(locked ? "on" : "off")} by the shortcut");
+            _tray?.Refresh();
+        };
 
         // First launch: no saved choice and no calibration yet, so start with the setup window.
         if (_settings.Read(SettingsKeys.TrackingEnabled) is null && _controller.Library.Profiles.Count == 0)
