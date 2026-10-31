@@ -339,3 +339,75 @@ placeholder).
   reference); (2) replace `App.OpenCalibration()` body with the real calibration window and call
   `controller.SetCalibrationRunningAsync`/`SaveToLibrary`; (3) consider `FocusSwitched` for the edge glow and
   `FocusLockToggledByShortcut` for an on-screen notice (neither is subscribed).
+
+## W6 calibration flow (issue #19, logic only)
+
+`Sway.Core.Calibration` (`src/Sway.Core/Calibration`) is the Mac guided calibration, Set Up Sway flow and result
+wording with the UI taken out. Sources: `AppModel+Calibration/Gate/Setup`, `GateTestSession`, `SetupFlow`,
+`SetupResult`, `FramingAdvice`. It sits on `TrackingController` (`SetCalibrationRunningAsync`, `SaveToLibrary`,
+`Layout`, `Status`) and the Core `ProfileFitter` and `SeparabilityAnalyzer`. No Windows API, no clock reads, no
+sleeping: time comes from the injected `Func<double>` clock, `IDelayScheduler` and `IMainThread`.
+
+### Public types
+
+| Type | Role |
+|---|---|
+| `CalibrationSession` | The guided run. `StartAsync()`, `Cancel(reason?)`, `Reset()`, `Dispose()`. Read-only: `State`, `IsActive`, `Progress` (`GateProgress`), `Prompt`, `Message` (`CalibrationMessage(IsError, Text)`), `Result` (`SetupResult`), `SavedProfile`, `CameraReleased` (Task). `event Action Changed`. |
+| `CalibrationState` | `Idle`, `StartingCamera`, `Running`, `Finished`, `Cancelled`, `Aborted`. |
+| `SetupSession` | The window brain: `Open()`, `Close()`, `GetStarted()`, `Tick()`, `UpdateFlow()`, `StartCalibrationAsync()`, `CancelCalibration()`, `CalibrateAgain()`, `RetryCameraAsync()`, `StartTrackingAsync()`. Read-only: `IsOpen`, `Step`, `Framing`, `FramingText`, `Calibration`, `Result`, `Message`, `NeedsYouText`, `CanStartCalibration`. `event Action Changed`. |
+| `SetupFlow`, `SetupStep` | Pure state machine. Steps `Welcome`(0), `NeedsYou`(1), `CameraCheck`(2), `Calibrating`(3), `Done`(4); `StepCount` = 4. Members `Update(cameraAllowed)`, `GetStarted`, `StartCalibration`, `CalibrationFinished`, `CalibrationCancelled`, `CalibrateAgain`, `NeedsCamera`, `HoldsTracking`, `IsPermissionStep`. |
+| `FramingAdvice`, `FramingAdvices` | `NoFace`, `Closer`, `Back`, `Center`, `Good`; `FramingAdvices.For(HeadPose?)`, `.Text()`. Face height under 0.18 is Closer, over 0.6 is Back, centre outside 0.2..0.8 on either axis is Center; first rule wins. |
+| `SetupResult`, `CalibrationQuality` | `Good`, `Fair`, `Poor`, `Failed`; `FromAnalysis`, `Failed`, `MissingDisplays`, `Listed`, `IsSaved`. |
+| `SetupPresentation` | All Set Up wording and `CameraSettingsUri` = `ms-settings:privacy-webcam`. |
+| `GateTestSession`, `GateTestConfiguration`, `GateProgress`, `GatePhase`, `GateSessionPhase`, `GateStep` | The pure timed stepper (Mac `GateTestSession`). |
+| `FaceBounds` (root namespace) | New optional last field `HeadPose.FaceBounds`, fractions of the camera frame. The pose source fills it; null gives `NoFace` advice. |
+
+### States and transitions
+
+`CalibrationSession`: `Idle` -> (`StartAsync`; fewer than 2 monitors stays Idle with an error `Message`) `StartingCamera`
+-> camera `Running` -> `Running` -> `Finished` (result set, profile saved if the fit covers every monitor).
+`StartingCamera`/`Running` -> `Cancelled` (`Cancel`, or the monitor layout fingerprint changed) or `Aborted` (camera
+`Failed` while starting, the controller dropped the hold, 10 s start timeout, or the status left `Running` mid-run:
+"The camera stopped delivering frames (...). Calibrate again."). `StartAsync` is allowed again from any end state.
+A tick every 0.1 s (scheduler) checks status, layout, time and raises `Changed` (about 10 per second while Running; a
+sample raises it only when the step or phase changes).
+
+`SetupSession` / `SetupFlow`: `Open()` starts at `Welcome` when the library is empty, else at `NeedsYou` (camera
+Denied or Restricted, or the controller shows a permission prompt) or `CameraCheck`. `GetStarted` re-reads permission.
+`NeedsYou` -> `CameraCheck` when allowed (re-read every 1 s on the scheduler); `CameraCheck` -> `NeedsYou` if blocked.
+`CameraCheck` -> `Calibrating` (only if the run really started) -> `Done` (finished, saved or failed) or back to
+`CameraCheck` (cancelled or aborted; `Message` says why). `Done` -> `CameraCheck` (`CalibrateAgain`).
+
+Camera: on `CameraCheck` and `Calibrating` the SetupSession holds `SetCalibrationRunningAsync(true)` (camera on at full
+rate, switching held); it releases on `Done`, `NeedsYou`, `Welcome` and `Close`. A `CalibrationSession` that finds the hold
+already on (the setup window's) leaves it alone; one that starts it releases it when the run ends.
+
+### Timings and wording
+
+Two rounds over `controller.Layout` (layout order, left to right), each look 1.5 s settle (samples dropped) + 2.5 s hold
+(all samples recorded, no-face frames too): 4 looks and 16 s for two monitors, 24 s for three. Prompt: "Look at
+<monitor label>" (labels from `DisplayLabeler`). Fit: Vision angles, all rounds, `ProfileFitter` (30 face points per
+monitor). A fit that drops a connected monitor saves nothing (`SetupResult.MissingDisplays`). Quality: separability
+verdict `SeparatesClearly` or none -> Good "Calibration looks good."; `Marginal` -> Fair "Calibration saved. A and B are
+close together, so switching between them may be slower."; `DoesNotSeparate` -> Poor "Calibration saved, but A and B are
+hard to tell apart. Try moving the camera, then calibrate again."; `InsufficientData` -> Fair. A and B are the weakest
+pair (lowest d-prime). Denied camera: "Open Windows Settings, go to Privacy & security > Camera, and allow desktop apps to
+use the camera. This window carries on by itself."
+
+### Controller edits (all additive)
+
+1. `TrackingController.PoseObserved` (`event Action<TimedPose>`): raised on the main thread from `HandleSample` for every
+   sample, before the tracking loop. Tests: `CalibrationSessionTests.PoseObservedReportsEverySampleToSubscribers`.
+2. `HeadPose` gained the optional last parameter `FaceBounds` (record struct equality now includes it).
+
+### Deliberate differences from the Mac
+
+- No Accessibility step, no skip, no permission explanation: camera Denied/Restricted is one "Needs you" step; steps are
+  numbered 1 to 4.
+- No overlays: the window draws the prompt from `Progress`/`Prompt`; "Sway no longer the active app" does not cancel (the
+  window calls `Cancel`). A monitor without a window to show on is not checked (`overlay.canPresent`).
+- The gate test window, its analysis report, trace files, trace saving and the live guess are not ported (not in the
+  Windows scope). `GateTestSession` is ported because the calibration is built on it.
+- The Core `SeparabilityAnalyzer` (diagonal d-prime, held-out accuracy) replaces the Mac `GateAnalysis` Vision report;
+  the verdict names are mapped as above. `FeaturesMissing` gets a generic message.
+- The session fits with `PoseSwitchEngine` (injectable `ISwitchEngineMaking`); the controller's own engine is not exposed.
