@@ -10,6 +10,7 @@ using Sway.App.Hosting;
 using Sway.App.Presentation;
 using Sway.App.Tray;
 using Sway.App.Windows;
+using Sway.Core.Calibration;
 using Sway.Core.Controller;
 using Sway.Core.Runtime;
 using Sway.Platform.Windows;
@@ -39,16 +40,23 @@ public partial class App : Application
     private WindowsCameraCatalog? _cameras;
     private JsonFileSettingsStore? _settings;
     private DiagnosticsWindow? _diagnostics;
-    private CalibrationPlaceholderWindow? _calibration;
+    private SetupWindow? _calibration;
+    private SetupSession? _setup;
+    private PromptOverlayHost? _overlay;
     private bool _quitting;
 
-    /// <summary>Opens (or raises) the calibration window. A placeholder until the real window is wired.</summary>
+    /// <summary>Opens (or raises) the Set up Sway window.</summary>
     public void OpenCalibration()
     {
+        if (_setup is null)
+        {
+            return;
+        }
+
         if (_calibration is null)
         {
-            _calibration = new CalibrationPlaceholderWindow();
-            Track(_calibration, "calibration");
+            _calibration = new SetupWindow(_setup);
+            Track(_calibration, "setup");
             _calibration.Closed += (_, _) => _calibration = null;
         }
 
@@ -133,6 +141,8 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _foreground?.Dispose();
+        _overlay?.Dispose();
+        _setup?.Dispose();
         _tray?.Dispose();
         _controller?.Dispose();
         foreach (var adapter in _adapters)
@@ -193,6 +203,9 @@ public partial class App : Application
         };
         _controller = new TrackingController(environment);
 
+        _setup = new SetupSession(_controller, environment.MainThread, environment.Scheduler, environment.Clock);
+        _overlay = new PromptOverlayHost(_setup.Calibration);
+
         _tray = new TrayHost(
             _controller,
             loginItem,
@@ -207,6 +220,12 @@ public partial class App : Application
         if (!_foreground.IsActive)
         {
             _log.Write("The foreground change hook was refused; the one-second poll covers it.");
+        }
+
+        // First launch: no saved choice and no calibration yet, so start with the setup window.
+        if (_settings.Read(SettingsKeys.TrackingEnabled) is null && _controller.Library.Profiles.Count == 0)
+        {
+            Dispatcher.BeginInvoke(OpenCalibration);
         }
     }
 

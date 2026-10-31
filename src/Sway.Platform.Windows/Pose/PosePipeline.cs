@@ -95,7 +95,7 @@ internal sealed class PosePipeline : IDisposable
         {
             var result = _model.Run(frame, tracked);
             presence = result?.Presence ?? 0;
-            if (TryAccept(result, out var pose))
+            if (TryAccept(result, frame, out var pose))
             {
                 return new PoseFrame(pose, presence, timer.Elapsed.TotalMilliseconds, FaceSource.Tracked);
             }
@@ -109,7 +109,7 @@ internal sealed class PosePipeline : IDisposable
         {
             var result = _model.Run(frame, fresh);
             presence = Math.Max(presence, result?.Presence ?? 0);
-            if (TryAccept(result, out var pose))
+            if (TryAccept(result, frame, out var pose))
             {
                 return new PoseFrame(pose, presence, timer.Elapsed.TotalMilliseconds, FaceSource.Detector);
             }
@@ -120,7 +120,7 @@ internal sealed class PosePipeline : IDisposable
         {
             var result = _model.Run(frame, candidate);
             presence = Math.Max(presence, result?.Presence ?? 0);
-            if (TryAccept(result, out var pose))
+            if (TryAccept(result, frame, out var pose))
             {
                 return new PoseFrame(pose, presence, timer.Elapsed.TotalMilliseconds, FaceSource.Fallback);
             }
@@ -130,7 +130,7 @@ internal sealed class PosePipeline : IDisposable
     }
 
     /// <summary>Accepts a model result whose presence passes the threshold and whose landmarks give a pose; updates the tracked box.</summary>
-    private bool TryAccept(LandmarkResult? result, out HeadPose pose)
+    private bool TryAccept(LandmarkResult? result, CameraFrame frame, out HeadPose pose)
     {
         pose = default;
         if (result is null || result.Presence < PresenceThreshold || PoseGeometry.TryCompute(result.Landmarks) is not { } computed)
@@ -138,7 +138,7 @@ internal sealed class PosePipeline : IDisposable
             return false;
         }
 
-        pose = computed;
+        pose = computed with { FaceBounds = FaceBoundsMapper.FromLandmarks(result.Landmarks, frame.Width, frame.Height) };
         _box = SquareBox.FromLandmarks(result.Landmarks, TrackingBoxScale);
         if (_box is not null)
         {
