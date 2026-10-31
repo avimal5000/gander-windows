@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using Sway.App.Hosting;
 using Sway.App.Presentation;
 using Sway.Core.Controller;
-using Sway.Core.Platform;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 
@@ -19,7 +17,6 @@ namespace Sway.App.Tray;
 public sealed class TrayHost : IDisposable
 {
     private readonly TrackingController _controller;
-    private readonly ILoginItem _loginItem;
     private readonly Action _openCalibration;
     private readonly Action _openSettings;
     private readonly Action _openDiagnostics;
@@ -35,7 +32,6 @@ public sealed class TrayHost : IDisposable
     /// <summary>Creates and shows the tray icon. <paramref name="menuOpen"/> is told when the menu opens and closes.</summary>
     public TrayHost(
         TrackingController controller,
-        ILoginItem loginItem,
         Action openCalibration,
         Action openSettings,
         Action openDiagnostics,
@@ -44,7 +40,6 @@ public sealed class TrayHost : IDisposable
         Action<string> log)
     {
         _controller = controller;
-        _loginItem = loginItem;
         _openCalibration = openCalibration;
         _openSettings = openSettings;
         _openDiagnostics = openDiagnostics;
@@ -128,34 +123,34 @@ public sealed class TrayHost : IDisposable
 
     private void Rebuild()
     {
+        var status = _controller.TrackingStatus;
+        var facts = new TrayBannerFacts(
+            _controller.PermissionPrompt,
+            _controller.Library.Profiles.Count == 0,
+            _controller.TrackingEnabled,
+            _controller.Layout.Displays.Count,
+            _controller.ActiveCalibration is not null,
+            _controller.MenuShortcutMessage);
         var input = new TrayMenuInput(
             _controller.StatusLine,
+            status.Tone,
             _controller.TrackingEnabled,
             _controller.FocusLocked,
             _controller.FocusLockShortcut,
-            _controller.MenuShortcutMessage,
+            TrayBanner.Current(facts),
+            LookSummary.Text(_controller.IsCameraActive, _controller.LastDecision?.Classification, _controller.DisplayName),
             _controller.Devices,
-            _controller.SelectedCameraId ?? _controller.RunningDevice?.Id ?? FirstId(_controller.Devices),
-            _loginItem.Status);
-        ThemedMenu.Apply(_menu, SystemInfo.IsLightApps());
+            _controller.SelectedCameraId);
+        ThemedMenu.Apply(_menu, AppTheme.Current);
         var scale = _menu.DeviceDpi / 96f;
         _menu.Items.Clear();
-        var first = true;
         foreach (var entry in TrayMenuModel.Build(input))
         {
             var item = ToItem(entry);
-            if (first)
-            {
-                item.Tag = "status";
-                first = false;
-            }
-
-            ThemedMenu.PadItem(item, scale);
+            ThemedMenu.StyleItem(item, entry, scale);
             _menu.Items.Add(item);
         }
     }
-
-    private static string? FirstId(IReadOnlyList<CameraDevice> devices) => devices.Count > 0 ? devices[0].Id : null;
 
     private Forms.ToolStripItem ToItem(TrayMenuEntry entry)
     {
@@ -165,6 +160,11 @@ public sealed class TrayHost : IDisposable
         }
 
         var item = new Forms.ToolStripMenuItem(entry.Text) { Enabled = entry.Enabled, Checked = entry.Checked };
+        if (entry.ShortcutText is { } shortcut)
+        {
+            item.ShortcutKeyDisplayString = shortcut;
+        }
+
         if (entry.Children is { } children)
         {
             foreach (var child in children)
@@ -177,7 +177,7 @@ public sealed class TrayHost : IDisposable
                 }
 
                 var sub = ToItem(child);
-                sub.Padding = new Forms.Padding(6);
+                ThemedMenu.StyleItem(sub, child, _menu.DeviceDpi / 96f);
                 item.DropDownItems.Add(sub);
             }
         }
@@ -211,8 +211,8 @@ public sealed class TrayHost : IDisposable
             case TrayCommand.Diagnostics:
                 _openDiagnostics();
                 break;
-            case TrayCommand.ToggleLoginItem:
-                _loginItem.SetEnabled(_loginItem.Status != LoginItemStatus.Enabled);
+            case TrayCommand.OpenCameraSettings:
+                ShellLauncher.OpenCameraSettings();
                 break;
             case TrayCommand.Quit:
                 _quit();

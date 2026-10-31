@@ -7,9 +7,15 @@ namespace Sway.App.Presentation;
 /// <param name="FilledEnd">The larger end point is solid (tracking) rather than a hollow ring (paused).</param>
 /// <param name="Dimmed">The whole mark is drawn at reduced strength (paused).</param>
 /// <param name="LockBadge">A small padlock in the corner (Focus Lock).</param>
-/// <param name="AttentionDot">A dot in the corner (Needs you).</param>
+/// <param name="AttentionDot">A dot at the top right (Needs you).</param>
 public readonly record struct TrayIconAppearance(bool FilledEnd, bool Dimmed, bool LockBadge, bool AttentionDot)
 {
+    /// <summary>1 for a solid mark; 0.5 for the dimmed one (Mac MenuBarGlyph.Style.opacity).</summary>
+    public double Opacity => Dimmed ? 0.5 : 1;
+
+    /// <summary>The end point is a ring instead of a disc.</summary>
+    public bool HollowEnd => !FilledEnd;
+
     /// <summary>Sizes drawn at runtime, for 100%, 125%, 150% and 200% scaling.</summary>
     public static readonly int[] Sizes = [16, 20, 24, 32];
 
@@ -54,23 +60,23 @@ public readonly record struct Rgb(byte R, byte G, byte B)
         new(Convert.ToByte(text.Substring(1, 2), 16), Convert.ToByte(text.Substring(3, 2), 16), Convert.ToByte(text.Substring(5, 2), 16));
 }
 
-/// <summary>The icon colors for a taskbar theme: ivory, forest green and sage (plus an amber for Needs you).</summary>
-public sealed record TrayPalette(Rgb Mark, Rgb Accent, Rgb Attention)
+/// <summary>
+/// The tray icon is a template image on the Mac: one flat color that the bar tints for light and dark. Windows has no
+/// template icons, so the mark is drawn in the text color of the taskbar theme (charcoal on light, ivory on dark).
+/// </summary>
+public sealed record TrayPalette(Rgb Mark)
 {
-    /// <summary>Forest green #2F5D3A.</summary>
-    public static readonly Rgb Forest = Rgb.Hex("#2F5D3A");
+    /// <summary>Forest green #2F5D3A (from the shared design tokens).</summary>
+    public static readonly Rgb Forest = Design.SwayDesign.Forest;
 
     /// <summary>Sage #9CAF88.</summary>
-    public static readonly Rgb Sage = Rgb.Hex("#9CAF88");
+    public static readonly Rgb Sage = Design.SwayDesign.Sage;
 
-    /// <summary>Ivory #F5F1E6.</summary>
-    public static readonly Rgb Ivory = Rgb.Hex("#F5F1E6");
+    /// <summary>Ivory #F6F3EA.</summary>
+    public static readonly Rgb Ivory = Design.SwayDesign.Ivory;
 
-    /// <summary>Amber, the one color outside the brand palette, so the Needs-you dot reads on both themes.</summary>
-    public static readonly Rgb Amber = Rgb.Hex("#E0902B");
-
-    /// <summary>Forest marks on a light taskbar, ivory marks on a dark one; sage is the small dot either way.</summary>
-    public static TrayPalette For(bool lightTaskbar) => new(lightTaskbar ? Forest : Ivory, Sage, Amber);
+    /// <summary>Charcoal marks on a light taskbar, ivory marks on a dark one.</summary>
+    public static TrayPalette For(bool lightTaskbar) => new(lightTaskbar ? Design.SwayDesign.Charcoal : Design.SwayDesign.Ivory);
 
     /// <summary>
     /// Reads the taskbar theme from the registry value SystemUsesLightTheme (0 means dark). A missing value counts as

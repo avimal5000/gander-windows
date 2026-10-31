@@ -1,6 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
+using Sway.App.Hosting;
 using Sway.App.Presentation;
+using Sway.App.Presentation.Design;
 using Drawing = System.Drawing;
 using Drawing2D = System.Drawing.Drawing2D;
 using Forms = System.Windows.Forms;
@@ -8,39 +10,50 @@ using Forms = System.Windows.Forms;
 namespace Sway.App.Tray;
 
 /// <summary>
-/// Makes the tray's ContextMenuStrip look at home on Windows 11 with in-box code only: the app theme's colors, the
-/// system menu font, DPI-scaled padding, a rounded hover, an accent check mark and (on Windows 11) rounded corners.
+/// Makes the tray's ContextMenuStrip look like the Mac popover with in-box code only: the shared design tokens for
+/// color, type, radius and spacing, a rounded hover, an accent check mark, the mark beside the name, a colored status dot,
+/// and (on Windows 11) rounded corners.
 /// </summary>
 internal static class ThemedMenu
 {
     private const int CornerPreferenceAttribute = 33; // DWMWA_WINDOW_CORNER_PREFERENCE
     private const int RoundCorners = 2; // DWMWCP_ROUND
 
-    /// <summary>Applies the palette for the current app theme. Called each time the menu opens, so a theme change shows.</summary>
-    public static void Apply(Forms.ContextMenuStrip menu, bool lightApps)
+    /// <summary>Applies the theme. Called each time the menu opens, so a theme or accent change shows.</summary>
+    public static void Apply(Forms.ContextMenuStrip menu, SwayTheme theme)
     {
-        var palette = MenuPalette.For(lightApps);
-        menu.Renderer = new ThemedRenderer(palette);
-        menu.Font = Drawing.SystemFonts.MenuFont ?? Drawing.SystemFonts.DefaultFont;
+        var palette = MenuPalette.For(theme);
+        var scale = menu.DeviceDpi / 96f;
+        menu.Renderer = new ThemedRenderer(palette, theme);
+        menu.Font = DesignFonts.Gdi(SwayDesign.Type.Body, scale);
         menu.BackColor = ToColor(palette.Background);
         menu.ForeColor = ToColor(palette.Text);
         menu.ShowImageMargin = false;
         menu.ShowCheckMargin = true;
         menu.AutoSize = true;
-        var scale = menu.DeviceDpi / 96f;
-        menu.Padding = new Forms.Padding(Scaled(4, scale));
-        menu.MinimumSize = new Drawing.Size(Scaled(220, scale), 0);
+        menu.Padding = new Forms.Padding(Scaled(SwayDesign.Space.Sm, scale));
+        menu.MinimumSize = new Drawing.Size(Scaled(SwayDesign.Size.MenuWidth, scale), 0);
         if (menu.IsHandleCreated)
         {
             Round(menu.Handle);
         }
     }
 
-    /// <summary>The padding of one item for the menu's DPI, so rows are comfortably tall and touch friendly.</summary>
-    public static void PadItem(Forms.ToolStripItem item, float scale)
+    /// <summary>Sets the font and padding of one item from its role and the menu's DPI.</summary>
+    public static void StyleItem(Forms.ToolStripItem item, TrayMenuEntry entry, float scale)
     {
-        item.Padding = new Forms.Padding(Scaled(6, scale), Scaled(6, scale), Scaled(6, scale), Scaled(6, scale));
-        item.Margin = new Forms.Padding(Scaled(2, scale), 1, Scaled(2, scale), 1);
+        item.Tag = entry;
+        var style = entry.Role switch
+        {
+            TrayEntryRole.Header => SwayDesign.Type.Headline,
+            TrayEntryRole.Status or TrayEntryRole.Banner or TrayEntryRole.Look => SwayDesign.Type.Callout,
+            _ => SwayDesign.Type.Body,
+        };
+        item.Font = DesignFonts.Gdi(style, scale);
+        var vertical = entry.Role == TrayEntryRole.Banner ? SwayDesign.Space.Xs : SwayDesign.Space.Md - 1;
+        item.Padding = new Forms.Padding(
+            Scaled(SwayDesign.Space.Md, scale), Scaled(vertical, scale), Scaled(SwayDesign.Space.Md, scale), Scaled(vertical, scale));
+        item.Margin = new Forms.Padding(Scaled(SwayDesign.Space.Xs, scale), 1, Scaled(SwayDesign.Space.Xs, scale), 1);
     }
 
     /// <summary>Asks Windows 11 for rounded corners on the dropdown window. Older Windows ignores the call.</summary>
@@ -61,7 +74,7 @@ internal static class ThemedMenu
 
     private static int DpiOf(Forms.ToolStrip? strip) => strip?.DeviceDpi ?? 96;
 
-    private static int Scaled(int value, float scale) => (int)Math.Round(value * scale);
+    private static int Scaled(double value, float scale) => (int)Math.Round(value * scale);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
@@ -100,11 +113,13 @@ internal static class ThemedMenu
     private sealed class ThemedRenderer : Forms.ToolStripProfessionalRenderer
     {
         private readonly MenuPalette _palette;
+        private readonly SwayTheme _theme;
 
-        public ThemedRenderer(MenuPalette palette)
+        public ThemedRenderer(MenuPalette palette, SwayTheme theme)
             : base(new ThemedColors(palette))
         {
             _palette = palette;
+            _theme = theme;
             RoundedEdges = false;
         }
 
@@ -136,24 +151,32 @@ internal static class ThemedMenu
             var bounds = new Drawing.Rectangle(Drawing.Point.Empty, e.Item.Size);
             bounds.Inflate(-1, -1);
             e.Graphics.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias;
-            using var path = RoundedRectangle(bounds, (int)Math.Round(4 * DpiOf(e.ToolStrip) / 96f));
+            using var path = RoundedRectangle(bounds, (int)Math.Round(SwayDesign.Radius.Row * DpiOf(e.ToolStrip) / 96f));
             using var brush = new Drawing.SolidBrush(ToColor(_palette.Hover));
             e.Graphics.FillPath(brush, path);
         }
 
         protected override void OnRenderItemText(Forms.ToolStripItemTextRenderEventArgs e)
         {
-            e.TextColor = ToColor(e.Item.Enabled ? _palette.Text : _palette.Disabled);
-            if (e.Item.Tag as string != "status")
+            var entry = e.Item.Tag as TrayMenuEntry;
+            var secondary = entry?.Role is TrayEntryRole.Banner or TrayEntryRole.Look
+                || (e.Item is Forms.ToolStripMenuItem { ShortcutKeyDisplayString: { Length: > 0 } shortcut } && e.Text == shortcut);
+            e.TextColor = ToColor(secondary || !e.Item.Enabled && entry?.Role is not (TrayEntryRole.Header or TrayEntryRole.Status)
+                ? _palette.Disabled
+                : _palette.Text);
+            e.Graphics.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias;
+
+            var scale = DpiOf(e.ToolStrip) / 96f;
+            switch (entry?.Role)
             {
-                base.OnRenderItemText(e);
-                return;
+                case TrayEntryRole.Header:
+                    DrawHeaderMark(e, scale);
+                    break;
+                case TrayEntryRole.Status:
+                    DrawStatusDot(e, entry, scale);
+                    break;
             }
 
-            // The status line at the top: bold, in the accent color.
-            e.TextColor = ToColor(_palette.Accent);
-            using var bold = new Drawing.Font(e.TextFont ?? e.Item.Font, Drawing.FontStyle.Bold);
-            e.TextFont = bold;
             base.OnRenderItemText(e);
         }
 
@@ -165,7 +188,7 @@ internal static class ThemedMenu
             var x = box.X + (box.Width - size) / 2;
             var y = box.Y + (box.Height - size) / 2;
             e.Graphics.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias;
-            using var pen = new Drawing.Pen(ToColor(e.Item.Enabled ? _palette.Accent : _palette.Disabled), Math.Max(1.5f, 1.75f * scale))
+            using var pen = new Drawing.Pen(ToColor(e.Item.Enabled ? _theme.Accent : _palette.Disabled), Math.Max(1.5f, 1.75f * scale))
             {
                 StartCap = Drawing2D.LineCap.Round,
                 EndCap = Drawing2D.LineCap.Round,
@@ -192,6 +215,34 @@ internal static class ThemedMenu
             var y = e.Item.Height / 2;
             var inset = (int)Math.Round(8 * DpiOf(e.ToolStrip) / 96f);
             e.Graphics.DrawLine(pen, inset, y, e.Item.Width - inset, y);
+        }
+
+        // The Swing mark in Sway green sits in the check column, left of "Sway".
+        private void DrawHeaderMark(Forms.ToolStripItemTextRenderEventArgs e, float scale)
+        {
+            var side = (float)(SwayDesign.Size.HeaderMark * scale);
+            var x = e.TextRectangle.X - side - 6 * scale;
+            var y = e.TextRectangle.Y + (e.TextRectangle.Height - side) / 2f;
+            var placement = SwayMarkGeometry.Fitting(new MarkRect(x, y, side, side));
+            var green = ToColor(_theme.Green);
+            MarkPainter.PaintMark(e.Graphics, placement, green, green, green);
+        }
+
+        // A colored dot for the tone of the status line (Mac StatusBadge): forest, amber, brick, or secondary gray.
+        private void DrawStatusDot(Forms.ToolStripItemTextRenderEventArgs e, TrayMenuEntry entry, float scale)
+        {
+            var diameter = (float)(SwayDesign.Size.StatusDot * scale);
+            var x = e.TextRectangle.X - diameter - 8 * scale;
+            var y = e.TextRectangle.Y + (e.TextRectangle.Height - diameter) / 2f;
+            var color = entry.Tone switch
+            {
+                Sway.Core.Controller.StatusTone.Active => SwayDesign.Forest,
+                Sway.Core.Controller.StatusTone.Attention => SwayDesign.Amber,
+                Sway.Core.Controller.StatusTone.Problem => SwayDesign.Brick,
+                _ => _theme.Flat(_theme.TextSecondary),
+            };
+            using var brush = new Drawing.SolidBrush(ToColor(color));
+            e.Graphics.FillEllipse(brush, x, y, diameter, diameter);
         }
 
         private static Drawing2D.GraphicsPath RoundedRectangle(Drawing.Rectangle r, int radius)

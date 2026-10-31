@@ -1,16 +1,16 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Threading;
 using Sway.App.Hosting;
+using Sway.App.Presentation.Design;
 using Sway.Core.Controller;
 
 namespace Sway.App.Windows;
 
 /// <summary>
 /// Read-only diagnostics: the text block from <see cref="Presentation.DiagnosticsText"/>, refreshed when the controller's
-/// state changes, and a button that copies it. Plain WPF with system fonts, light or dark by the apps theme.
+/// state changes, and a button that copies it. Styled from the shared design tokens (see <see cref="SwayStyle"/>), light or dark by the apps theme.
 /// </summary>
 public sealed class DiagnosticsWindow : Window
 {
@@ -25,35 +25,34 @@ public sealed class DiagnosticsWindow : Window
         _controller = controller;
         _build = build;
 
-        var light = SystemInfo.IsLightApps();
-        var background = light ? Brushes.White : new SolidColorBrush(Color.FromRgb(0x20, 0x20, 0x20));
-        var foreground = light ? Brushes.Black : new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3));
+        var style = SwayStyle.Current();
+        style.ApplyTo(this);
         Title = "Sway Diagnostics";
         Width = 640;
         Height = 560;
-        FontFamily = SystemFonts.MessageFontFamily;
-        Background = background;
-        Foreground = foreground;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
         _text = new TextBox
         {
             IsReadOnly = true,
-            FontFamily = new FontFamily("Consolas"),
-            FontSize = 12,
-            Background = background,
-            Foreground = foreground,
-            BorderThickness = new Thickness(0),
+            FontFamily = DesignFonts.Wpf(SwayDesign.Mono),
+            FontSize = SwayDesign.Type.Caption.Size,
+            Background = style.Card,
+            Foreground = style.Text,
+            BorderBrush = style.Line,
+            BorderThickness = new Thickness(SwayDesign.Space.Hairline),
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            Margin = new Thickness(12, 12, 12, 0),
+            Padding = new Thickness(SwayDesign.Space.Lg),
+            Margin = new Thickness(SwayDesign.Space.Xl + 4, SwayDesign.Space.Xl + 4, SwayDesign.Space.Xl + 4, 0),
         };
 
-        var copy = new Button { Content = "Copy diagnostics", Padding = new Thickness(14, 5, 14, 5), Margin = new Thickness(0, 0, 8, 0) };
+        var copy = style.MakeButton("Copy diagnostics", prominent: true);
+        copy.Margin = new Thickness(0, 0, SwayDesign.Space.Lg, 0);
         copy.Click += (_, _) => Copy();
-        var close = new Button { Content = "Close", Padding = new Thickness(14, 5, 14, 5) };
+        var close = style.MakeButton("Close");
         close.Click += (_, _) => Close();
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(12) };
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(SwayDesign.Space.Xl + 4) };
         buttons.Children.Add(copy);
         buttons.Children.Add(close);
 

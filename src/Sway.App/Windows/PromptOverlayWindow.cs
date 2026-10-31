@@ -1,12 +1,11 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using Sway.App.Presentation;
+using Sway.App.Presentation.Design;
 
 namespace Sway.App.Windows;
 
@@ -16,17 +15,9 @@ namespace Sway.App.Windows;
 /// </summary>
 public sealed class PromptOverlayWindow : Window
 {
-    private const int GwlExStyle = -20;
-    private const int WsExTransparent = 0x20;
-    private const int WsExToolWindow = 0x80;
-    private const int WsExNoActivate = 0x08000000;
-    private const uint SwpNoActivate = 0x0010;
-    private const uint SwpShowWindow = 0x0040;
-    private static readonly IntPtr HwndTopmost = new(-1);
-
-    private readonly Ellipse _ring = new() { Stroke = new SolidColorBrush(Color.FromRgb(0x2F, 0x5D, 0x3A)), Fill = new SolidColorBrush(Color.FromArgb(0xCC, 0xF6, 0xF3, 0xEA)) };
-    private readonly TextBlock _number = new() { FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(Color.FromRgb(0x2F, 0x5D, 0x3A)), HorizontalAlignment = HorizontalAlignment.Center };
-    private readonly TextBlock _label = new() { Text = "Look here", Foreground = new SolidColorBrush(Color.FromRgb(0x2F, 0x5D, 0x3A)), FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
+    private readonly Ellipse _ring = new();
+    private readonly TextBlock _number = new() { HorizontalAlignment = HorizontalAlignment.Center };
+    private readonly TextBlock _label = new() { Text = "Look here", HorizontalAlignment = HorizontalAlignment.Center };
     private readonly Grid _marker = new() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Opacity = 0 };
     private int _x;
     private int _y;
@@ -36,19 +27,15 @@ public sealed class PromptOverlayWindow : Window
     /// <summary>Creates the (hidden) overlay.</summary>
     public PromptOverlayWindow()
     {
-        WindowStyle = WindowStyle.None;
-        AllowsTransparency = true;
-        Background = Brushes.Transparent;
-        ShowInTaskbar = false;
-        ShowActivated = false;
-        Topmost = true;
-        Focusable = false;
-        ResizeMode = ResizeMode.NoResize;
-        Title = "Sway prompt";
-        Left = -32000;
-        Top = -32000;
-        Width = 100;
-        Height = 100;
+        OverlayNative.Configure(this, "Sway prompt");
+        var style = SwayStyle.Current();
+        var green = style.Theme.Green;
+        _ring.Stroke = SwayStyle.Brush(green);
+        _ring.Fill = SwayStyle.Brush(Rgba.Of(SwayDesign.Ivory, 0.8));
+        style.Apply(_number, SwayDesign.Type.Title3Strong);
+        style.Apply(_label, SwayDesign.Type.Title3Strong);
+        _number.Foreground = SwayStyle.Brush(green);
+        _label.Foreground = SwayStyle.Brush(green);
 
         var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         var ringHolder = new Grid();
@@ -59,7 +46,6 @@ public sealed class PromptOverlayWindow : Window
         stack.Children.Add(_label);
         _marker.Children.Add(stack);
         Content = new Grid { Children = { _marker } };
-        SourceInitialized += (_, _) => MakeClickThrough();
     }
 
     /// <summary>Puts the overlay over a monitor frame in physical pixels and shows it without activating.</summary>
@@ -91,28 +77,6 @@ public sealed class PromptOverlayWindow : Window
         _marker.BeginAnimation(OpacityProperty, new DoubleAnimation(opacity, TimeSpan.FromMilliseconds(100)));
     }
 
-    private void Apply()
-    {
-        if (new WindowInteropHelper(this).Handle is { } handle && handle != IntPtr.Zero)
-        {
-            SetWindowPos(handle, HwndTopmost, _x, _y, _width, _height, SwpNoActivate | SwpShowWindow);
-        }
-    }
-
-    private void MakeClickThrough()
-    {
-        var handle = new WindowInteropHelper(this).Handle;
-        var style = GetWindowLong(handle, GwlExStyle);
-        SetWindowLong(handle, GwlExStyle, style | WsExTransparent | WsExNoActivate | WsExToolWindow);
-    }
-
-    [DllImport("user32.dll")]
-    private static extern int GetWindowLong(IntPtr hwnd, int index);
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowLong(IntPtr hwnd, int index, int value);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int width, int height, uint flags);
+    private void Apply() =>
+        OverlayNative.Place(this, _x, _y, _width, _height);
 }
