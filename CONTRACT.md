@@ -305,3 +305,37 @@ Tracking off for a camera failure, a stream that ends, a lost camera or quit cha
 - `ISessionEvents` has no "locked at launch" signal separate from `IsSessionInactiveNow()`; a launch while the session
   is inactive starts suspended with reason `SessionInactive`.
 - `ICameraCatalog` has no permission request; `Authorization()` is read, and `NotAuthorized` from the source is trusted.
+
+## W5 tray app (issues #17, #18, #13: composition)
+
+`src/Sway.App` is the composition root and the tray UI. Folders: `Hosting/` (log, dispatcher, system facts, Win32
+shell calls), `Presentation/` (pure: icon appearance and palette, menu model, diagnostics snapshot and text, in-front
+tracker), `Tray/` (GDI+ icon renderer, `TrayHost` with the `NotifyIcon`), `Windows/` (Diagnostics and a calibration
+placeholder).
+
+- **Composition** (`App.Compose`): `JsonFileSettingsStore` at `%AppData%\Sway\settings.json`, `WindowsCameraCatalog`,
+  `WindowsPoseSource`, `WindowsDisplayCatalog`, `WindowsFocusController`, `WindowsHotKeyRegistrar`,
+  `WindowsSessionEvents`, `RegistryLoginItem`, `DispatcherMainThread` (`BeginInvoke`, always queues), `TimerDelayScheduler`,
+  a `Stopwatch` clock, `Log` into `RotatingFileLog`. The dispatcher's `SynchronizationContext` is installed before the
+  controller is created. Single instance by named mutex `Local\Sway.TrayApp.SingleInstance`; a second launch exits.
+  Tracking is restored by the controller from `sway.trackingEnabled`.
+- **Shutdown**: Quit and `SessionEnding` both `await controller.ShutdownAsync()` (5 s cap; session end pumps a nested
+  dispatcher frame), then adapters are disposed in `OnExit`.
+- **Logging**: `%LocalAppData%\Sway\Logs\sway.log`, 1 MB, one rotation (`sway.log.1`). Dispatcher, AppDomain and
+  unobserved task exceptions are logged; UI-thread exceptions are marked handled so the tray stays up (except OOM and
+  similar). Only controller log lines (no titles) and exceptions are written.
+- **Who calls the controller**: tray menu open/close and the active Sway window feed `SetSwayInFront` through
+  `InFrontTracker` (any source true means in front). `ForegroundChanged()` comes from a `SetWinEventHook`
+  (`EVENT_SYSTEM_FOREGROUND`, out of context, reports only) on the UI thread; `TrackingTick` is the controller's own
+  1 s timer. `ActiveDesktopChanged()` is NOT wired: no cheap trigger exists (the foreground hook does not tell a desktop
+  switch from a window switch). Wire it if a trigger is found.
+- **Tray**: icon redrawn on `StateChanged` and on theme change (`SystemUsesLightTheme`); sizes 16/20/24/32, nearest to
+  `SmallIconSize`. Amber (#E0902B) is the one non-brand color, for the Needs-you dot. Left click opens the menu through
+  `NotifyIcon.ShowContextMenu` by reflection (no cursor API). The menu is rebuilt from `TrayMenuModel` on each open.
+- **Diagnostics**: `DiagnosticsSnapshotBuilder` copies controller state; `DiagnosticsText.Build` makes the block shown
+  and copied. A `LIVE-POSE-PLACEHOLDER` comment marks where yaw and pitch go. Monitor scale uses `GetDpiForMonitor`.
+- **Orchestrator next**: (1) add `ProjectReference` to `src/Sway.App` in `Sway.Platform.Windows.Tests.csproj` and rename
+  `tests/Sway.Platform.Windows.Tests/App/TrayPresentationTests.cs.pending` to `.cs` (it compiled and built clean with that
+  reference); (2) replace `App.OpenCalibration()` body with the real calibration window and call
+  `controller.SetCalibrationRunningAsync`/`SaveToLibrary`; (3) consider `FocusSwitched` for the edge glow and
+  `FocusLockToggledByShortcut` for an on-screen notice (neither is subscribed).
