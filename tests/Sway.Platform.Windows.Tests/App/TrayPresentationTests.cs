@@ -143,6 +143,40 @@ public sealed class TrayPresentationTests
             ConfidenceLevel = 2,
             Settings = [new("sway.trackingEnabled", "true"), new("sway.calibrationLibrary", new string('x', 500))],
             LogLines = ["line one"],
+            Switching = new DiagnosticsSwitching
+            {
+                IsTrackingActive = true,
+                TrackingEnabled = true,
+                HasActiveCalibration = true,
+                CalibrationCamera = "C922",
+                CalibrationFingerprint = "fp-1",
+                LiveFingerprint = "fp-1",
+                CaptureText = "Running",
+                SwayInFront = true,
+                IsCameraActive = true,
+                BelievedFocus = "d1 (LG 27)",
+                Targets = ["d1 (LG 27)", "d2 (Dell)"],
+                HasDecision = true,
+                DecisionText = "Display, best Dell, margin 0.35",
+                PhaseName = "Dwelling(0.50)",
+                ReasonText = "Dwelling",
+                EnterMargin = 0.3,
+                HasPose = true,
+                Yaw = -12.5,
+                Pitch = 3,
+                FaceConfidence = 0.9,
+                PoseAgeSeconds = 1.5,
+                LastSampleHadFace = true,
+                SamplesReceived = 100,
+                SamplesWithFace = 90,
+                SamplesProcessed = 80,
+                SwitchRequests = 3,
+                Focused = 1,
+                NoWindow = 1,
+                Failed = 1,
+                SkippedByHold = 4,
+                SkippedInFlight = 2,
+            },
         };
 
         var text = DiagnosticsText.Build(snapshot);
@@ -156,7 +190,17 @@ public sealed class TrayPresentationTests
         Assert.Contains("Hold time: 0.40 s, cooldown: 0.75 s, confidence level: 2", text, StringComparison.Ordinal);
         Assert.Contains("sway.trackingEnabled = true", text, StringComparison.Ordinal);
         Assert.Contains("sway.calibrationLibrary = (500 characters)", text, StringComparison.Ordinal);
-        Assert.Contains("Live pose (yaw, pitch): not available yet", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("not available yet", text, StringComparison.Ordinal);
+        Assert.Contains("== Switching ==", text, StringComparison.Ordinal);
+        Assert.Contains("IsTrackingActive: yes (TrackingEnabled: yes, CalibrationRunning: no)", text, StringComparison.Ordinal);
+        Assert.Contains("ActiveCalibration: yes, camera C922, layout fingerprint fp-1", text, StringComparison.Ordinal);
+        Assert.Contains("Hold inputs: focus lock no, Sway in front yes, displays changing no, desktop changing no, switching in flight no", text, StringComparison.Ordinal);
+        Assert.Contains("Display believed to have focus: d1 (LG 27)", text, StringComparison.Ordinal);
+        Assert.Contains("Tracked targets: d1 (LG 27), d2 (Dell)", text, StringComparison.Ordinal);
+        Assert.Contains("Last decision: Display, best Dell, margin 0.35; phase Dwelling(0.50) (Dwelling); enter margin 0.30; SwitchTo not set", text, StringComparison.Ordinal);
+        Assert.Contains("Live pose: yaw -12.5, pitch 3.0, roll 0.0, confidence 0.90, 1.5 s ago (face found)", text, StringComparison.Ordinal);
+        Assert.Contains("Counts: samples 100, with a face 90, processed by the decider 80, switch requests 3", text, StringComparison.Ordinal);
+        Assert.Contains("Results: focused 1, no window 1, failed 1; skipped: hold active 4, attempt in flight 2", text, StringComparison.Ordinal);
         Assert.EndsWith("line one", text, StringComparison.Ordinal);
     }
 
@@ -166,6 +210,9 @@ public sealed class TrayPresentationTests
         var text = DiagnosticsText.Build(new DiagnosticsSnapshot());
         Assert.Contains("Holds: none", text, StringComparison.Ordinal);
         Assert.Contains("(none found)", text, StringComparison.Ordinal);
+        Assert.Contains("ActiveCalibration: none", text, StringComparison.Ordinal);
+        Assert.Contains("Live pose: none (no sample has arrived)", text, StringComparison.Ordinal);
+        Assert.Contains("Last decision: none yet", text, StringComparison.Ordinal);
         Assert.Contains("Calibration for these monitors and this camera: none", text, StringComparison.Ordinal);
     }
 

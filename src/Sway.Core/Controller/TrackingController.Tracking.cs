@@ -36,6 +36,10 @@ public sealed partial class TrackingController
 
         _env.Settings.Write(SettingsKeys.TrackingEnabled, enabled ? "true" : "false");
         TrackingEnabled = enabled;
+        if (enabled)
+        {
+            _diagnostics.ResetCounts();
+        }
 
         // The user's own switch ends a stop for a lost camera: the normal rules apply from here.
         LostCameraId = null;
@@ -156,6 +160,7 @@ public sealed partial class TrackingController
 
         // Sway's own request in flight is not a lock: a lock cancels the decider's cooldown, which must run from the
         // switch. The loop already reports the target as focused and refuses a second request.
+        _diagnostics.RecordProcessed();
         var hold = TrackingHold;
         var context = new SwitchContext(
             _loop.FocusedDisplay, hold is not null && hold != Runtime.TrackingHold.Switching, _trackedTargets);
@@ -201,8 +206,17 @@ public sealed partial class TrackingController
         var start = _dwellStart is { } d && d.Display == target ? d.Timestamp : timestamp;
         _dwellStart = null;
         var held = Math.Max(0, timestamp - start);
-        if (TrackingHold is not null || !_loop.BeginAttempt(target))
+        _diagnostics.RecordRequest();
+        if (TrackingHold is { } hold && hold != Runtime.TrackingHold.Switching)
         {
+            _diagnostics.RecordSkippedByHold();
+            return;
+        }
+
+        if (!_loop.BeginAttempt(target))
+        {
+            // The Switching hold is Sway's own request in flight, so it counts here and not as a hold.
+            _diagnostics.RecordSkippedInFlight();
             return;
         }
 
@@ -242,6 +256,7 @@ public sealed partial class TrackingController
         }
 
         _loop.FinishAttempt(target, result);
+        _diagnostics.RecordResult(result);
         var display = DisplayName(target);
         var text = SwitchLogText(result, display, held);
         var entry = new SwitchLogEntry(++_nextLogId, _env.Now(), text);
@@ -330,9 +345,51 @@ public sealed partial class TrackingController
             {
                 ScheduleNextTick();
                 TrackingTick();
+                MaybeLogDiagnostics();
             }
         });
     }
+
+    // One log line every 5 s while tracking runs, so the log file alone shows why nothing switches.
+    private const double DiagnosticsLogInterval = 5;
+    private double _nextDiagnosticsLog;
+
+    private void MaybeLogDiagnostics()
+    {
+        if (!IsTrackingActive || !IsCameraActive)
+        {
+            return;
+        }
+
+        var now = _env.Clock();
+        if (now < _nextDiagnosticsLog)
+        {
+            return;
+        }
+
+        _nextDiagnosticsLog = now + DiagnosticsLogInterval;
+        var inputs = HoldInputs();
+        var hold = TrackingHold;
+        var decision = LastDecision;
+        var look = decision is null
+            ? "no decision yet"
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{decision.Classification.Kind} best {(decision.Classification.Best is { } best ? DisplayName(best) : "none")} margin {decision.Classification.Margin:F2}, phase {PhaseName(decision.Phase)}{(decision.Reason is { } reason ? $" ({reason})" : string.Empty)}");
+        Log(
+            $"Switch diagnostics: {_diagnostics.CountsLine()}; {look}; focus {(TrackingFocus is { } focus ? DisplayName(focus) : "unknown")}; "
+            + $"hold {(hold is { } h ? h.ToString() : "none")} [lock {inputs.FocusLocked}, sway in front {inputs.SwayInFront}, displays changing {inputs.DisplaysChanging}, "
+            + $"desktop changing {inputs.SpaceChanging}, switching {inputs.Switching}]");
+    }
+
+    /// <summary>The phase in words: Idle, Dwelling (progress), Cooling, or Locked.</summary>
+    public static string PhaseName(SwitchPhase phase) => phase switch
+    {
+        DwellingPhase d => string.Create(CultureInfo.InvariantCulture, $"Dwelling({d.Progress:F2})"),
+        CoolingDownPhase => "Cooling",
+        LockedPhase => "Locked",
+        _ => "Idle",
+    };
 
     /// <summary>One poll step: ask where focus is, unless the last question is still running. Does nothing unless tracking runs.</summary>
     public void TrackingTick()
