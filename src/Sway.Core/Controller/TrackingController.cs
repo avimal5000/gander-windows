@@ -25,6 +25,7 @@ public sealed partial class TrackingController : IDisposable
     private readonly RetryBackoff _backoff = new();
     private readonly TrackingLoop _loop = new();
     private readonly FaceDebounce _debounce = new();
+    private readonly SwitchDiagnostics _diagnostics = new();
     private readonly List<string> _logLines = [];
     private readonly Dictionary<string, string> _knownCameraNames = [];
     private Dictionary<DisplayId, string> _displayLabels = [];
@@ -155,6 +156,15 @@ public sealed partial class TrackingController : IDisposable
 
     /// <summary>The decider's output for the latest tracked sample; null before the first sample or after a reset.</summary>
     public SwitchDecision? LastDecision { get; private set; }
+
+    /// <summary>Counters and the latest pose for the diagnostics (read-only for callers).</summary>
+    public SwitchDiagnostics Diagnostics => _diagnostics;
+
+    /// <summary>Each input of the hold rules as it is right now, for the diagnostics.</summary>
+    public TrackingHoldInputs CurrentHoldInputs => HoldInputs();
+
+    /// <summary>The displays focus may move to, or null when it is every calibrated display (SPEC D22).</summary>
+    public IReadOnlySet<DisplayId>? TrackedTargets => _trackedTargets;
 
     /// <summary>What the tracking loop believes has keyboard focus.</summary>
     public DisplayId? TrackingFocus => _loop.FocusedDisplay;

@@ -53,6 +53,7 @@ public static class DiagnosticsSnapshotBuilder
             FocusLocked = controller.FocusLocked,
             CaptureText = CaptureText.Summary(controller.Status),
             HoldText = controller.TrackingHold?.Text(),
+            Switching = BuildSwitching(controller, now),
             CurrentCamera = controller.CurrentCameraName,
             Cameras = controller.Devices
                 .Select(device => new DiagnosticsCamera(
@@ -83,6 +84,63 @@ public static class DiagnosticsSnapshotBuilder
                 .Select(entry => $"{entry.Time.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture)} {entry.Text}")
                 .ToList(),
             LogLines = controller.LogLines.TakeLast(DiagnosticsText.MaxLogLines).ToList(),
+        };
+    }
+
+    private static DiagnosticsSwitching BuildSwitching(TrackingController controller, DateTimeOffset now)
+    {
+        var inputs = controller.CurrentHoldInputs;
+        var counts = controller.Diagnostics;
+        var calibration = controller.ActiveCalibration;
+        var decision = controller.LastDecision;
+        var classification = decision?.Classification;
+        var targets = controller.TrackedTargets ?? calibration?.Profile.DisplayIds;
+        var decisionText = classification is null
+            ? string.Empty
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{classification.Kind}{(classification.Best is { } best ? $", best {controller.DisplayName(best)}" : string.Empty)}, margin {classification.Margin:0.00}{(classification.RunnerUp is { } second ? $", runner-up {controller.DisplayName(second)}" : string.Empty)}");
+        return new DiagnosticsSwitching
+        {
+            IsTrackingActive = controller.IsTrackingActive,
+            TrackingEnabled = controller.TrackingEnabled,
+            CalibrationRunning = controller.CalibrationRunning,
+            IsCameraActive = controller.IsCameraActive,
+            CaptureText = CaptureText.Summary(controller.Status),
+            HasActiveCalibration = calibration is not null,
+            CalibrationCamera = calibration?.Saved.CameraName,
+            CalibrationFingerprint = calibration?.Saved.LayoutFingerprint,
+            LiveFingerprint = controller.Layout.Fingerprint,
+            HoldText = controller.TrackingHold?.Text(),
+            FocusLocked = inputs.FocusLocked,
+            SwayInFront = inputs.SwayInFront,
+            DisplaysChanging = inputs.DisplaysChanging,
+            DesktopChanging = inputs.SpaceChanging,
+            SwitchingInFlight = inputs.Switching,
+            BelievedFocus = controller.TrackingFocus is { } focus ? $"{focus} ({controller.DisplayName(focus)})" : null,
+            Targets = targets?.Select(id => $"{id} ({controller.DisplayName(id)})").ToList() ?? [],
+            HasDecision = decision is not null,
+            DecisionText = decisionText,
+            PhaseName = decision is null ? string.Empty : TrackingController.PhaseName(decision.Phase),
+            ReasonText = decision?.Reason?.ToString(),
+            SwitchToSet = decision?.SwitchTo is not null,
+            EnterMargin = controller.EnterMargin,
+            HasPose = counts.LastPose is not null,
+            Yaw = counts.LastPose?.Yaw ?? 0,
+            Pitch = counts.LastPose?.Pitch ?? 0,
+            Roll = counts.LastPose?.Roll ?? 0,
+            FaceConfidence = counts.LastPose?.FaceConfidence ?? 0,
+            PoseAgeSeconds = counts.LastPoseAt is { } at ? Math.Max(0, (now - at).TotalSeconds) : null,
+            LastSampleHadFace = counts.LastSampleAt is null ? null : counts.LastSampleHadFace,
+            SamplesReceived = counts.SamplesReceived,
+            SamplesWithFace = counts.SamplesWithFace,
+            SamplesProcessed = counts.SamplesProcessed,
+            SwitchRequests = counts.SwitchRequests,
+            Focused = counts.Focused,
+            NoWindow = counts.NoWindow,
+            Failed = counts.Failed,
+            SkippedByHold = counts.SkippedByHold,
+            SkippedInFlight = counts.SkippedInFlight,
         };
     }
 }

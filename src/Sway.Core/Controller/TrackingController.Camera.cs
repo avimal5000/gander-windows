@@ -442,8 +442,10 @@ public sealed partial class TrackingController
         }
 
         _backoff.FramesFlowed();
+        _diagnostics.RecordSample(sample.Pose, _env.Now());
         PoseObserved?.Invoke(sample);
         ProcessTracking(sample);
+        MaybeLogDiagnostics();
     }
 
     /// <summary>Forgets the latest pose, the debounce, and the tracking loop's dwell and focus (camera stopped, restarted, or interrupted).</summary>

@@ -12,6 +12,96 @@ public sealed record DiagnosticsCamera(string Name, bool IsBuiltIn, bool IsSelec
 /// <summary>One monitor in the diagnostics. <see cref="ScalePercent"/> is null when Windows would not say.</summary>
 public sealed record DiagnosticsDisplay(string Name, int Width, int Height, int? ScalePercent, bool IsMain, bool IsFocused);
 
+/// <summary>The live switching state: why Sway is or is not switching. Plain values; the defaults mean "nothing known".</summary>
+public sealed record DiagnosticsSwitching
+{
+    public bool IsTrackingActive { get; init; }
+
+    public bool TrackingEnabled { get; init; }
+
+    public bool CalibrationRunning { get; init; }
+
+    public bool IsCameraActive { get; init; }
+
+    public string CaptureText { get; init; } = string.Empty;
+
+    /// <summary>The camera of the active calibration, or null when there is none.</summary>
+    public bool HasActiveCalibration { get; init; }
+
+    public string? CalibrationCamera { get; init; }
+
+    public string? CalibrationFingerprint { get; init; }
+
+    /// <summary>The fingerprint of the layout Windows reports now; a calibration only fits when the two agree.</summary>
+    public string? LiveFingerprint { get; init; }
+
+    public string? HoldText { get; init; }
+
+    public bool FocusLocked { get; init; }
+
+    public bool SwayInFront { get; init; }
+
+    public bool DisplaysChanging { get; init; }
+
+    public bool DesktopChanging { get; init; }
+
+    public bool SwitchingInFlight { get; init; }
+
+    /// <summary>The display the controller believes has focus; null when unknown.</summary>
+    public string? BelievedFocus { get; init; }
+
+    /// <summary>The displays focus may move to ("id (name)"), empty when there are none.</summary>
+    public IReadOnlyList<string> Targets { get; init; } = [];
+
+    public bool HasDecision { get; init; }
+
+    /// <summary>For example "Display, best LG 27, margin 0.35, runner-up Dell".</summary>
+    public string DecisionText { get; init; } = string.Empty;
+
+    /// <summary>Idle, Dwelling(0.50), Cooling, or Locked.</summary>
+    public string PhaseName { get; init; } = string.Empty;
+
+    public string? ReasonText { get; init; }
+
+    public bool SwitchToSet { get; init; }
+
+    public double EnterMargin { get; init; }
+
+    public bool HasPose { get; init; }
+
+    public double Yaw { get; init; }
+
+    public double Pitch { get; init; }
+
+    public double Roll { get; init; }
+
+    public double FaceConfidence { get; init; }
+
+    /// <summary>Seconds since the last face pose; null when none has arrived.</summary>
+    public double? PoseAgeSeconds { get; init; }
+
+    /// <summary>Whether the latest sample had a face; null when no sample has arrived.</summary>
+    public bool? LastSampleHadFace { get; init; }
+
+    public int SamplesReceived { get; init; }
+
+    public int SamplesWithFace { get; init; }
+
+    public int SamplesProcessed { get; init; }
+
+    public int SwitchRequests { get; init; }
+
+    public int Focused { get; init; }
+
+    public int NoWindow { get; init; }
+
+    public int Failed { get; init; }
+
+    public int SkippedByHold { get; init; }
+
+    public int SkippedInFlight { get; init; }
+}
+
 /// <summary>Everything the diagnostics show, as plain values, so the text is built without a controller.</summary>
 public sealed record DiagnosticsSnapshot
 {
@@ -38,6 +128,9 @@ public sealed record DiagnosticsSnapshot
 
     /// <summary>The wording of the hold that stops automatic switching right now, or null.</summary>
     public string? HoldText { get; init; }
+
+    /// <summary>The live switching state.</summary>
+    public DiagnosticsSwitching Switching { get; init; } = new();
 
     /// <summary>The camera in use or about to be used.</summary>
     public string? CurrentCamera { get; init; }
@@ -107,9 +200,9 @@ public static class DiagnosticsText
         text.AppendLine($"Focus Lock: {OnOff(s.FocusLocked)}");
         text.AppendLine($"Camera state: {s.CaptureText}");
         text.AppendLine($"Holds: {s.HoldText ?? "none"}");
-        text.AppendLine("Live pose (yaw, pitch): not available yet");
-        // LIVE-POSE-PLACEHOLDER: replace the line above with yaw and pitch once the controller exposes them.
         text.AppendLine();
+
+        AppendSwitching(text, s.Switching);
 
         text.AppendLine("== Cameras ==");
         text.AppendLine($"Current camera: {s.CurrentCamera ?? "none"}");
@@ -207,6 +300,48 @@ public static class DiagnosticsText
         }
 
         return age.TotalDays < 1 ? Plural((int)age.TotalHours, "hour") : Plural((int)age.TotalDays, "day");
+    }
+
+    private static string YesNo(bool value) => value ? "yes" : "no";
+
+    private static void AppendSwitching(StringBuilder text, DiagnosticsSwitching w)
+    {
+        var c = CultureInfo.InvariantCulture;
+        text.AppendLine("== Switching ==");
+        text.AppendLine($"IsTrackingActive: {YesNo(w.IsTrackingActive)} (TrackingEnabled: {YesNo(w.TrackingEnabled)}, CalibrationRunning: {YesNo(w.CalibrationRunning)})");
+        text.AppendLine(w.HasActiveCalibration
+            ? $"ActiveCalibration: yes, camera {w.CalibrationCamera ?? "unknown"}, layout fingerprint {w.CalibrationFingerprint ?? "unknown"}"
+            : "ActiveCalibration: none");
+        text.AppendLine($"Live layout fingerprint: {w.LiveFingerprint ?? "unknown"}");
+        text.AppendLine($"Capture status: {w.CaptureText}, IsCameraActive: {YesNo(w.IsCameraActive)}");
+        text.AppendLine($"Hold: {w.HoldText ?? "none"}");
+        text.AppendLine(
+            $"Hold inputs: focus lock {YesNo(w.FocusLocked)}, Sway in front {YesNo(w.SwayInFront)}, displays changing {YesNo(w.DisplaysChanging)}, "
+            + $"desktop changing {YesNo(w.DesktopChanging)}, switching in flight {YesNo(w.SwitchingInFlight)}");
+        text.AppendLine($"Display believed to have focus: {w.BelievedFocus ?? "unknown"}");
+        text.AppendLine($"Tracked targets: {(w.Targets.Count > 0 ? string.Join(", ", w.Targets) : "none")}");
+        text.AppendLine(w.HasDecision
+            ? string.Create(c, $"Last decision: {w.DecisionText}; phase {w.PhaseName}{(w.ReasonText is { } r ? $" ({r})" : string.Empty)}; enter margin {w.EnterMargin:0.00}; SwitchTo {(w.SwitchToSet ? "set" : "not set")}")
+            : "Last decision: none yet");
+        if (w.HasPose)
+        {
+            var age = w.PoseAgeSeconds is { } seconds ? string.Create(c, $"{seconds:0.0} s ago") : "age unknown";
+            var face = w.LastSampleHadFace switch { true => "face found", false => "no face now", _ => "no sample" };
+            text.AppendLine(string.Create(
+                c, $"Live pose: yaw {w.Yaw:0.0}, pitch {w.Pitch:0.0}, roll {w.Roll:0.0}, confidence {w.FaceConfidence:0.00}, {age} ({face})"));
+        }
+        else
+        {
+            var face = w.LastSampleHadFace == false ? "samples arrive but none has a face" : "no sample has arrived";
+            text.AppendLine($"Live pose: none ({face})");
+        }
+
+        text.AppendLine(
+            $"Counts: samples {w.SamplesReceived}, with a face {w.SamplesWithFace}, processed by the decider {w.SamplesProcessed}, "
+            + $"switch requests {w.SwitchRequests}");
+        text.AppendLine(
+            $"Results: focused {w.Focused}, no window {w.NoWindow}, failed {w.Failed}; skipped: hold active {w.SkippedByHold}, attempt in flight {w.SkippedInFlight}");
+        text.AppendLine();
     }
 
     private static string CalibrationLine(DiagnosticsSnapshot s)

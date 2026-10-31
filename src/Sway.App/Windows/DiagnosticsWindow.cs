@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Sway.App.Hosting;
 using Sway.Core.Controller;
 
@@ -16,6 +17,7 @@ public sealed class DiagnosticsWindow : Window
     private readonly TrackingController _controller;
     private readonly Func<string> _build;
     private readonly TextBox _text;
+    private readonly DispatcherTimer _timer;
 
     /// <summary>Creates the window; <paramref name="build"/> returns the current diagnostics text.</summary>
     public DiagnosticsWindow(TrackingController controller, Func<string> build)
@@ -65,13 +67,28 @@ public sealed class DiagnosticsWindow : Window
 
         Refresh();
         _controller.StateChanged += Refresh;
-        Closed += (_, _) => _controller.StateChanged -= Refresh;
+
+        // The live pose and the counters change at the frame rate, which StateChanged does not report: refresh 4 times a second.
+        _timer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = TimeSpan.FromMilliseconds(250) };
+        _timer.Tick += (_, _) => Refresh();
+        _timer.Start();
+        Closed += (_, _) =>
+        {
+            _timer.Stop();
+            _controller.StateChanged -= Refresh;
+        };
     }
 
     private void Refresh()
     {
+        var next = _build();
+        if (next == _text.Text)
+        {
+            return;
+        }
+
         var offset = _text.VerticalOffset;
-        _text.Text = _build();
+        _text.Text = next;
         _text.ScrollToVerticalOffset(offset);
     }
 
