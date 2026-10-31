@@ -64,13 +64,14 @@ small when reading monitors, but if the results are poor this is the first thing
   models, Apache-2.0 (code AND weights)").
 - The upstream MediaPipe project is Apache-2.0.
 
-Doubts, honestly: the Apache-2.0 statement on the converted model is the converter's claim, repeated from the upstream
-terms. I did not find a primary Google statement for this specific model's weights (the Face Landmarker "model card" is
-the place to look), and a third party's license field is not proof. Other candidates were seen: `senty-au/face_landmarks_detector-ONNX`
-(its API metadata says apache-2.0, but its card's license section was reported empty), and PINTO0309's model zoo
-(not examined). **Before any release that ships this model, someone must read Google's Face Landmarker model card and
-the MediaPipe license for these weights and confirm redistribution is allowed, and the notice text must be added to
-the installer.** THIRD-PARTY-NOTICES.md lists the model with this caveat.
+**Resolved 2026-10-31.** Google's own model card for MediaPipe Face Mesh V2 (PDF linked from the Face Landmarker guide at
+developers.google.com/edge/mediapipe/solutions/vision/face_landmarker; authors Geng Yan and Ivan Grishchenko, model date
+September 15, 2022) says on its first page: "LICENSED UNDER Apache License, Version 2.0". So the primary source for the
+weights is Apache-2.0, which allows redistribution with the license text and attribution (both are in
+THIRD-PARTY-NOTICES.md and ship in the zip). Remaining caveats: the ONNX file is a third party's conversion (its weights
+were not byte-compared with Google's file), no NOTICE file was found, and the model card lists out-of-scope uses (not for
+life-critical decisions; no facial recognition) and says the model is meant for tracking mode with face location, scale and
+rotation roughly right, which matches the face-loss behavior seen at large head turns.
 
 ## Results: first run on the user's desktop (2026-10-30)
 
