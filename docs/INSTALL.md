@@ -17,9 +17,28 @@ last window you used on that monitor. Nothing leaves your PC: no network code, n
 5. Follow the steps: check your framing, then look at each monitor twice when the green "Look here" marker shows.
 6. Choose **Start tracking**. Sway lives in the tray (it may be under the **^** arrow).
 
+## Installer
+
+The release also has `Sway-<version>-win-x64-setup.exe`. Use it instead of the zip if you want Start Menu entries and a
+normal uninstall.
+
+- **Installer or zip?** Both contain the same app. The installer puts Sway in `%LocalAppData%\Programs\Sway` for your
+  account only (no administrator prompt); the first page lets you choose "all users" (`C:\Program Files\Sway`)
+  instead. The zip is portable: unzip anywhere and delete the folder when done.
+- **Unsigned.** Windows SmartScreen warns the first time, as for the zip: **More info**, then **Run anyway**. Check the
+  download against the `.sha256` file first.
+- Options: a desktop shortcut, and **Start Sway when I sign in to Windows**. Both are off by default. The second sets the
+  same value as Sway's own **Start with Windows** setting, so Settings shows it correctly.
+- **Silent install:** `Sway-<version>-win-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER` (use `/ALLUSERS`
+  for a machine-wide install from an administrator prompt; `/DIR="C:\path"` picks the folder).
+- **Uninstall:** Settings, Apps, Installed apps, Sway, Uninstall. It closes Sway if it is running, removes the files and
+  the sign-in entry, then asks whether to delete your settings (`%AppData%\Sway`) and logs (`%LocalAppData%\Sway`); the
+  default is No. Silent uninstall: run `unins000.exe /VERYSILENT /SUPPRESSMSGBOXES` from the install folder; it keeps your
+  settings and logs.
+
 ## Check the download
 
-The release has a `.sha256` file. In PowerShell: `Get-FileHash .\Sway-<version>-win-x64.zip -Algorithm SHA256` and
+The release has a `.sha256` file for each download. In PowerShell: `Get-FileHash .\Sway-<version>-win-x64.zip -Algorithm SHA256` and
 compare it with the file's contents.
 
 ## Use

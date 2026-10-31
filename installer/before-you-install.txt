@@ -1,0 +1,14 @@
+Sway for Windows uses your webcam to see which way your head is turned, and moves keyboard focus to the last window you used on that monitor.
+
+Your privacy
+
+- The camera is used on this PC only. Nothing leaves your PC: Sway has no network code.
+- No video and no pictures are saved. Sway keeps only head-angle numbers, your display layout and your settings.
+- Settings are stored in %AppData%\Sway and logs in %LocalAppData%\Sway. The uninstaller asks before deleting them.
+- Sway never moves your mouse pointer and never types for you.
+
+Windows SmartScreen
+
+This installer is not code-signed. The first time you run it, Windows may show "Windows protected your PC". Choose "More info", then "Run anyway". You can check the download against the .sha256 file on the release page.
+
+Sway starts with Windows only if you tick that option on the next pages (or later in Sway's Settings).
