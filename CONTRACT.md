@@ -199,3 +199,109 @@ Windows adapters in `src/Sway.Platform.Windows`, one folder per area. Win32 call
   (`Environment.ProcessPath`). Registry access is the `IRunKeyAccess` seam. `Status` is `Enabled` only if the value equals
   this exe's command, `Disabled` otherwise (including a stale path), `Unavailable` if the registry throws or the path is
   unknown. `SetEnabled` does not throw.
+
+## W5 tracking controller (milestone W5, issues #16 #17, camera fallback of #24)
+
+`Sway.Core.Controller` is the Mac `AppModel` tracking brain with the UI taken out: the pose to engine to focus loop, the
+holds, the camera lifecycle and fallback, Focus Lock, the calibration library, and the status the tray shows. It is
+portable (no Windows API, no UI framework) and is the only thing the tray, settings and calibration UIs talk to for
+tracking. The Swift source is `SwayCore/Sources/SwayUI/AppModel*.swift`; the file split mirrors it
+(`TrackingController.Tracking/Holds/FocusLock/PoseDemand/Library/Camera/Fallback/Grace/Lifecycle.cs`).
+
+### Public types
+
+- `TrackingController` (sealed, partial). Constructed from a `TrackingEnvironment`. `Dispose()` unhooks the platform
+  events. `ShutdownAsync()` is "quit": it stops the camera and leaves the saved choice alone.
+- `TrackingEnvironment` (record). Required: `PoseSource`, `Focus`, `Displays`, `Cameras`, `Session`, `Settings`,
+  `HotKeys`, `MainThread`, `Scheduler`, `Clock` (monotonic seconds). Optional: `Now`, `Engine` (`ISwitchEngineMaking`,
+  default `PoseSwitchEngine`), `FocusPollInterval` (default 1 s, null disables the repeating poll), `IsMainDisplayAsleep`,
+  `Log` (never receives a window title).
+- `IMainThread.Post(Action)`: queues work on the thread that owns the controller. It must queue (never run inline on the
+  calling thread when that is not the main thread).
+- `CameraStartException(CameraError)`: what `IPoseSource.StartAsync` throws for a start that fails. Any other exception
+  becomes `ConfigurationFailed`.
+- Value types: `TrackingStatus` (kind, text, reason; `Line`, `Tone`, `Icon`), `TrackingStatusKind`, `StatusTone`,
+  `TrayIconState` (Tracking, Paused, FocusLock, Attention), `TrackingStatusSnapshot`, `CaptureText`, `TrackingHold`
+  (via `TrackingHolds`), `TrackingLoop`, `FaceDebounce`, `SwitchLogEntry`, `CameraPermissionPrompt`, `SettingsKeys`.
+
+State is read-only properties plus one `event Action StateChanged`. Properties: `TrackingEnabled`, `Status`,
+`TrackingStatus`, `StatusLine`, `TrayIcon`, `TrackingHold`, `HasFace`, `IsCameraActive`, `Devices`, `Authorization`,
+`PermissionPrompt`, `SelectedCameraId`, `PredictedCameraName`, `RunningDevice`, `FallbackCamera`, `LostCameraId`,
+`DisconnectedCameraName`, `Layout`, `Library`, `ActiveCalibration`, `Sensitivity`, `LastDecision`, `TrackingFocus`,
+`IsSwitching`, `SwayInFront`, `FocusLocked`, `FocusLockShortcut`, `ShortcutMessage`, `MenuShortcutMessage`,
+`CalibrationRunning`, `SwitchLog`, `LogLines`, `WantedPoseDemand`. Two more events: `FocusSwitched(DisplayId)` and
+`FocusLockToggledByShortcut(bool)` (for the on-screen notice).
+
+Commands: `SetTrackingEnabledAsync`, `SelectCameraAsync`, `RefreshEnvironment`, `SetFocusLock`, `ToggleFocusLock`,
+`SetFocusLockShortcut`, `ResetFocusLockShortcut`, `SetSensitivity`, `SetHoldTime`, `SetCooldown`, `SetSwitchConfidence`,
+`UseInstantTiming`, `RestoreSensitivityDefaults`, `SaveToLibrary`, `RemoveFromLibrary`, `SetCalibrationRunningAsync`,
+`SetPoseDebugVisible`, `SetFocusTestVisible`, `SetSwayInFront`, `ActiveDesktopChanged`, `ForegroundChanged`,
+`TrackingTick` (the poll; the controller's own timer calls it).
+
+### Environment and settings
+
+Settings keys are the Mac ones: `sway.trackingEnabled` ("true"/"false"; written only by the user's own switch),
+`sway.cameraDeviceID`, `sway.calibrationLibrary`, `sway.switchSensitivity`, `sway.focusLockShortcut` (absent means the
+default `HotKeyShortcut.FocusLockDefault`, an empty string means no shortcut). JSON uses `EngineJson.Options`. Turning
+Tracking off for a camera failure, a stream that ends, a lost camera or quit changes memory only, never the saved choice
+(D23).
+
+### Threading
+
+- Create the controller on the main thread and call every command from it. `IMainThread` is the way back: the controller
+  posts platform callbacks (`DevicesChanged`, `LayoutChanged`, `Occurred`, hotkeys), pose stream events, scheduler
+  callbacks and focus completions to it, and `StateChanged` is raised there, after the work, only when something the UI
+  shows changed (it never fires at the frame rate).
+- The main thread must have a `SynchronizationContext` (the WinUI dispatcher has). The controller captures it for its
+  awaits; it never uses `ConfigureAwait(false)` on a continuation that touches state. Focus requests and the poll are the
+  one exception: they await off-thread, then `Post` the result.
+- Camera work (start, stop, restart, retry, resume) runs one operation at a time in a chain, as the Mac does; nested work
+  queues behind the running operation. Stale results are dropped by a stream generation, a loop epoch and cancellation.
+- The Core `IDelayScheduler` runs all waits (holds, grace, device-list debounce, camera wait, retries, focus poll).
+  Tests use `ManualDelayScheduler` and a fake `IMainThread`; nothing sleeps.
+
+### Behavior notes
+
+- Loop: a sample goes to the decider only while the camera is running and a calibration fits. Holds (priority: Focus
+  Lock, Sway in front, displays changing, desktop changing, switching) lock the decider and refuse requests. "No face" is
+  steadied by `FaceDebounce` (0.5 s); the decider sees the raw sample.
+- Camera: `SuspendTracker` decides lock, sleep, display-off and session switches from `ISessionEvents`, seeded at launch
+  from `IsSessionInactiveNow()`. Display changes that leave no calibration give the camera a 2 s grace. A chosen camera
+  that vanishes for 5 s falls back to a calibrated one (built-in first); with none, Tracking turns off in memory with
+  status "<camera> disconnected" and never resumes by itself. Retry waits use `RetryBackoff`.
+- Pose demand: `PoseDemandPolicy` over Focus Lock, the Pose Debug window, the Focus Test window and calibration runs.
+
+### Deliberate differences from the Mac
+
+1. No Accessibility: there is no `needsAccessibility` status, no `notTrusted` result, no trust poll, and no permission
+   explanation flow or `pendingIntent`. `NotDetermined` camera permission is simply tried; a source that is blocked
+   reports `NotAuthorized` and the controller shows `PermissionPrompt = Denied`.
+2. Wording: "Windows Settings", "virtual desktop" (the Mac "Space"; `ActiveDesktopChanged`, `TrackingHold.SpaceChanging`
+   keeps the Mac enum name), "tray" (the Mac "menu bar"). `TrayIconState` replaces the SF Symbol glyph names.
+3. Suspend is done here. The Mac capture layer suspends itself; the Windows `IPoseSource` does not, so the controller maps
+   `SessionEvent` to Core `SuspendEvent`, tears the source down on the first reason, and rebuilds it when all clear.
+4. A camera that vanishes reports `Failed(DeviceUnavailable)` (section 3). While Tracking was running, that is treated as
+   an interruption (status "Interrupted", retried with `RetryBackoff` 1, 2, 5, then 10 s, a device-list change retries at
+   once), not as the end of Tracking. A start that fails the same way keeps Tracking on only for the fallback's own
+   restarts, as on the Mac.
+5. The display layout is applied at once on `LayoutChanged`. The Mac waits for a notification plus a read; here the
+   catalog hands the layout over. The display-change hold, its 0.75 s timeout and 3 s cap are unchanged.
+6. Focus polling uses the scheduler (`FocusPollInterval`) and `ForegroundChanged()` replaces "app activation".
+   "Sway in front" is set by the UI (`SetSwayInFront`); the controller has no window list.
+7. Setup, the Gate test and the Focus Test are replaced by `SetCalibrationRunningAsync` (the camera runs at the full pose
+   rate, switching is held, the camera is not swapped). `SetFocusTestVisible` only changes the pose demand; the Focus
+   Test hold is not modeled. Fitting a profile from a trace is the calibration UI's job; it hands the result to
+   `SaveToLibrary`.
+8. `IsCameraActive` follows the Core `SuspendTracker` (capture requested), so it is false after a failed start.
+9. A camera operation begins at once when nothing is ahead of it (no main-actor hop). One consequence: three rapid
+   `SetTrackingEnabledAsync` calls start, stop and start again rather than coalescing to one start.
+10. Not modeled: pose history, plots, the trace recorder, text readout throttling, `LookSummary` and the menu banner
+    (presentation; the UI derives them from the state above).
+
+### Interface gaps found
+
+- `IPoseSource` has no way to carry a `CameraError` out of `StartAsync` except an exception; `CameraStartException` was
+  added in `Sway.Core.Controller` for that. Adapters must throw it.
+- `ISessionEvents` has no "locked at launch" signal separate from `IsSessionInactiveNow()`; a launch while the session
+  is inactive starts suspended with reason `SessionInactive`.
+- `ICameraCatalog` has no permission request; `Authorization()` is read, and `NotAuthorized` from the source is trusted.
