@@ -165,11 +165,19 @@ public static class SettingsText
     }
 }
 
-/// <summary>Colors of the tray menu for the app theme (SPEC look: ivory and charcoal, forest or sage accent).</summary>
+/// <summary>Colors of the tray menu, flattened from the shared design tokens (a ContextMenuStrip cannot draw alpha).</summary>
 public sealed record MenuPalette(Rgb Background, Rgb Text, Rgb Disabled, Rgb Hover, Rgb Border, Rgb Separator, Rgb Accent)
 {
-    /// <summary>Ivory surface with charcoal text, or charcoal surface with ivory text.</summary>
-    public static MenuPalette For(bool light) => light
-        ? new(Rgb.Hex("#F6F3EA"), Rgb.Hex("#2B2B2B"), Rgb.Hex("#8A877E"), Rgb.Hex("#E6E1D3"), Rgb.Hex("#D8D3C4"), Rgb.Hex("#DAD5C6"), TrayPalette.Forest)
-        : new(Rgb.Hex("#2B2B2B"), Rgb.Hex("#F6F3EA"), Rgb.Hex("#8C8A84"), Rgb.Hex("#3C3C3A"), Rgb.Hex("#454542"), Rgb.Hex("#454542"), TrayPalette.Sage);
+    /// <summary>The palette of a theme: ivory surface with charcoal text, or charcoal surface with ivory text.</summary>
+    public static MenuPalette For(Design.SwayTheme theme) => new(
+        theme.MenuSurface,
+        theme.Text,
+        theme.Flat(theme.TextSecondary),
+        theme.Flat(theme.Hover),
+        theme.Flat(theme.Line),
+        theme.Flat(theme.Line),
+        theme.Accent);
+
+    /// <summary>The palette for light or dark with Sway green as the accent.</summary>
+    public static MenuPalette For(bool light) => For(Design.SwayTheme.For(light));
 }

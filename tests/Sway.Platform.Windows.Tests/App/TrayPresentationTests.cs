@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Sway.App.Hosting;
 using Sway.App.Presentation;
+using Sway.App.Presentation.Design;
+using Sway.Core;
 using Sway.Core.Controller;
 using Sway.Core.Platform;
 
@@ -38,8 +41,8 @@ public sealed class TrayPresentationTests
     [Fact]
     public void PaletteFollowsTheTaskbarTheme()
     {
-        Assert.Equal(TrayPalette.Forest, TrayPalette.For(true).Mark);
-        Assert.Equal(TrayPalette.Ivory, TrayPalette.For(false).Mark);
+        Assert.Equal(SwayDesign.Charcoal, TrayPalette.For(true).Mark);
+        Assert.Equal(SwayDesign.Ivory, TrayPalette.For(false).Mark);
         Assert.Equal(new Rgb(0x2F, 0x5D, 0x3A), TrayPalette.Forest);
         Assert.False(TrayPalette.IsLight(0));
         Assert.True(TrayPalette.IsLight(1));
@@ -49,64 +52,122 @@ public sealed class TrayPresentationTests
     private static TrayMenuInput Input(
         bool tracking = true,
         bool locked = false,
-        string? message = null,
-        LoginItemStatus login = LoginItemStatus.Disabled,
-        CameraDevice[]? cameras = null) =>
+        TrayBanner? banner = null,
+        CameraDevice[]? cameras = null,
+        string? selected = "b",
+        HotKeyShortcut? shortcut = null) =>
         new(
             "Tracking · Cam",
+            StatusTone.Active,
             tracking,
             locked,
-            HotKeyShortcut.FocusLockDefault,
-            message,
+            shortcut ?? HotKeyShortcut.FocusLockDefault,
+            banner,
+            "Looking at Left",
             cameras ?? [new CameraDevice("a", "Built-in", true), new CameraDevice("b", "USB", false)],
-            "b",
-            login);
+            selected);
 
     [Fact]
-    public void MenuHasTheItemsInOrder()
+    public void MenuHasTheMacPopoverOrder()
     {
         var menu = TrayMenuModel.Build(Input());
         var texts = menu.Where(e => !e.IsSeparator).Select(e => e.Text).ToList();
         Assert.Equal(
-            ["Tracking · Cam", "Tracking", "Focus Lock (Ctrl+Alt+Shift+L)", "Camera", "Settings…", "Calibrate…", "Diagnostics…", "Open Sway at login", "Quit Sway"],
+            ["Sway", "Tracking · Cam", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Diagnostics…", "Quit Sway"],
             texts);
-        Assert.False(menu[0].Enabled);
+        Assert.Equal(TrayEntryRole.Header, menu[0].Role);
+        Assert.Equal(TrayEntryRole.Status, menu[1].Role);
+        Assert.False(menu[1].Enabled);
+        Assert.Equal(StatusTone.Active, menu[1].Tone);
     }
+
+    [Fact]
+    public void FocusLockShowsItsShortcutBesideIt()
+    {
+        Assert.Equal("Ctrl+Alt+Shift+L", TrayMenuModel.Build(Input()).Single(e => e.Command == TrayCommand.ToggleFocusLock).ShortcutText);
+        var plain = TrayMenuModel.Build(new TrayMenuInput("s", StatusTone.Idle, true, false, null, null, "x", [], null));
+        Assert.Null(plain.Single(e => e.Command == TrayCommand.ToggleFocusLock).ShortcutText);
+        Assert.Equal("Focus Lock", TrayMenuModel.FocusLockText);
+    }
+
+    [Fact]
+    public void MenuHasNoLoginItemBecauseSettingsOwnsIt() =>
+        Assert.DoesNotContain(TrayMenuModel.Build(Input()), e => e.Text.Contains("login", StringComparison.OrdinalIgnoreCase));
 
     [Fact]
     public void MenuChecksReflectState()
     {
-        var menu = TrayMenuModel.Build(Input(tracking: false, locked: true, login: LoginItemStatus.Enabled));
+        var menu = TrayMenuModel.Build(Input(tracking: false, locked: true));
         Assert.False(menu.Single(e => e.Command == TrayCommand.ToggleTracking).Checked);
         Assert.True(menu.Single(e => e.Command == TrayCommand.ToggleFocusLock).Checked);
-        Assert.True(menu.Single(e => e.Command == TrayCommand.ToggleLoginItem).Checked);
     }
 
     [Fact]
-    public void ShortcutMessageAppearsDisabledWhenPresent()
+    public void BannerLinesAppearBeforeTheSwitchesAndAreNeverClickable()
     {
-        Assert.DoesNotContain(TrayMenuModel.Build(Input()), e => e.Text.Contains("in use", StringComparison.Ordinal));
-        var menu = TrayMenuModel.Build(Input(message: "Shortcut in use"));
-        var row = menu.Single(e => e.Text == "Shortcut in use");
-        Assert.False(row.Enabled);
+        var banner = new TrayBanner(TrayBanner.NeedsCalibrationText, TrayBanner.CalibrateButton, TrayCommand.Calibrate);
+        var menu = TrayMenuModel.Build(Input(banner: banner));
+        var lines = menu.Where(e => e.Role == TrayEntryRole.Banner).ToList();
+        Assert.True(lines.Count >= 2);
+        Assert.All(lines, l => Assert.False(l.Enabled));
+        Assert.All(lines, l => Assert.True(l.Text.Length <= TrayMenuModel.BannerWidth));
+        Assert.Equal(TrayBanner.NeedsCalibrationText, string.Join(" ", lines.Select(l => l.Text)));
+        var button = menu.Single(e => e.Text == "Calibrate (about 20 s)…");
+        Assert.Equal(TrayCommand.Calibrate, button.Command);
+        var list = menu.ToList();
+        Assert.True(list.IndexOf(button) < list.IndexOf(list.Single(e => e.Command == TrayCommand.ToggleTracking)));
     }
 
     [Fact]
-    public void CameraSubmenuChecksTheSelectedCamera()
+    public void BannersFollowTheMacOrder()
+    {
+        var all = new TrayBannerFacts(CameraPermissionPrompt.Denied, true, true, 2, false, "Shortcut in use");
+        Assert.StartsWith("Camera access is off.", TrayBanner.Current(all)!.Text, StringComparison.Ordinal);
+        Assert.Equal(TrayCommand.OpenCameraSettings, TrayBanner.Current(all)!.Command);
+        Assert.StartsWith("Camera access is restricted.", TrayBanner.Current(all with { PermissionPrompt = CameraPermissionPrompt.Restricted })!.Text, StringComparison.Ordinal);
+        Assert.Equal(TrayBanner.FirstSetupText, TrayBanner.Current(all with { PermissionPrompt = null })!.Text);
+        Assert.Equal(TrayBanner.NeedsCalibrationText, TrayBanner.Current(all with { PermissionPrompt = null, LibraryIsEmpty = false })!.Text);
+        Assert.Equal("No calibration for C922 yet.", TrayBanner.Current(all with { PermissionPrompt = null, LibraryIsEmpty = false, CameraWithoutCalibration = "C922" })!.Text);
+        Assert.Equal("Shortcut in use", TrayBanner.Current(all with { PermissionPrompt = null, LibraryIsEmpty = false, TrackingEnabled = false })!.Text);
+        Assert.Null(TrayBanner.Current(all with { PermissionPrompt = null, LibraryIsEmpty = false, HasCalibration = true, ShortcutMessage = null }));
+        Assert.Null(TrayBanner.Current(all with { PermissionPrompt = null, LibraryIsEmpty = false, DisplayCount = 1, ShortcutMessage = null }));
+    }
+
+    [Fact]
+    public void WrapKeepsEveryWordAndRespectsTheWidth()
+    {
+        var lines = TrayMenuModel.Wrap("one two three four five six seven", 12);
+        Assert.Equal("one two three four five six seven", string.Join(" ", lines));
+        Assert.All(lines, l => Assert.True(l.Length <= 12));
+        Assert.Empty(TrayMenuModel.Wrap(string.Empty, 12));
+    }
+
+    [Fact]
+    public void LookLineFollowsTheMac()
+    {
+        string Label(DisplayId id) => id.RawValue;
+        Assert.Equal("\u2014", LookSummary.Text(false, PoseClassification.NoFace, Label));
+        Assert.Equal("\u2014", LookSummary.Text(true, null, Label));
+        Assert.Equal("No face", LookSummary.Text(true, PoseClassification.NoFace, Label));
+        var elsewhere = new PoseClassification(PoseClassification.ClassKind.Elsewhere, new DisplayId("L"), null, 0, new Dictionary<DisplayId, double>());
+        Assert.Equal("Looking elsewhere", LookSummary.Text(true, elsewhere, Label));
+        var left = new PoseClassification(PoseClassification.ClassKind.Display, new DisplayId("Left"), null, 0.5, new Dictionary<DisplayId, double>());
+        Assert.Equal("Looking at Left", LookSummary.Text(true, left, Label));
+    }
+
+    [Fact]
+    public void CameraSubmenuStartsWithDefaultAndChecksTheSelectedCamera()
     {
         var camera = TrayMenuModel.Build(Input()).Single(e => e.Text == "Camera");
-        Assert.Equal(["Built-in", "USB"], camera.Children!.Select(c => c.Text).ToArray());
+        Assert.Equal(["Default camera", "Built-in", "USB"], camera.Children!.Select(c => c.Text).ToArray());
         Assert.Equal("b", camera.Children!.Single(c => c.Checked).Argument);
+        Assert.True(TrayMenuModel.Build(Input(selected: null)).Single(e => e.Text == "Camera").Children![0].Checked);
+        var gone = TrayMenuModel.Build(Input(selected: "zz")).Single(e => e.Text == "Camera").Children!;
+        Assert.Equal("Unavailable camera (uses default)", gone[^1].Text);
+        Assert.True(gone[^1].Checked);
         var none = TrayMenuModel.Build(Input(cameras: [])).Single(e => e.Text == "Camera");
         Assert.False(none.Children!.Single().Enabled);
     }
-
-    [Fact]
-    public void LoginItemIsDisabledWhenUnavailable() =>
-        Assert.False(TrayMenuModel.Build(Input(login: LoginItemStatus.Unavailable)).Single(e => e.Command == TrayCommand.ToggleLoginItem).Enabled);
-
-    [Fact]
-    public void FocusLockTextWithoutShortcut() => Assert.Equal("Focus Lock", TrayMenuModel.FocusLockText(null));
 
     [Fact]
     public void InFrontTrackerIsTrueWhileAnySourceIsSet()

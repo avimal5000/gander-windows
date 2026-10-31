@@ -1,12 +1,13 @@
 using System;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Sway.App.Hosting;
 using Sway.App.Presentation;
+using Sway.App.Presentation.Design;
 using Sway.Core.Calibration;
 
 namespace Sway.App.Windows;
@@ -18,19 +19,26 @@ namespace Sway.App.Windows;
 /// </summary>
 public sealed class SetupWindow : Window
 {
-    private static readonly Color Forest = Color.FromRgb(0x2F, 0x5D, 0x3A);
-    private static readonly Color Sage = Color.FromRgb(0x9C, 0xAF, 0x88);
-
     private readonly SetupSession _session;
-    private readonly TextBlock _title = new() { FontSize = 24, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _stepLine = new() { Opacity = 0.7, Margin = new Thickness(0, 2, 0, 0) };
-    private readonly StackPanel _lines = new() { Margin = new Thickness(0, 16, 0, 0) };
-    private readonly TextBlock _highlight = new() { FontSize = 20, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 16, 0, 0) };
-    private readonly TextBlock _message = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) };
-    private readonly ProgressBar _bar = new() { Height = 8, Minimum = 0, Maximum = 1, Margin = new Thickness(0, 16, 0, 4), Foreground = new SolidColorBrush(Forest) };
-    private readonly TextBlock _caption = new() { Opacity = 0.7 };
-    private readonly Button _primary = new() { MinWidth = 140, Padding = new Thickness(16, 7, 16, 7), IsDefault = true };
-    private readonly Button _secondary = new() { MinWidth = 120, Padding = new Thickness(16, 7, 16, 7), Margin = new Thickness(0, 0, 8, 0) };
+    private readonly SwayStyle _style = SwayStyle.Current();
+    private readonly TextBlock _title;
+    private readonly TextBlock _stepLine;
+    private readonly StackPanel _lines = new();
+    private readonly TextBlock _highlight;
+    private readonly Border _card;
+    private readonly TextBlock _message;
+    private readonly ProgressBar _bar;
+    private readonly TextBlock _caption;
+    private readonly Button _primary;
+    private readonly Button _secondary;
+    private readonly StackPanel _header = new() { Orientation = Orientation.Horizontal };
+    private readonly StackPanel _content = new();
+    private readonly StackPanel _welcome = new() { HorizontalAlignment = HorizontalAlignment.Center };
+    private TextBlock _welcomeTitle = null!;
+    private TextBlock _welcomeLine = null!;
+    private TextBlock _welcomePrivacy = null!;
+    private readonly StackPanel _buttons = new() { Orientation = Orientation.Horizontal };
+    private readonly StackPanel _root = new();
     private SetupView? _view;
     private SetupStep? _shownStep;
     private bool _opened;
@@ -40,24 +48,28 @@ public sealed class SetupWindow : Window
     {
         _session = session;
         Title = "Set up Sway";
-        Width = 520;
+        Width = SwayDesign.Size.SetupWidth;
         SizeToContent = SizeToContent.Height;
-        MinHeight = 320;
+        MinHeight = SwayDesign.Size.SetupHeight;
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        FontFamily = SystemFonts.MessageFontFamily;
-        FontSize = 14;
+        _style.ApplyTo(this);
+        var s = _style;
+        var theme = s.Theme;
 
-        var light = SystemInfo.IsLightApps();
-        Background = new SolidColorBrush(light ? Color.FromRgb(0xF6, 0xF3, 0xEA) : Color.FromRgb(0x2B, 0x2B, 0x2B));
-        Foreground = new SolidColorBrush(light ? Color.FromRgb(0x2B, 0x2B, 0x2B) : Color.FromRgb(0xF6, 0xF3, 0xEA));
-
-        // Forest green on charcoal is too dim, so dark mode uses sage with charcoal text.
-        var accent = light ? Forest : Sage;
-        _primary.Background = new SolidColorBrush(accent);
-        _primary.Foreground = new SolidColorBrush(light ? Colors.White : Color.FromRgb(0x2B, 0x2B, 0x2B));
-        _primary.BorderBrush = new SolidColorBrush(accent);
-        _bar.Foreground = new SolidColorBrush(accent);
+        _title = s.Label(string.Empty, SwayDesign.Type.Title2);
+        _stepLine = s.Label(string.Empty, SwayDesign.Type.Caption, secondary: true);
+        _highlight = s.Label(string.Empty, SwayDesign.Type.Title3Strong);
+        _highlight.Margin = new Thickness(0, 0, 0, 0);
+        _message = s.Label(string.Empty, SwayDesign.Type.Callout, secondary: true);
+        _bar = new ProgressBar { Height = 8, Minimum = 0, Maximum = 1, Margin = new Thickness(0, SwayDesign.Space.Xl, 0, SwayDesign.Space.Sm), Foreground = s.Accent };
+        _caption = s.Label(string.Empty, SwayDesign.Type.Caption, secondary: true);
+        _primary = s.MakeButton(string.Empty, prominent: true);
+        _primary.IsDefault = true;
+        _primary.MinWidth = 140;
+        _secondary = s.MakeButton(string.Empty);
+        _secondary.MinWidth = 120;
+        _secondary.Margin = new Thickness(SwayDesign.Space.Xl, 0, 0, 0);
         _primary.Click += (_, _) => Run(_view?.Primary);
         _secondary.Click += (_, _) => Run(_view?.Secondary);
         AutomationProperties.SetName(_primary, "Primary action");
@@ -67,25 +79,37 @@ public sealed class SetupWindow : Window
         AutomationProperties.SetLiveSetting(_highlight, AutomationLiveSetting.Polite);
         AutomationProperties.SetLiveSetting(_message, AutomationLiveSetting.Polite);
 
-        var buttons = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 24, 0, 0),
-        };
-        buttons.Children.Add(_secondary);
-        buttons.Children.Add(_primary);
+        // Header of every numbered step: the mark in Sway green, "Step N of M", and the title.
+        _header.Children.Add(SwayStyle.MakeMark(SwayDesign.Size.SetupMark, theme.Green, theme.Green, theme.Green));
+        var titles = new StackPanel { Margin = new Thickness(10, 0, 0, 0) };
+        titles.Children.Add(_stepLine);
+        titles.Children.Add(_title);
+        _header.Children.Add(titles);
 
-        var stack = new StackPanel { Margin = new Thickness(32) };
-        stack.Children.Add(_title);
-        stack.Children.Add(_stepLine);
-        stack.Children.Add(_lines);
-        stack.Children.Add(_highlight);
-        stack.Children.Add(_message);
-        stack.Children.Add(_bar);
-        stack.Children.Add(_caption);
-        stack.Children.Add(buttons);
-        Content = new Border { Child = stack, Background = Background };
+        var cardBody = new StackPanel();
+        cardBody.Children.Add(_lines);
+        cardBody.Children.Add(_highlight);
+        _card = s.MakeCard(cardBody);
+
+        _message.Margin = new Thickness(0, SwayDesign.Space.Xl, 0, 0);
+        _content.Children.Add(_card);
+        _content.Children.Add(_message);
+        _content.Children.Add(_bar);
+        _content.Children.Add(_caption);
+
+        BuildWelcome(theme);
+
+        _buttons.Margin = new Thickness(0, 18, 0, 0);
+        _buttons.Children.Add(_primary);
+        _buttons.Children.Add(_secondary);
+
+        _header.Margin = new Thickness(0, 0, 0, 18);
+        _root.Margin = new Thickness(SwayDesign.Space.SetupPadding);
+        _root.Children.Add(_header);
+        _root.Children.Add(_welcome);
+        _root.Children.Add(_content);
+        _root.Children.Add(_buttons);
+        Content = new Border { Child = _root, Background = s.Surface };
 
         PreviewKeyDown += OnKeyDown;
         Loaded += (_, _) =>
@@ -100,6 +124,50 @@ public sealed class SetupWindow : Window
             _session.Changed -= Apply;
             _session.Close();
         };
+    }
+
+    // The welcome step: the mark on a tile like the app icon, what Sway does, and the privacy promise.
+    private void BuildWelcome(SwayTheme theme)
+    {
+        var side = SwayDesign.Size.WelcomeTile;
+        var tile = new Border
+        {
+            Width = side,
+            Height = side,
+            CornerRadius = new CornerRadius(side * SwayDesign.Radius.TileRatio),
+            Background = SwayStyle.Brush(theme.IsLight ? SwayDesign.Ivory : SwayDesign.Charcoal),
+            BorderBrush = _style.Line,
+            BorderThickness = new Thickness(SwayDesign.Space.Hairline),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Child = SwayStyle.MakeMark(side, theme.Green, SwayDesign.Sage, theme.Green, unitSquare: true),
+        };
+        _welcomeTitle = _style.Label(string.Empty, SwayDesign.Type.Title);
+        _welcomeTitle.TextAlignment = TextAlignment.Center;
+        _welcomeTitle.Margin = new Thickness(0, 14, 0, 0);
+        _welcomeLine = _style.Label(string.Empty, SwayDesign.Type.Title3);
+        _welcomeLine.TextAlignment = TextAlignment.Center;
+        _welcomeLine.MaxWidth = SwayDesign.Size.WelcomeTextWidth;
+        _welcomeLine.Margin = new Thickness(0, 14, 0, 0);
+        _welcomePrivacy = _style.Label(string.Empty, SwayDesign.Type.Callout, secondary: true);
+        _welcomePrivacy.MaxWidth = SwayDesign.Size.WelcomeTextWidth;
+
+        var lockGlyph = new TextBlock
+        {
+            Text = "\uE72E",
+            FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+            FontSize = SwayDesign.Type.Callout.Size,
+            Foreground = _style.Accent,
+            Margin = new Thickness(0, 1, 8, 0),
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        var privacy = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Center };
+        privacy.Children.Add(lockGlyph);
+        privacy.Children.Add(_welcomePrivacy);
+
+        _welcome.Children.Add(tile);
+        _welcome.Children.Add(_welcomeTitle);
+        _welcome.Children.Add(_welcomeLine);
+        _welcome.Children.Add(privacy);
     }
 
     private void OnKeyDown(object sender, KeyEventArgs e)
@@ -138,26 +206,45 @@ public sealed class SetupWindow : Window
             _session.Result ?? _session.Calibration.Result));
         _view = view;
 
-        _title.Text = view.Title;
-        _stepLine.Text = view.StepLine ?? string.Empty;
-        _stepLine.Visibility = view.StepLine is null ? Visibility.Collapsed : Visibility.Visible;
-        _lines.Children.Clear();
-        foreach (var line in view.Lines)
-        {
-            _lines.Children.Add(new TextBlock { Text = line, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) });
-        }
+        var welcome = step == SetupStep.Welcome;
+        _welcome.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
+        _header.Visibility = welcome ? Visibility.Collapsed : Visibility.Visible;
+        _content.Visibility = welcome ? Visibility.Collapsed : Visibility.Visible;
+        _buttons.HorizontalAlignment = welcome ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        _primary.Padding = welcome ? new Thickness(22, 8, 22, 8) : new Thickness(14, 5, 14, 5);
 
-        _highlight.Text = view.Highlight ?? string.Empty;
-        _highlight.Visibility = view.Highlight is null ? Visibility.Collapsed : Visibility.Visible;
-        _message.Text = view.Message ?? string.Empty;
-        _message.Visibility = view.Message is null ? Visibility.Collapsed : Visibility.Visible;
-        _message.Foreground = view.MessageIsError ? new SolidColorBrush(Color.FromRgb(0xC4, 0x3B, 0x2F)) : Foreground;
-        _bar.Visibility = view.Progress is null ? Visibility.Collapsed : Visibility.Visible;
-        _caption.Visibility = _bar.Visibility;
-        if (view.Progress is { } progress)
+        if (welcome)
         {
-            _bar.Value = progress.Fraction;
-            _caption.Text = progress.Caption;
+            _welcomeTitle.Text = view.Title;
+            _welcomeLine.Text = view.Lines.Count > 0 ? view.Lines[0] : string.Empty;
+            _welcomePrivacy.Text = view.Lines.Count > 1 ? view.Lines[1] : string.Empty;
+        }
+        else
+        {
+            _title.Text = view.Title;
+            _stepLine.Text = view.StepLine ?? string.Empty;
+            _stepLine.Visibility = view.StepLine is null ? Visibility.Collapsed : Visibility.Visible;
+            _lines.Children.Clear();
+            foreach (var line in view.Lines)
+            {
+                var text = _style.Label(line, SwayDesign.Type.Body);
+                text.Margin = new Thickness(0, 0, 0, SwayDesign.Space.Lg);
+                _lines.Children.Add(text);
+            }
+
+            _highlight.Text = view.Highlight ?? string.Empty;
+            _highlight.Visibility = view.Highlight is null ? Visibility.Collapsed : Visibility.Visible;
+            _card.Visibility = view.Lines.Count == 0 && view.Highlight is null ? Visibility.Collapsed : Visibility.Visible;
+            _message.Text = view.Message ?? string.Empty;
+            _message.Visibility = view.Message is null ? Visibility.Collapsed : Visibility.Visible;
+            _message.Foreground = view.MessageIsError ? _style.Brick : _style.Secondary;
+            _bar.Visibility = view.Progress is null ? Visibility.Collapsed : Visibility.Visible;
+            _caption.Visibility = _bar.Visibility;
+            if (view.Progress is { } progress)
+            {
+                _bar.Value = progress.Fraction;
+                _caption.Text = progress.Caption;
+            }
         }
 
         Show(_primary, view.Primary);
@@ -166,7 +253,21 @@ public sealed class SetupWindow : Window
         {
             _shownStep = step;
             _primary.Focus();
+            FadeInStep();
         }
+    }
+
+    // One step at a time, cross-fading in about 0.2 s; none when Windows animations are off.
+    private void FadeInStep()
+    {
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            return;
+        }
+
+        _root.BeginAnimation(
+            OpacityProperty,
+            new DoubleAnimation(0, 1, TimeSpan.FromSeconds(SwayDesign.Motion.Fade)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut } });
     }
 
     private static void Show(Button button, SetupButton? model)
@@ -190,7 +291,7 @@ public sealed class SetupWindow : Window
                 _session.GetStarted();
                 break;
             case SetupAction.OpenCameraSettings:
-                OpenSettings();
+                ShellLauncher.OpenCameraSettings();
                 break;
             case SetupAction.StartCalibration:
                 _ = _session.StartCalibrationAsync();
@@ -204,18 +305,6 @@ public sealed class SetupWindow : Window
             case SetupAction.StartTracking:
                 _ = _session.StartTrackingAsync();
                 break;
-        }
-    }
-
-    private static void OpenSettings()
-    {
-        try
-        {
-            using var process = Process.Start(new ProcessStartInfo(SetupPresentation.CameraSettingsUri) { UseShellExecute = true }); // privacy-guard:allow opens the ms-settings camera privacy page
-        }
-        catch (Exception)
-        {
-            // Nothing else to do: the message already says where the setting is.
         }
     }
 }

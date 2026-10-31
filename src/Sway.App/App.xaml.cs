@@ -47,6 +47,8 @@ public partial class App : Application
     private SetupSession? _setup;
     private RegistryLoginItem? _loginItem;
     private PromptOverlayHost? _overlay;
+    private FeedbackHost? _feedback;
+    private AppPreferences? _preferences;
     private bool _quitting;
 
     /// <summary>Opens (or raises) the Set up Sway window.</summary>
@@ -71,14 +73,14 @@ public partial class App : Application
     /// <summary>Opens (or raises) the Settings window.</summary>
     public void OpenSettings()
     {
-        if (_controller is null || _loginItem is null)
+        if (_controller is null || _loginItem is null || _preferences is null)
         {
             return;
         }
 
         if (_settingsWindow is null)
         {
-            _settingsWindow = new SettingsWindow(_controller, _loginItem, OpenCalibration);
+            _settingsWindow = new SettingsWindow(_controller, _loginItem, OpenCalibration, _preferences!);
             Track(_settingsWindow, "settings");
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
@@ -166,6 +168,7 @@ public partial class App : Application
         _foreground?.Dispose();
         _desktops?.Dispose();
         _overlay?.Dispose();
+        _feedback?.Dispose();
         _setup?.Dispose();
         _tray?.Dispose();
         _controller?.Dispose();
@@ -229,9 +232,12 @@ public partial class App : Application
         _setup = new SetupSession(_controller, environment.MainThread, environment.Scheduler, environment.Clock);
         _overlay = new PromptOverlayHost(_setup.Calibration);
 
+        _preferences = new AppPreferences(_settings);
+        AppTheme.Preferences = _preferences;
+        _feedback = new FeedbackHost(_controller, _preferences);
+
         _tray = new TrayHost(
             _controller,
-            loginItem,
             OpenCalibration,
             OpenSettings,
             OpenDiagnostics,

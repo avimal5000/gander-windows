@@ -11,9 +11,14 @@
     <AssemblyName>Sway</AssemblyName>
     <RootNamespace>Sway.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Sway.ico</ApplicationIcon>
     <!-- WPF takes its DPI mode from the manifest; this WinForms analyzer only knows the WinForms way. -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Sway.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Sway.Core\Sway.Core.csproj" />
