@@ -21,7 +21,7 @@ public sealed class WindowsHotKeyRegistrar : IHotKeyRegistrar, IDisposable
     /// <summary>Starts the pump thread.</summary>
     public WindowsHotKeyRegistrar()
     {
-        _pump = new MessagePumpThread("Sway hotkeys", OnMessage);
+        _pump = new MessagePumpThread("Gander hotkeys", OnMessage);
     }
 
     /// <inheritdoc />

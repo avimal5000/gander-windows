@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-10-30
+Last updated: 2026-10-31
 
 | Milestone | State |
 |---|---|
@@ -12,7 +12,7 @@ Last updated: 2026-10-30
 Next: merge the engine, then W3 (camera and live pose behind the engine) and W4 (focus and displays). The user tries SwayTools 3d.
 
 W7 hardening (branch feat/w7-hardening): focus verification needs the window in front on two reads and a display that
-already has the front window is left alone; a repeat request for the display Sway just focused waits 2, 4, 8, 10 s and
+already has the front window is left alone; a repeat request for the display Gander just focused waits 2, 4, 8, 10 s and
 the log says when focus was taken back; virtual desktop switches, the Focus Lock shortcut and switches now reach the
 controller and tray; the display hold re-reads the layout when it times out; camera status changes are logged.
 New: `scripts/audit-privacy.sh <publish folder>`, `scripts/soak.ps1`, `docs/PRIVACY-AUDIT.md`. Only the user can check on
@@ -26,4 +26,12 @@ the PC: virtual desktop switching, the unplug and replug of the webcam, hot-plug
 - W8: release workflow on v* tags works; `v0.1.0-rc2` is a pre-release with a zip and checksum. Unsigned (SmartScreen warning). Code signing (issue 28) waits on the owner.
 - Docs: PRIVACY.md and TERMS.md drafts (placeholders: contact email, governing law; no LICENSE file yet), PRIVACY-AUDIT.md, AUDIT-2026-10.md.
 - Open: face model license verification, large refactors and camera timeouts from the audit (F03, F04, F23 to F34), NuGet lock file and vulnerability scan.
-- Debug windows (branch feat/debug-windows): the Mac's Pose Debug, Head-Pose Gate Test and Focus Test windows, reachable from the tray menu after Settings. Logic is pure and tested (`PoseDebugModel`, `GateTestModel`, `FocusTestModel`, `CameraDemand`); the WPF windows are compiled only. The owner should open each on the PC (camera on, two monitors): Pose Debug live numbers, plots and bands, Record and Stop and save (file under `%LocalAppData%\Sway\Traces`); Gate Test marker on each monitor and the Copy button; Focus Test buttons raise the right window and the pointer does not move.
+- Debug windows (branch feat/debug-windows): the Mac's Pose Debug, Head-Pose Gate Test and Focus Test windows, reachable from the tray menu after Settings. Logic is pure and tested (`PoseDebugModel`, `GateTestModel`, `FocusTestModel`, `CameraDemand`); the WPF windows are compiled only. The owner should open each on the PC (camera on, two monitors): Pose Debug live numbers, plots and bands, Record and Stop and save (file under `%LocalAppData%\Gander\Traces`); Gate Test marker on each monitor and the Copy button; Focus Test buttons raise the right window and the pointer does not move.
+
+## 2026-10-31 rebrand: Sway is now Gander
+
+- The product is called Gander and the mark is a goose (same forest, sage and ivory colours). New app icon, tray glyph (solid, hollow outline when paused, lock badge, alert dot) and installer; `scripts/make-icon.swift` redraws the icon.
+- The program is `Gander.exe`; releases are `Gander-<version>-win-x64.zip` and `...-setup.exe`. Settings are in `%AppData%\Gander`, logs in `%LocalAppData%\Gander\Logs\gander.log`.
+- An install of the earlier name keeps working: `EarlierNameMigration` copies `%AppData%\Sway\settings.json` if there is none under the new name and moves the "start with Windows" entry; the installer removes the old `Sway.exe` and shortcuts, and the uninstaller also offers to delete the old data folders.
+- Code names stay as they were (projects and namespaces `Sway.*`, `SwayTools.exe`) so history and tests are undisturbed.
+- Name risk: a 2012 US trademark filing for GANDER (software, owner Great Heights Inc.) turned up in a web search. Its status is not checked; the owner should run a USPTO search before any public launch.

@@ -37,7 +37,7 @@ public sealed record SetupResult(CalibrationQuality Quality, string Text)
     /// </summary>
     public static SetupResult MissingDisplays(IReadOnlyList<string> names) =>
         Failed(
-            $"Sway couldn't see your face well enough while you looked at {Listed(names)}. "
+            $"Gander couldn't see your face well enough while you looked at {Listed(names)}. "
             + "Make sure the camera sees you from every monitor, then calibrate again.");
 
     /// <summary>"A", "A and B", "A, B, and C".</summary>
@@ -77,7 +77,7 @@ public sealed record SetupResult(CalibrationQuality Quality, string Text)
                 // Setup saves only a calibration that covers every display, so this means few samples somewhere.
                 return new SetupResult(
                     CalibrationQuality.Fair,
-                    "Calibration saved, but Sway saw your face only briefly on some monitors. If switching feels unreliable, calibrate again.");
+                    "Calibration saved, but Gander saw your face only briefly on some monitors. If switching feels unreliable, calibrate again.");
             default:
                 return new SetupResult(CalibrationQuality.Good, GoodText);
         }

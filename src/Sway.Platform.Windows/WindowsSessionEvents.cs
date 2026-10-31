@@ -31,7 +31,7 @@ public sealed class WindowsSessionEvents : ISessionEvents, IDisposable
     public WindowsSessionEvents()
     {
         _windowProc = WindowProcedure; // kept in a field so the native side never calls a collected delegate
-        _thread = new Thread(Run) { IsBackground = true, Name = "Sway session events" };
+        _thread = new Thread(Run) { IsBackground = true, Name = "Gander session events" };
         _thread.SetApartmentState(ApartmentState.STA);
         _thread.Start();
         _ready.Wait(TimeSpan.FromSeconds(5));
@@ -121,7 +121,7 @@ public sealed class WindowsSessionEvents : ISessionEvents, IDisposable
         catch (Exception exception) when (exception is not (OutOfMemoryException or AccessViolationException))
         {
             // A stray exception here would end the process; the window procedure already guards its own work.
-            System.Diagnostics.Trace.TraceError($"Sway session events loop ended: {exception.GetType().Name}");
+            System.Diagnostics.Trace.TraceError($"Gander session events loop ended: {exception.GetType().Name}");
         }
 
         if (_classRegistered)

@@ -3,7 +3,7 @@ namespace Sway.Tools.Spikes;
 /// <summary>
 /// Spike S2: can a background program give another window the keyboard focus, without moving the cursor?
 /// Each attempt asks the user to click a window on one monitor first, so the foreground belongs to another app, the
-/// way it will when Sway runs from the tray. Then it tries to focus the topmost window on the next monitor.
+/// way it will when Gander runs from the tray. Then it tries to focus the topmost window on the next monitor.
 /// </summary>
 internal static class FocusSpike
 {
@@ -32,7 +32,7 @@ internal static class FocusSpike
             return;
         }
 
-        report.Line($"{monitors.Count} monitors. For each attempt you click a window on one monitor, wait, and Sway's test");
+        report.Line($"{monitors.Count} monitors. For each attempt you click a window on one monitor, wait, and Gander's test");
         report.Line("tries to move the focus to the topmost window on the next monitor. Do not touch the mouse or keyboard");
         report.Line($"after the {CountdownSeconds}-second countdown ends.");
         report.Line();

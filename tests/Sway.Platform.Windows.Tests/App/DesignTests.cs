@@ -147,24 +147,25 @@ public sealed class DesignTests
         Assert.Equal(expected, new TrackingStatus(kind).Icon);
 
     [Fact]
-    public void MarkGeometryIsTheMacsCurve()
+    public void MarkGeometryIsTheMacsGoose()
     {
-        Assert.Equal(new MarkPoint(24, 40), SwayMarkGeometry.Start);
-        Assert.Equal(new MarkPoint(76, 40), SwayMarkGeometry.End);
-        Assert.Equal(new MarkPoint(50, 86), SwayMarkGeometry.Control);
-        var mid = SwayMarkGeometry.ArcPoint(0.5);
-        Assert.Equal(50, mid.X, 6);
-        Assert.Equal(63, mid.Y, 6); // 0.25 * 40 + 0.5 * 86 + 0.25 * 40
-        var (c1, c2) = SwayMarkGeometry.CubicControls();
-        Assert.Equal(41.3333333, c1.X, 5);
-        Assert.Equal(70.6666667, c1.Y, 5);
-        Assert.Equal(58.6666667, c2.X, 5);
-        Assert.Equal(70.6666667, c2.Y, 5);
         var bounds = SwayMarkGeometry.VisualBounds;
-        Assert.Equal(18.5, bounds.X, 6);
-        Assert.Equal(84, bounds.Right, 6);
-        Assert.Equal(32, bounds.Y, 6);
-        Assert.Equal(66.5, bounds.Bottom, 6);
+        Assert.Equal(new MarkRect(14, 10.9, 68.3, 75.8), bounds);
+        Assert.Equal(MarkStepKind.Move, SwayMarkGeometry.Silhouette[0].Kind);
+        Assert.Equal(MarkStepKind.Close, SwayMarkGeometry.Silhouette[^1].Kind);
+        Assert.Equal(new MarkPoint(60.8, 17.1), SwayMarkGeometry.EyeCenter);
+        Assert.Equal(1.6, SwayMarkGeometry.EyeRadius);
+
+        // Every outline point lies inside the visual bounds (with room for the curve's overshoot).
+        foreach (var step in SwayMarkGeometry.Silhouette)
+        {
+            var end = step.Kind == MarkStepKind.Cubic ? step.C : step.A;
+            if (step.Kind != MarkStepKind.Close)
+            {
+                Assert.InRange(end.X, bounds.X - 1e-9, bounds.Right + 1e-9);
+                Assert.InRange(end.Y, bounds.Y - 1e-9, bounds.Bottom + 1e-9);
+            }
+        }
     }
 
     [Fact]
@@ -182,7 +183,7 @@ public sealed class DesignTests
         Assert.True(right - left <= area.Width + 1e-9);
         Assert.True(bottom - top <= area.Height + 1e-9);
         Assert.True(Math.Abs((right - left) - area.Width) < 1e-9 || Math.Abs((bottom - top) - area.Height) < 1e-9);
-        Assert.Equal(15 / 65.5, placement.Scale, 6);
+        Assert.Equal(15 / 75.8, placement.Scale, 6);
     }
 
     [Fact]
@@ -198,9 +199,8 @@ public sealed class DesignTests
         Assert.Equal(body.Right + TrayGlyphSpec.BadgeGap, lockOutline.Right, 9);
         var dot = TrayGlyphSpec.AlertCenter;
         Assert.True(dot.X + TrayGlyphSpec.AlertRadius <= TrayGlyphSpec.Side && dot.Y - TrayGlyphSpec.AlertRadius >= 0);
-        Assert.Equal(1.8, TrayGlyphSpec.ArcWidth);
-        Assert.Equal(2, TrayGlyphSpec.EndRadius);
-        Assert.Equal(1.4, TrayGlyphSpec.StartRadius);
+        Assert.Equal(0.55, TrayGlyphSpec.EyeRadius);
+        Assert.Equal(1.2, TrayGlyphSpec.OutlineWidth);
     }
 
     [Theory]
@@ -312,14 +312,14 @@ public sealed class DesignTests
         Assert.Equal("Glow on the display that gets focus", SettingsWording.GlowToggle);
         Assert.Equal("Show a notice when the shortcut toggles Focus Lock", SettingsWording.NoticeToggle);
         Assert.Equal("Start with Windows", SettingsWording.StartWithWindows);
-        Assert.Equal("How long you look at a display before Sway switches to it.", SettingsWording.HoldTimeHelp);
-        Assert.StartsWith("How long Sway waits after switching", SettingsWording.PauseHelp, StringComparison.Ordinal);
-        Assert.Equal("A stricter setting needs a clearer look at one display before Sway switches.", SettingsWording.ConfidenceHelp);
+        Assert.Equal("How long you look at a display before Gander switches to it.", SettingsWording.HoldTimeHelp);
+        Assert.StartsWith("How long Gander waits after switching", SettingsWording.PauseHelp, StringComparison.Ordinal);
+        Assert.Equal("A stricter setting needs a clearer look at one display before Gander switches.", SettingsWording.ConfidenceHelp);
         Assert.Equal("Works from any app. A shortcut needs Ctrl, Alt, or Win. Esc cancels recording.", SettingsWording.ShortcutHelp);
         Assert.DoesNotContain("Command", SettingsWording.ShortcutHelp, StringComparison.Ordinal);
         Assert.DoesNotContain("Option", SettingsWording.ShortcutHelp, StringComparison.Ordinal);
         Assert.Equal("Match Windows", AccentChoices.Title(AccentChoice.System));
-        Assert.Equal("Sway green", AccentChoices.Title(AccentChoice.Sway));
+        Assert.Equal("Gander green", AccentChoices.Title(AccentChoice.Gander));
         Assert.Equal("Reset to Ctrl+Alt+Shift+L", SettingsWording.ResetTo(HotKeyShortcut.FocusLockDefault));
         Assert.Equal("Hold time 0.10 s and pause 0.30 s. Switch confidence stays as it is.", SettingsWording.InstantHelp);
     }
@@ -344,10 +344,10 @@ public sealed class DesignTests
     [Fact]
     public void AccentChoiceRoundTripsAndDefaultsToSwayGreen()
     {
-        Assert.Equal(AccentChoice.Sway, AccentChoices.Parse(null));
-        Assert.Equal(AccentChoice.Sway, AccentChoices.Parse("garbage"));
+        Assert.Equal(AccentChoice.Gander, AccentChoices.Parse(null));
+        Assert.Equal(AccentChoice.Gander, AccentChoices.Parse("garbage"));
         Assert.Equal(AccentChoice.System, AccentChoices.Parse(AccentChoices.Store(AccentChoice.System)));
-        Assert.Equal(AccentChoice.Sway, AccentChoices.Parse(AccentChoices.Store(AccentChoice.Sway)));
+        Assert.Equal(AccentChoice.Gander, AccentChoices.Parse(AccentChoices.Store(AccentChoice.Gander)));
         Assert.Equal("sway.accentChoice", AccentChoices.Key);
     }
 
@@ -368,7 +368,7 @@ public sealed class DesignTests
         var prefs = new AppPreferences(new MemoryStore());
         Assert.True(prefs.EdgeGlowEnabled);
         Assert.True(prefs.FocusLockNoticeEnabled);
-        Assert.Equal(AccentChoice.Sway, prefs.Accent);
+        Assert.Equal(AccentChoice.Gander, prefs.Accent);
         Assert.True(AppPreferences.ParseFlag("unreadable"));
         Assert.False(AppPreferences.ParseFlag("false"));
     }

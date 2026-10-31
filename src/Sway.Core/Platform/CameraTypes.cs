@@ -5,7 +5,7 @@ namespace Sway.Core.Platform;
 /// <summary>A camera the system offers. <see cref="Id"/> is stable across runs (the system's device id).</summary>
 public sealed record CameraDevice(string Id, string Name, bool IsBuiltIn);
 
-/// <summary>Whether Sway may use the camera. Windows has no prompt for desktop apps, so only the last two occur there.</summary>
+/// <summary>Whether Gander may use the camera. Windows has no prompt for desktop apps, so only the last two occur there.</summary>
 public enum CameraAuthorization
 {
     NotDetermined,
@@ -42,7 +42,7 @@ public abstract record CaptureStatus
     public sealed record Failed(CameraError Error) : CaptureStatus;
 }
 
-/// <summary>Cameras the system offers and whether Sway may use them.</summary>
+/// <summary>Cameras the system offers and whether Gander may use them.</summary>
 public interface ICameraCatalog
 {
     CameraAuthorization Authorization();

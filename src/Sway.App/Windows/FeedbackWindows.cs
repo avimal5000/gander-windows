@@ -53,7 +53,7 @@ internal static class FeedbackFade
 
 /// <summary>
 /// A click-through, non-activating, topmost window over one display that draws the edge glow (Mac EdgeGlowView, SPEC F27):
-/// a 4 px Sway-green border with a soft glow just inside it. Eight thin strips, so nothing covers the middle.
+/// a 4 px Gander-green border with a soft glow just inside it. Eight thin strips, so nothing covers the middle.
 /// </summary>
 public sealed class EdgeGlowWindow : Window
 {
@@ -63,7 +63,7 @@ public sealed class EdgeGlowWindow : Window
     /// <summary>Creates the (hidden) glow window.</summary>
     public EdgeGlowWindow()
     {
-        OverlayNative.Configure(this, "Sway glow");
+        OverlayNative.Configure(this, "Gander glow");
         Opacity = 0;
         Content = _canvas;
         SizeChanged += (_, _) => LayOut();
@@ -138,7 +138,7 @@ public sealed class NoticeWindow : Window
     /// <summary>Creates the (hidden) notice window.</summary>
     public NoticeWindow()
     {
-        OverlayNative.Configure(this, "Sway notice");
+        OverlayNative.Configure(this, "Gander notice");
         Opacity = 0;
 
         var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };

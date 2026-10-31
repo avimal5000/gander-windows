@@ -23,7 +23,7 @@ public sealed class VirtualDesktopWatcher : IDisposable
     public VirtualDesktopWatcher(Action<string>? log = null)
     {
         _log = log;
-        _thread = new Thread(Run) { IsBackground = true, Name = "Sway desktop watcher" };
+        _thread = new Thread(Run) { IsBackground = true, Name = "Gander desktop watcher" };
         _thread.Start();
     }
 

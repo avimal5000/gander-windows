@@ -1,6 +1,6 @@
 # Third-party notices
 
-Sway for Windows uses the following third-party components. The full license text for each is included below.
+Gander for Windows uses the following third-party components. The full license text for each is included below.
 
 ## .NET runtime, Windows Presentation Foundation (WPF) and Windows Forms
 
@@ -36,7 +36,7 @@ SOFTWARE.
 ## ONNX Runtime
 
 - Package: Microsoft.ML.OnnxRuntime 1.20.1
-- Use: runs the face-landmark model on the user's PC. No network code is used (see PLAN.md section 5). Sway turns
+- Use: runs the face-landmark model on the user's PC. No network code is used (see PLAN.md section 5). Gander turns
   ONNX Runtime's telemetry events off before it creates a session.
 - License: MIT, copyright Microsoft Corporation (the LICENSE file shipped in the NuGet package, reproduced below).
   https://github.com/microsoft/onnxruntime/blob/main/LICENSE
@@ -71,7 +71,7 @@ SOFTWARE.
 
 - Source: https://huggingface.co/fernandotonon/QtMeshEditor-facemesh-onnx, commit
   32714088ed9830a98df6ee653ad406a3b83ef014, file `face_landmarks.onnx`
-  (SHA-256 d16e5a55e6a480284d468ee32469692464049518c311662ab3956681de31e3e9). Sway checks this hash before it loads
+  (SHA-256 d16e5a55e6a480284d468ee32469692464049518c311662ab3956681de31e3e9). Gander checks this hash before it loads
   the model.
 - Origin: Google MediaPipe Face Mesh / Face Landmarker, converted to ONNX by the repository's author. Copyright Google
   LLC and the MediaPipe authors; the conversion is a derived work.

@@ -43,11 +43,11 @@ public readonly record struct TrayIconAppearance(bool FilledEnd, bool Dimmed, bo
         return best;
     }
 
-    /// <summary>The tooltip: "Sway: &lt;status&gt;", cut to the 63 characters a notify icon accepts.</summary>
+    /// <summary>The tooltip: "Gander: &lt;status&gt;", cut to the 63 characters a notify icon accepts.</summary>
     public static string Tooltip(string statusLine)
     {
         const int limit = 63;
-        var text = $"Sway: {statusLine}";
+        var text = $"Gander: {statusLine}";
         return text.Length <= limit ? text : text[..(limit - 1)] + "…";
     }
 }

@@ -17,7 +17,7 @@ public sealed record GateDisplayRow(int Number, string Name, string Detail, int 
 public static class GateTestWording
 {
     /// <summary>The window title.</summary>
-    public const string Title = "Sway Head-Pose Gate Test";
+    public const string Title = "Gander Head-Pose Gate Test";
 
     /// <summary>The heading inside the window.</summary>
     public const string Heading = "Head-pose gate test";
@@ -25,7 +25,7 @@ public static class GateTestWording
     /// <summary>What the test does.</summary>
     public const string Intro =
         "A green marker appears on each display in turn. Look at its center and hold still. "
-        + "Sway checks whether your head pose tells the displays apart. Nothing leaves your PC.";
+        + "Gander checks whether your head pose tells the displays apart. Nothing leaves your PC.";
 
     /// <summary>The displays card heading.</summary>
     public const string DisplaysHeading = "Displays (left to right)";
@@ -75,9 +75,9 @@ public static class GateTestWording
     /// <summary>Appended to a camera that stopped mid-run.</summary>
     public const string TryAgain = "Try again.";
 
-    /// <summary>"Sway v1 will track 3 displays. This test measures all 4 connected displays."</summary>
+    /// <summary>"Gander v1 will track 3 displays. This test measures all 4 connected displays."</summary>
     public static string TrackedNote(int connected) =>
-        $"Sway v1 will track {SwayPolicy.MaxTrackedDisplays} displays. This test measures all {connected} connected displays.";
+        $"Gander v1 will track {SwayPolicy.MaxTrackedDisplays} displays. This test measures all {connected} connected displays.";
 
     /// <summary>"1920 × 1080 px, built-in, main".</summary>
     public static string DisplayDetail(DisplayInfo display)
@@ -220,7 +220,7 @@ public sealed class GateReport
     {
         var inv = CultureInfo.InvariantCulture;
         var text = new StringBuilder();
-        text.AppendLine("# Sway head-pose gate test");
+        text.AppendLine("# Gander head-pose gate test");
         text.AppendLine();
         text.AppendLine(string.Create(inv, $"**Result: {Title}** ({Result.VerdictText}). {Explanation}"));
         text.AppendLine();

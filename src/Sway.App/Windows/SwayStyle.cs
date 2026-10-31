@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -204,44 +205,57 @@ public sealed class SwayStyle
         HorizontalAlignment = HorizontalAlignment.Left,
     };
 
-    /// <summary>The Swing mark as WPF shapes, in one color or three, sized by <paramref name="side"/>.</summary>
-    public static FrameworkElement MakeMark(double side, Rgb arc, Rgb start, Rgb end, bool unitSquare = false)
+    /// <summary>The goose mark as WPF shapes: the body (with its eye cut out) in <paramref name="arc"/>, the wing in <paramref name="start"/> (the same color leaves no wing).</summary>
+    public static FrameworkElement MakeMark(double side, Rgb arc, Rgb start, bool unitSquare = false)
     {
         var placement = unitSquare
             ? SwayMarkGeometry.UnitSquareIn(new MarkRect(0, 0, side, side))
             : SwayMarkGeometry.Fitting(new MarkRect(0, 0, side, side));
-        var (c1, c2) = SwayMarkGeometry.CubicControls();
+        var eye = placement.Point(SwayMarkGeometry.EyeCenter);
+        var body = new GeometryGroup { FillRule = FillRule.EvenOdd };
+        body.Children.Add(ToGeometry(SwayMarkGeometry.Silhouette, placement));
+        body.Children.Add(new EllipseGeometry(new System.Windows.Point(eye.X, eye.Y), placement.Length(SwayMarkGeometry.EyeRadius), placement.Length(SwayMarkGeometry.EyeRadius)));
+
+        var canvas = new Canvas { Width = side, Height = side };
+        canvas.Children.Add(new System.Windows.Shapes.Path { Data = body, Fill = Brush(arc) });
+        if (start != arc)
+        {
+            canvas.Children.Add(new System.Windows.Shapes.Path { Data = ToGeometry(SwayMarkGeometry.Wing, placement), Fill = Brush(start) });
+        }
+
+        return canvas;
+    }
+
+    private static PathGeometry ToGeometry(IReadOnlyList<MarkStep> steps, SwayMarkGeometry.Placement placement)
+    {
         System.Windows.Point P(MarkPoint u)
         {
             var p = placement.Point(u);
             return new System.Windows.Point(p.X, p.Y);
         }
 
-        var figure = new PathFigure { StartPoint = P(SwayMarkGeometry.Start), IsClosed = false };
-        figure.Segments.Add(new BezierSegment(P(c1), P(c2), P(SwayMarkGeometry.End), true));
         var geometry = new PathGeometry();
-        geometry.Figures.Add(figure);
-
-        var canvas = new Canvas { Width = side, Height = side };
-        canvas.Children.Add(new System.Windows.Shapes.Path
+        PathFigure? figure = null;
+        foreach (var step in steps)
         {
-            Data = geometry,
-            Stroke = Brush(arc),
-            StrokeThickness = placement.Length(SwayMarkGeometry.ArcWidth),
-            StrokeStartLineCap = PenLineCap.Round,
-            StrokeEndLineCap = PenLineCap.Round,
-        });
-        AddDot(canvas, P(SwayMarkGeometry.Start), placement.Length(SwayMarkGeometry.StartRadius), start);
-        AddDot(canvas, P(SwayMarkGeometry.End), placement.Length(SwayMarkGeometry.EndRadius), end);
-        return canvas;
-    }
+            switch (step.Kind)
+            {
+                case MarkStepKind.Move:
+                    figure = new PathFigure { StartPoint = P(step.A), IsClosed = true, IsFilled = true };
+                    geometry.Figures.Add(figure);
+                    break;
+                case MarkStepKind.Line:
+                    figure?.Segments.Add(new LineSegment(P(step.A), true));
+                    break;
+                case MarkStepKind.Cubic:
+                    figure?.Segments.Add(new BezierSegment(P(step.A), P(step.B), P(step.C), true));
+                    break;
+                default:
+                    break;
+            }
+        }
 
-    private static void AddDot(Canvas canvas, System.Windows.Point center, double radius, Rgb color)
-    {
-        var dot = new System.Windows.Shapes.Ellipse { Width = radius * 2, Height = radius * 2, Fill = Brush(color) };
-        Canvas.SetLeft(dot, center.X - radius);
-        Canvas.SetTop(dot, center.Y - radius);
-        canvas.Children.Add(dot);
+        return geometry;
     }
 
     private static string Hex(Rgb rgb) => $"#{rgb.R:X2}{rgb.G:X2}{rgb.B:X2}";
@@ -249,7 +263,7 @@ public sealed class SwayStyle
     private static string Num(double value) => value.ToString(CultureInfo.InvariantCulture);
 }
 
-/// <summary>The window icon: the Mac's app icon from the embedded Sway.ico, drawn in code when it is not embedded.</summary>
+/// <summary>The window icon: the Mac's app icon from the embedded Gander.ico, drawn in code when it is not embedded.</summary>
 public static class WindowIcons
 {
     private static ImageSource? _icon;
@@ -268,7 +282,7 @@ public static class WindowIcons
     {
         try
         {
-            var frame = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/Sway.ico", UriKind.Absolute), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+            var frame = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/Gander.ico", UriKind.Absolute), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
             frame.Freeze();
             return frame;
         }

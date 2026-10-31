@@ -81,7 +81,7 @@ public interface ISessionEvents
     bool IsSessionInactiveNow();
 }
 
-/// <summary>Small persisted values (JSON file under %AppData%\Sway). Only the user's own choices are saved here.</summary>
+/// <summary>Small persisted values (JSON file under %AppData%\Gander). Only the user's own choices are saved here.</summary>
 public interface ISettingsStore
 {
     string? Read(string key);

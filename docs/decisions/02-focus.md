@@ -20,6 +20,6 @@ the cursor never moves. No synthesized key press is needed for these windows.
 `finally`. Verify the result by reading the foreground window afterwards, and treat a failure as "no switch".
 
 **Not yet covered** (W7 hardening checks): UWP windows (Settings, Calculator), a full-screen video or game, an
-elevated (administrator) window, a hung foreground app, and the same recipe while Sway runs as the tray app instead of
+elevated (administrator) window, a hung foreground app, and the same recipe while Gander runs as the tray app instead of
 from a terminal. The "keyboard focus confirmed" column in the program's output reads the target thread's focus window and
 is not conclusive on its own; the foreground check is.

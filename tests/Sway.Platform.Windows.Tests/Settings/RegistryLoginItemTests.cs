@@ -5,7 +5,7 @@ namespace Sway.Platform.Windows.Tests.Settings;
 
 public sealed class RegistryLoginItemTests
 {
-    private const string Exe = @"C:\Program Files\Sway\Sway.exe";
+    private const string Exe = @"C:\Program Files\Gander\Gander.exe";
 
     private sealed class FakeKey : IRunKeyAccess
     {
@@ -48,7 +48,7 @@ public sealed class RegistryLoginItemTests
 
         item.SetEnabled(true);
 
-        Assert.Equal("\"" + Exe + "\"", key.Values["Sway"]);
+        Assert.Equal("\"" + Exe + "\"", key.Values["Gander"]);
         Assert.Equal(LoginItemStatus.Enabled, item.Status);
     }
 
@@ -77,7 +77,7 @@ public sealed class RegistryLoginItemTests
     public void ValueForAnotherPathReadsDisabledAndEnablingRepairsIt()
     {
         var key = new FakeKey();
-        key.Values["Sway"] = "\"D:\\old\\Sway.exe\"";
+        key.Values["Gander"] = "\"D:\\old\\Gander.exe\"";
         var item = new RegistryLoginItem(key, Exe);
 
         Assert.Equal(LoginItemStatus.Disabled, item.Status);
@@ -89,7 +89,7 @@ public sealed class RegistryLoginItemTests
     public void PathComparisonIgnoresCase()
     {
         var key = new FakeKey();
-        key.Values["Sway"] = "\"" + Exe.ToUpperInvariant() + "\"";
+        key.Values["Gander"] = "\"" + Exe.ToUpperInvariant() + "\"";
         Assert.Equal(LoginItemStatus.Enabled, new RegistryLoginItem(key, Exe).Status);
     }
 

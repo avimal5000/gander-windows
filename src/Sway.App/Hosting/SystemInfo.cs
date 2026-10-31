@@ -31,7 +31,7 @@ public static class SystemInfo
     /// <summary>OS and process architecture.</summary>
     public static string Architecture() => $"{RuntimeInformation.OSArchitecture} (process {RuntimeInformation.ProcessArchitecture})";
 
-    /// <summary>Sway's version.</summary>
+    /// <summary>Gander's version.</summary>
     public static string SwayVersion()
     {
         var version = typeof(SystemInfo).Assembly.GetName().Version;

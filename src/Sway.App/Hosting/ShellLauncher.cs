@@ -4,7 +4,7 @@ using Sway.Core.Calibration;
 
 namespace Sway.App.Hosting;
 
-/// <summary>Opens the one Windows page Sway ever links to.</summary>
+/// <summary>Opens the one Windows page Gander ever links to.</summary>
 public static class ShellLauncher
 {
     /// <summary>Opens Windows Settings at the camera privacy page. Quietly does nothing when Windows refuses.</summary>

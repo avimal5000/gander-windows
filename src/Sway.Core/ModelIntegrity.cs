@@ -4,7 +4,7 @@ namespace Sway.Core;
 
 /// <summary>
 /// The pinned identity of the face-landmark model. The same SHA-256 is pinned in <c>scripts/fetch-pose-model.sh</c>
-/// (<c>scripts/privacy-guard.sh</c> fails when the two differ). Sway hashes the model bytes before handing them to ONNX
+/// (<c>scripts/privacy-guard.sh</c> fails when the two differ). Gander hashes the model bytes before handing them to ONNX
 /// Runtime, so a file swapped in the install folder is refused instead of parsed by native code.
 /// </summary>
 public static class ModelIntegrity
@@ -25,7 +25,7 @@ public static class ModelIntegrity
             return true;
         }
 
-        message = $"The face model does not match the pinned SHA-256 (expected {PinnedSha256}, found {actual}). Reinstall Sway.";
+        message = $"The face model does not match the pinned SHA-256 (expected {PinnedSha256}, found {actual}). Reinstall Gander.";
         return false;
     }
 }

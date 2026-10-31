@@ -41,7 +41,7 @@ public static class WindowEligibility
     /// <summary>The desktop, taskbars and shell host windows, which are never focus targets.</summary>
     public static bool IsShellChrome(string className) => ShellClasses.Contains(className);
 
-    /// <summary>True when the window is Sway's own (same process) or shell chrome: never reported as the focused display.</summary>
+    /// <summary>True when the window is Gander's own (same process) or shell chrome: never reported as the focused display.</summary>
     public static bool IsOwnOrShell(WindowSnapshot window, int ownProcessId) =>
         window.ProcessId == ownProcessId || IsShellChrome(window.ClassName);
 

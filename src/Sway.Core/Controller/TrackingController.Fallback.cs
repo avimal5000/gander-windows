@@ -4,9 +4,9 @@ using Sway.Core.Runtime;
 namespace Sway.Core.Controller;
 
 // The USB camera fallback (SPEC D46, Mac CONTRACT 6.5.5 item 7). When the camera the user chose is unplugged and
-// capture stays interrupted for 5 s, Sway restarts the pose source on a connected camera that has a calibration for the
+// capture stays interrupted for 5 s, Gander restarts the pose source on a connected camera that has a calibration for the
 // current displays (the built-in first), and restarts it on the chosen camera once that is connected again. With no
-// calibrated camera to use, Sway turns Tracking off in memory (the saved choice stays, as for a camera failure, D23) and
+// calibrated camera to use, Gander turns Tracking off in memory (the saved choice stays, as for a camera failure, D23) and
 // the status names the missing camera until it is connected again; the user turns Tracking back on, it never resumes by
 // itself. The saved camera choice is never touched: the stand-in lives in FallbackCamera and in the pose source
 // configuration alone. Nothing changes while a calibration runs or while the camera is suspended.

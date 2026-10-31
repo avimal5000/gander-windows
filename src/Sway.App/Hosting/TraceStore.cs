@@ -6,8 +6,8 @@ using Sway.Core;
 namespace Sway.App.Hosting;
 
 /// <summary>
-/// Writes recorded pose traces (numbers only, JSON) to %LocalAppData%\Sway\Traces. A trace never holds a frame; the files
-/// stay on this PC. Sway writes one only when the user records: Stop and save, or the recording ends because the camera
+/// Writes recorded pose traces (numbers only, JSON) to %LocalAppData%\Gander\Traces. A trace never holds a frame; the files
+/// stay on this PC. Gander writes one only when the user records: Stop and save, or the recording ends because the camera
 /// stopped, the window closed or the sample limit was reached.
 /// </summary>
 public sealed class TraceStore
@@ -20,9 +20,9 @@ public sealed class TraceStore
         _directory = directory ?? DefaultDirectory;
     }
 
-    /// <summary>The folder under %LocalAppData%\Sway\Traces.</summary>
+    /// <summary>The folder under %LocalAppData%\Gander\Traces.</summary>
     public static string DefaultDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Sway", "Traces");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Gander", "Traces");
 
     /// <summary>The file name for a trace taken at <paramref name="now"/>: "pose-trace-20261031-142530.json".</summary>
     public static string FileName(DateTimeOffset now) =>

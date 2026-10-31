@@ -14,10 +14,10 @@ public sealed class TrackingLoop : IEquatable<TrackingLoop>
 {
     private DisplayId? _attemptBefore;
 
-    /// <summary>The last accepted poll result; null when focus is unknown (or Sway itself is in front).</summary>
+    /// <summary>The last accepted poll result; null when focus is unknown (or Gander itself is in front).</summary>
     public DisplayId? Polled { get; private set; }
 
-    /// <summary>A display Sway treats as focused after an attempt that did not move focus.</summary>
+    /// <summary>A display Gander treats as focused after an attempt that did not move focus.</summary>
     public FocusOverride? Override { get; private set; }
 
     /// <summary>The display of the focus request now running.</summary>

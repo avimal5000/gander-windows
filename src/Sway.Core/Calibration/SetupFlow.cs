@@ -1,12 +1,12 @@
 namespace Sway.Core.Calibration;
 
-/// <summary>The steps of the Set Up Sway window, in order.</summary>
+/// <summary>The steps of the Set Up Gander window, in order.</summary>
 public enum SetupStep
 {
-    /// <summary>First setup only: what Sway does and its privacy promise (SPEC F26). Not counted in "Step N of 4".</summary>
+    /// <summary>First setup only: what Gander does and its privacy promise (SPEC F26). Not counted in "Step N of 4".</summary>
     Welcome = 0,
 
-    /// <summary>"Needs you": Windows blocks the camera for Sway. Replaces the Mac camera and Accessibility steps.</summary>
+    /// <summary>"Needs you": Windows blocks the camera for Gander. Replaces the Mac camera and Accessibility steps.</summary>
     NeedsYou = 1,
 
     /// <summary>The live camera preview hint (<see cref="FramingAdvice"/>) and the Start button.</summary>
@@ -20,7 +20,7 @@ public enum SetupStep
 }
 
 /// <summary>
-/// The pure state machine behind the Set Up Sway window (SPEC F20, CONTRACT 6.5.3): which step shows, decided by one
+/// The pure state machine behind the Set Up Gander window (SPEC F20, CONTRACT 6.5.3): which step shows, decided by one
 /// fact and by the user's moves. It performs no I/O. Port of the Mac <c>SetupFlow</c> with the macOS Accessibility
 /// step gone and the camera permission step turned into "Needs you" (shown only while Windows blocks the camera).
 /// <para>
@@ -50,7 +50,7 @@ public sealed class SetupFlow
 
     /// <summary>
     /// True while automatic switching holds so the user can move and look freely: the camera check and the calibration.
-    /// The result step does not hold: while the window is in front "Sway in front" already does, and a window left
+    /// The result step does not hold: while the window is in front "Gander in front" already does, and a window left
     /// behind other apps must not stop switching unseen.
     /// </summary>
     public bool HoldsTracking => Step is SetupStep.CameraCheck or SetupStep.Calibrating;

@@ -27,7 +27,7 @@ public sealed class DiagnosticsWindow : Window
 
         var style = SwayStyle.Current();
         style.ApplyTo(this);
-        Title = "Sway Diagnostics";
+        Title = "Gander Diagnostics";
         Width = 640;
         Height = 560;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;

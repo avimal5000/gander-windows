@@ -170,6 +170,6 @@ public sealed class JsonFileSettingsStoreTests : IDisposable
     [Fact]
     public void DefaultPathIsUnderAppDataSway()
     {
-        Assert.EndsWith(Path.Combine("Sway", "settings.json"), JsonFileSettingsStore.DefaultPath);
+        Assert.EndsWith(Path.Combine("Gander", "settings.json"), JsonFileSettingsStore.DefaultPath);
     }
 }

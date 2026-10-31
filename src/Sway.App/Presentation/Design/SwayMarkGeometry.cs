@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Sway.App.Presentation.Design;
 
@@ -17,63 +18,92 @@ public readonly record struct MarkRect(double X, double Y, double Width, double 
     public double Bottom => Y + Height;
 }
 
+/// <summary>What a <see cref="MarkStep"/> does.</summary>
+public enum MarkStepKind
+{
+    /// <summary>Starts a figure at <see cref="MarkStep.A"/>.</summary>
+    Move,
+
+    /// <summary>A straight line to <see cref="MarkStep.A"/>.</summary>
+    Line,
+
+    /// <summary>A cubic curve with control points <see cref="MarkStep.A"/> and <see cref="MarkStep.B"/>, ending at <see cref="MarkStep.C"/>.</summary>
+    Cubic,
+
+    /// <summary>Closes the figure.</summary>
+    Close,
+}
+
+/// <summary>One step of the mark's outline.</summary>
+public readonly record struct MarkStep(MarkStepKind Kind, MarkPoint A = default, MarkPoint B = default, MarkPoint C = default);
+
 /// <summary>
-/// The Swing mark (Mac SwayMarkGeometry, D36): an arc swinging from a small point on the left to a larger point on the
-/// right. One definition in a 100 x 100 unit square with y down. The arc is the quadratic curve M 24 40 Q 50 86 76 40.
+/// The Gander mark (Mac SwayMarkGeometry): a goose in profile, head up and looking right, with a wing. One definition in
+/// goose coordinates with y down, shared by the tray glyph, the WPF mark and the app icon, so the mark looks the same at
+/// every scale. A <see cref="Placement"/> maps it into a drawing area.
 /// </summary>
 public static class SwayMarkGeometry
 {
+    /// <summary>Side of the square the mark sits in when it keeps the app icon's padding.</summary>
     public const double UnitSize = 100;
-    public static readonly MarkPoint Start = new(24, 40);
-    public static readonly MarkPoint End = new(76, 40);
 
-    /// <summary>The quadratic curve's control point.</summary>
-    public static readonly MarkPoint Control = new(50, 86);
+    /// <summary>Share of the unit square left empty on each side when the mark keeps the app icon's padding.</summary>
+    public const double SquarePadding = 0.16;
 
-    public const double ArcWidth = 7;
-    public const double StartRadius = 5.5;
-    public const double EndRadius = 8;
-    public const double RingWidth = 4;
+    /// <summary>The eye: a small round hole in the head.</summary>
+    public static readonly MarkPoint EyeCenter = new(60.8, 17.1);
 
-    /// <summary>The two control points of the cubic curve equal to the arc (GDI+ and WPF have cubic curves).</summary>
-    public static (MarkPoint First, MarkPoint Second) CubicControls() =>
-    (
-        new MarkPoint(Start.X + 2.0 / 3 * (Control.X - Start.X), Start.Y + 2.0 / 3 * (Control.Y - Start.Y)),
-        new MarkPoint(End.X + 2.0 / 3 * (Control.X - End.X), End.Y + 2.0 / 3 * (Control.Y - End.Y)));
+    public const double EyeRadius = 1.6;
 
-    /// <summary>The point of the arc at <paramref name="t"/> (0 at the start point, 1 at the end point).</summary>
-    public static MarkPoint ArcPoint(double t)
-    {
-        var u = 1 - t;
-        return new MarkPoint(
-            u * u * Start.X + 2 * u * t * Control.X + t * t * End.X,
-            u * u * Start.Y + 2 * u * t * Control.Y + t * t * End.Y);
-    }
+    /// <summary>What the goose covers, in goose coordinates.</summary>
+    public static readonly MarkRect VisualBounds = new(14, 10.9, 68.3, 75.8);
 
-    /// <summary>What the mark covers, points and stroke included, in unit coordinates.</summary>
-    public static MarkRect VisualBounds
-    {
-        get
-        {
-            var bottom = ArcPoint(0.5).Y + ArcWidth / 2;
-            var left = Start.X - StartRadius;
-            var right = End.X + EndRadius;
-            var top = Math.Min(Start.Y - StartRadius, End.Y - EndRadius);
-            return new MarkRect(left, top, right - left, bottom - top);
-        }
-    }
+    private static MarkStep Move(double x, double y) => new(MarkStepKind.Move, new MarkPoint(x, y));
 
-    /// <summary>Where unit coordinates land in a drawing area: a uniform scale and an offset.</summary>
+    private static MarkStep Line(double x, double y) => new(MarkStepKind.Line, new MarkPoint(x, y));
+
+    private static MarkStep Cubic(double x1, double y1, double x2, double y2, double x, double y) =>
+        new(MarkStepKind.Cubic, new MarkPoint(x1, y1), new MarkPoint(x2, y2), new MarkPoint(x, y));
+
+    /// <summary>The outline of the body, neck, head and beak, without the eye.</summary>
+    public static readonly IReadOnlyList<MarkStep> Silhouette =
+    [
+        Move(14, 70),
+        Cubic(22, 72, 32, 66, 42, 64),
+        Cubic(48, 63, 50, 58, 49, 50),
+        Cubic(48, 40, 46, 34, 47, 26),
+        Cubic(47.5, 18, 50, 12, 57, 11),
+        Cubic(62, 10.5, 65, 13, 66, 15.5),
+        Line(76.5, 18),
+        Line(67, 22.5),
+        Cubic(64, 23.5, 61.5, 24.5, 60.5, 28),
+        Cubic(59.5, 34, 60.5, 40, 62, 46),
+        Cubic(64, 52, 72, 54, 78, 60),
+        Cubic(86, 68, 82, 80, 70, 84),
+        Cubic(54, 90, 28, 86, 14, 70),
+        new(MarkStepKind.Close),
+    ];
+
+    /// <summary>The wing: a leaf shape laid on the body.</summary>
+    public static readonly IReadOnlyList<MarkStep> Wing =
+    [
+        Move(32, 73),
+        Cubic(42, 65, 58, 65, 69, 71),
+        Cubic(60, 80, 42, 80, 32, 73),
+        new(MarkStepKind.Close),
+    ];
+
+    /// <summary>Where goose coordinates land in a drawing area: a uniform scale and an offset.</summary>
     public readonly record struct Placement(double Scale, MarkPoint Offset)
     {
-        /// <summary>A point in unit coordinates, in the drawing area.</summary>
+        /// <summary>A point in goose coordinates, in the drawing area.</summary>
         public MarkPoint Point(MarkPoint unit) => new(Offset.X + unit.X * Scale, Offset.Y + unit.Y * Scale);
 
-        /// <summary>A length in unit coordinates, in the drawing area.</summary>
+        /// <summary>A length in goose coordinates, in the drawing area.</summary>
         public double Length(double unit) => unit * Scale;
     }
 
-    /// <summary>Scales and centers <see cref="VisualBounds"/> so the mark fills <paramref name="rect"/>: for small marks.</summary>
+    /// <summary>Scales and centers <see cref="VisualBounds"/> so the goose fills <paramref name="rect"/> as much as it can: for small marks.</summary>
     public static Placement Fitting(MarkRect rect)
     {
         var bounds = VisualBounds;
@@ -81,11 +111,12 @@ public static class SwayMarkGeometry
         return new Placement(scale, new MarkPoint(rect.MidX - bounds.MidX * scale, rect.MidY - bounds.MidY * scale));
     }
 
-    /// <summary>Maps the whole unit square onto the largest centered square in <paramref name="rect"/>: the mark with the app icon's padding.</summary>
+    /// <summary>The goose in the largest centered square in <paramref name="rect"/>, with the padding it has in the app icon.</summary>
     public static Placement UnitSquareIn(MarkRect rect)
     {
         var side = Math.Min(rect.Width, rect.Height);
-        return new Placement(side / UnitSize, new MarkPoint(rect.MidX - side / 2, rect.MidY - side / 2));
+        var inner = side * (1 - 2 * SquarePadding);
+        return Fitting(new MarkRect(rect.MidX - inner / 2, rect.MidY - inner / 2, inner, inner));
     }
 }
 
@@ -98,12 +129,11 @@ public static class TrayGlyphSpec
     /// <summary>Side of the design in points.</summary>
     public const double Side = 18;
 
-    public const double ArcWidth = 1.8;
-    public const double StartRadius = 1.4;
-    public const double EndRadius = 2;
+    /// <summary>The eye's radius: set by hand, because a hole that small must be larger than the mark scaled down.</summary>
+    public const double EyeRadius = 0.55;
 
-    /// <summary>Width of the ring that is the hollow end point.</summary>
-    public const double RingWidth = 1;
+    /// <summary>Width of the outline that is the hollow (paused) goose.</summary>
+    public const double OutlineWidth = 1.2;
 
     /// <summary>The area the mark is fitted into: a little left of and above the center, which leaves a corner for badges.</summary>
     public static readonly MarkRect MarkArea = new(0.75, 0.8, 15, 15);

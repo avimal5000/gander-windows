@@ -58,7 +58,7 @@ public sealed record SwayTheme(
     Rgb OnAccent,
     Rgb MenuSurface)
 {
-    /// <summary>The Mac's colors for a light or dark appearance. Accent is Sway green unless the user chose the system one.</summary>
+    /// <summary>The Mac's colors for a light or dark appearance. Accent is Gander green unless the user chose the system one.</summary>
     public static SwayTheme For(bool light, Rgb? systemAccent = null)
     {
         var green = SwayDesign.Green(light);
@@ -97,8 +97,8 @@ public sealed record SwayTheme(
 /// <summary>What choosing the accent in Settings does (Mac AccentChoice).</summary>
 public enum AccentChoice
 {
-    /// <summary>Sway green (the default).</summary>
-    Sway,
+    /// <summary>Gander green (the default).</summary>
+    Gander,
 
     /// <summary>Follow the Windows accent color.</summary>
     System,
@@ -111,11 +111,11 @@ public static class AccentChoices
     public const string Key = "sway.accentChoice";
 
     /// <summary>The label of a choice in Settings.</summary>
-    public static string Title(AccentChoice choice) => choice == AccentChoice.System ? "Match Windows" : "Sway green";
+    public static string Title(AccentChoice choice) => choice == AccentChoice.System ? "Match Windows" : "Gander green";
 
-    /// <summary>The saved choice; Sway green when absent or unreadable.</summary>
+    /// <summary>The saved choice; Gander green when absent or unreadable.</summary>
     public static AccentChoice Parse(string? stored) =>
-        string.Equals(stored, "system", StringComparison.Ordinal) ? AccentChoice.System : AccentChoice.Sway;
+        string.Equals(stored, "system", StringComparison.Ordinal) ? AccentChoice.System : AccentChoice.Gander;
 
     /// <summary>The text that is saved.</summary>
     public static string Store(AccentChoice choice) => choice == AccentChoice.System ? "system" : "sway";
@@ -129,7 +129,7 @@ public sealed record FeedbackTiming(double FadeIn, double Hold, double FadeOut, 
 }
 
 /// <summary>
-/// The single source of Sway's look on Windows: the Mac palette, the spacing and radius scale, the motion numbers and the
+/// The single source of Gander's look on Windows: the Mac palette, the spacing and radius scale, the motion numbers and the
 /// font choice. Every window, the tray menu and the overlays read from here. Pure data, no WPF types.
 /// </summary>
 public static class SwayDesign
@@ -148,7 +148,7 @@ public static class SwayDesign
     /// <summary>Charcoal #2B2B2B.</summary>
     public static readonly Rgb Charcoal = new(0x2B, 0x2B, 0x2B);
 
-    /// <summary>The lighter green that keeps Sway green readable on dark: #6FAF84.</summary>
+    /// <summary>The lighter green that keeps Gander green readable on dark: #6FAF84.</summary>
     public static readonly Rgb GreenDark = new(0x6F, 0xAF, 0x84);
 
     /// <summary>Amber for "marginal" and warnings: red 0.78, green 0.52, blue 0.10.</summary>
@@ -174,7 +174,7 @@ public static class SwayDesign
     /// <summary>Window surface in a dark appearance: the Mac's window gray.</summary>
     public static readonly Rgb WindowDark = new(0x1E, 0x1E, 0x1E);
 
-    /// <summary>Sway green: forest in light, the lighter green in dark (SPEC F24). The mark, the glow, the default accent.</summary>
+    /// <summary>Gander green: forest in light, the lighter green in dark (SPEC F24). The mark, the glow, the default accent.</summary>
     public static Rgb Green(bool light) => light ? Forest : GreenDark;
 
     /// <summary>Accent for text and glyphs: forest in light, sage in dark.</summary>

@@ -5,7 +5,7 @@ using Sway.Core.Platform;
 namespace Sway.Platform.Windows.Settings;
 
 /// <summary>
-/// Settings in one JSON object file (default <c>%AppData%\Sway\settings.json</c>). Values are strings. Reads come from
+/// Settings in one JSON object file (default <c>%AppData%\Gander\settings.json</c>). Values are strings. Reads come from
 /// memory after the first load; every write rewrites the file atomically (temp file, then replace). A missing file is an
 /// empty store. A corrupt file (not JSON, or not an object) is copied to <c>settings.json.bak</c> and the store starts
 /// empty; the next write replaces the corrupt file. Keys this class did not write, including non-string values, are kept
@@ -23,7 +23,7 @@ public sealed class JsonFileSettingsStore : ISettingsStore
     private readonly string _path;
     private JsonObject? _root;
 
-    /// <summary>The store at <c>%AppData%\Sway\settings.json</c>.</summary>
+    /// <summary>The store at <c>%AppData%\Gander\settings.json</c>.</summary>
     public JsonFileSettingsStore()
         : this(DefaultPath)
     {
@@ -37,7 +37,7 @@ public sealed class JsonFileSettingsStore : ISettingsStore
 
     /// <summary>The default settings file location.</summary>
     public static string DefaultPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Sway", "settings.json");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Gander", "settings.json");
 
     /// <summary>The last write failure, or null when the last write worked.</summary>
     public Exception? LastWriteError { get; private set; }

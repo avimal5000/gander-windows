@@ -5,7 +5,7 @@ using Sway.Core.Runtime;
 namespace Sway.Core.Calibration;
 
 /// <summary>
-/// The Set Up Sway window's brain, UI-free (SPEC F20, D30, CONTRACT 6.5.3; Mac <c>AppModel+Setup</c>). It feeds the
+/// The Set Up Gander window's brain, UI-free (SPEC F20, D30, CONTRACT 6.5.3; Mac <c>AppModel+Setup</c>). It feeds the
 /// <see cref="SetupFlow"/> its fact (is the camera allowed), keeps the camera running for the steps that need it, shows
 /// the camera check's <see cref="FramingAdvice"/>, and runs a <see cref="CalibrationSession"/> for the calibrating step.
 /// <para>

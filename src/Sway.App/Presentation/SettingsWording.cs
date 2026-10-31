@@ -37,18 +37,18 @@ public static class SettingsWording
 
     // General
     public const string StartWithWindows = "Start with Windows";
-    public const string StartWithWindowsUnavailable = "Starting with Windows is not available for this copy of Sway.";
+    public const string StartWithWindowsUnavailable = "Starting with Windows is not available for this copy of Gander.";
 
     // Switching
     public const string HoldTime = "Hold time";
-    public const string HoldTimeHelp = "How long you look at a display before Sway switches to it.";
+    public const string HoldTimeHelp = "How long you look at a display before Gander switches to it.";
     public const string Pause = "Pause after a switch";
 
     public const string PauseHelp =
-        "How long Sway waits after switching before it will switch again. Shorter is faster for a quick look back, but can bounce.";
+        "How long Gander waits after switching before it will switch again. Shorter is faster for a quick look back, but can bounce.";
 
     public const string Confidence = "Switch confidence";
-    public const string ConfidenceHelp = "A stricter setting needs a clearer look at one display before Sway switches.";
+    public const string ConfidenceHelp = "A stricter setting needs a clearer look at one display before Gander switches.";
     public const string ConfidenceMin = "Relaxed";
     public const string ConfidenceMax = "Strict";
     public const string UseInstant = "Use Instant timing";

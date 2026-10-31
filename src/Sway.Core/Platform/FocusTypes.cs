@@ -1,6 +1,6 @@
 namespace Sway.Core.Platform;
 
-/// <summary>A window Sway may focus. No title: window titles are never read or stored (privacy).</summary>
+/// <summary>A window Gander may focus. No title: window titles are never read or stored (privacy).</summary>
 /// <param name="Handle">The native window handle.</param>
 public sealed record WindowSummary(long Handle, int ProcessId, string AppName, DisplayRect Bounds, DisplayId DisplayId);
 
@@ -18,7 +18,7 @@ public abstract record FocusResult
 {
     public sealed record Focused(WindowSummary Window, FocusMethod Method, int Milliseconds) : FocusResult;
 
-    /// <summary>The display has no window Sway considers (empty desktop, only minimized or tool windows).</summary>
+    /// <summary>The display has no window Gander considers (empty desktop, only minimized or tool windows).</summary>
     public sealed record NoWindow(DisplayId Display) : FocusResult;
 
     public sealed record Failed(WindowSummary? Window, string Reason) : FocusResult;

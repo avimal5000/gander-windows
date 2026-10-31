@@ -1,6 +1,6 @@
 using Sway.Tools.Spikes;
 
-Console.WriteLine("SwayTools: spike programs for Sway on Windows");
+Console.WriteLine("SwayTools: spike programs for Gander on Windows");
 Console.WriteLine();
 Console.WriteLine("  1  System info: Windows, cameras, monitors, windows   (S3)");
 Console.WriteLine("  2  Focus test: move focus between monitors             (S2)");

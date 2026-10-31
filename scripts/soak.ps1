@@ -1,15 +1,15 @@
 <#
 .SYNOPSIS
-  Soak test helper for Sway on Windows (mirrors scripts/soak.sh on the Mac): records Sway's CPU, memory, threads and
-  handles while you use it all day, and Sway's own log lines, then summarizes both.
+  Soak test helper for Gander on Windows (mirrors scripts/soak.sh on the Mac): records Gander's CPU, memory, threads and
+  handles while you use it all day, and Gander's own log lines, then summarizes both.
 
 .DESCRIPTION
   scripts\soak.ps1 sample [-Out soak.csv] [-Interval 30]   run until Ctrl+C (default .\soak-logs\soak-<date>.csv)
   scripts\soak.ps1 report -Out soak.csv                     summary of a finished or running sample
 
-  Sampling only reads process statistics and copies new lines of %LocalAppData%\Sway\Logs\sway.log into <out>.log
-  (that file rotates at 1 MB, so a day of lines would be lost otherwise). It never touches the camera or Sway itself.
-  A pid change in the middle of a run means Sway quit or crashed, and the report says so.
+  Sampling only reads process statistics and copies new lines of %LocalAppData%\Gander\Logs\gander.log into <out>.log
+  (that file rotates at 1 MB, so a day of lines would be lost otherwise). It never touches the camera or Gander itself.
+  A pid change in the middle of a run means Gander quit or crashed, and the report says so.
   Works in Windows PowerShell 5.1 and PowerShell 7.
 #>
 [CmdletBinding()]
@@ -20,8 +20,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$ProcessName = 'Sway'
-$SwayLog = Join-Path $env:LOCALAPPDATA 'Sway\Logs\sway.log'
+$ProcessName = 'Gander'
+$SwayLog = Join-Path $env:LOCALAPPDATA 'Gander\Logs\gander.log'
 $Culture = [System.Globalization.CultureInfo]::InvariantCulture
 
 function Get-PowerSource {
@@ -34,7 +34,7 @@ function Get-PowerSource {
   return ''
 }
 
-# New lines of sway.log since the last call. $State.Pos is the byte offset already copied; a shorter file means it rotated.
+# New lines of gander.log since the last call. $State.Pos is the byte offset already copied; a shorter file means it rotated.
 function Copy-NewLogLines([hashtable]$State, [string]$Destination) {
   try {
     if (-not (Test-Path -LiteralPath $SwayLog)) { return }
@@ -71,7 +71,7 @@ function Invoke-Sample {
   Set-Content -LiteralPath $logFile -Value '' -NoNewline
   $state = @{ Pos = 0L }
   if (Test-Path -LiteralPath $SwayLog) { $state.Pos = (Get-Item -LiteralPath $SwayLog).Length }  # only lines from now on
-  Write-Host "Sampling Sway every $Interval s into $Out and its log lines into $logFile (Ctrl+C to stop)."
+  Write-Host "Sampling Gander every $Interval s into $Out and its log lines into $logFile (Ctrl+C to stop)."
   $cores = [Environment]::ProcessorCount
   while ($true) {
     $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
@@ -111,13 +111,13 @@ function Invoke-Report {
   Write-Host "Soak report: $Out"
   Write-Host ("From {0} to {1}" -f $rows[0].time, $rows[-1].time)
   Write-Host ''
-  if ($running.Count -eq 0) { Write-Host 'No samples with Sway running.'; return }
+  if ($running.Count -eq 0) { Write-Host 'No samples with Gander running.'; return }
 
   $cpu = @($running | ForEach-Object { [double]::Parse($_.cpu_percent, $Culture) })
   $sorted = @($cpu | Sort-Object)
   $mean = ($cpu | Measure-Object -Average).Average
   $max = ($cpu | Measure-Object -Maximum).Maximum
-  Write-Host ("Samples with Sway running: {0} ({1} with Sway not running)" -f $running.Count, $gaps)
+  Write-Host ("Samples with Gander running: {0} ({1} with Gander not running)" -f $running.Count, $gaps)
   Write-Host ("CPU of one core: mean {0:F1}%, 95th percentile {1:F1}%, max {2:F1}%" -f $mean, (Get-Percentile $sorted 0.95), $max)
   foreach ($group in ($running | Group-Object power)) {
     $label = if ($group.Name) { $group.Name } else { 'unknown power' }
@@ -151,11 +151,11 @@ function Invoke-Report {
 
   $restarts = 0
   for ($i = 1; $i -lt $running.Count; $i++) { if ($running[$i].pid -ne $running[$i - 1].pid) { $restarts++ } }
-  if ($restarts -gt 0) { Write-Host "WARNING: Sway restarted $restarts time(s) during the run (quit or crash)" }
+  if ($restarts -gt 0) { Write-Host "WARNING: Gander restarted $restarts time(s) during the run (quit or crash)" }
   else { Write-Host 'Restarts: none (same process the whole run)' }
 
   Write-Host ''
-  Write-Host "From Sway's log in that period:"
+  Write-Host "From Gander's log in that period:"
   $logFile = [System.IO.Path]::ChangeExtension($Out, 'log')
   if (-not (Test-Path -LiteralPath $logFile)) {
     Write-Host "  (no $logFile: start a run with 'scripts\soak.ps1 sample' to capture log lines)"
@@ -167,7 +167,7 @@ function Invoke-Report {
   Write-Host ("  display had no window:     {0}" -f (Count-Lines 'No window on'))
   Write-Host ("  switches that failed:      {0}" -f (Count-Lines 'Switch to .* failed'))
   Write-Host ("  repeat requests held back: {0}" -f (Count-Lines 'Not asking again for'))
-  Write-Host ("  focus taken back:          {0}" -f (Count-Lines 'Focus left .* after Sway focused'))
+  Write-Host ("  focus taken back:          {0}" -f (Count-Lines 'Focus left .* after Gander focused'))
   Write-Host ("  camera interrupted:        {0}" -f (Count-Lines 'Camera status: Interrupted'))
   Write-Host ("  camera failed:             {0}" -f (Count-Lines 'Camera status: Failed'))
   Write-Host ("  camera running again:      {0}" -f (Count-Lines 'Camera status: Running'))

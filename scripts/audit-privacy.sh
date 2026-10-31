@@ -2,13 +2,13 @@
 # Privacy audit for the Windows build (mirrors the Mac app's scripts/audit-privacy.sh). It checks a published output
 # folder, so run it on what you ship:
 #
-#   dotnet publish src/Sway.App -c Release -r win-x64 -o publish/Sway-win-x64
-#   scripts/audit-privacy.sh publish/Sway-win-x64 [--allow-native <glob>]...
+#   dotnet publish src/Sway.App -c Release -r win-x64 -o publish/Gander-win-x64
+#   scripts/audit-privacy.sh publish/Gander-win-x64 [--allow-native <glob>]...
 #
-# Checks: 1 the source guard; 2 Sway's own assemblies reference no networking assembly and import no networking DLL;
+# Checks: 1 the source guard; 2 Gander's own assemblies reference no networking assembly and import no networking DLL;
 # 3 the manifests ask for no administrator rights and no internet capability; 4 the only native libraries are the
 # expected ones (ONNX Runtime, the .NET runtime, WPF); 5 the bundled face model matches the SHA-256 pinned in
-# scripts/fetch-pose-model.sh. Works on macOS, Linux and Git Bash: it reads files, it does not run Sway.
+# scripts/fetch-pose-model.sh. Works on macOS, Linux and Git Bash: it reads files, it does not run Gander.
 # The runtime checks (sockets, camera light) are in docs/PRIVACY-AUDIT.md.
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -46,14 +46,14 @@ echo "1. Source guard"
 if scripts/privacy-guard.sh >/dev/null 2>&1; then pass "no networking, image persistence, input events or cursor movement in src/"
 else fail "scripts/privacy-guard.sh reports forbidden APIs"; fi
 
-echo "2. Sway's own assemblies ($folder)"
+echo "2. Gander's own assemblies ($folder)"
 net_refs='System\.Net\.Http|System\.Net\.Sockets|System\.Net\.WebSockets|System\.Net\.WebClient|System\.Net\.Requests|System\.Net\.Security|System\.Net\.NetworkInformation|System\.Net\.Mail|System\.Net\.Quic|System\.Net\.ServicePoint|System\.Net\.HttpListener|System\.Net\.WebProxy|System\.Net\.Ping|Windows\.Networking|Windows\.Web\.Http'
 net_types='HttpClient|TcpClient|UdpClient|TcpListener|ClientWebSocket|WebSocket|HttpWebRequest|WebClient|NetworkStream'
 net_dlls='ws2_32|wsock32|winhttp|wininet|mswsock|dnsapi|iphlpapi|httpapi|urlmon|webservices|sensapi|rasapi32|wlanapi|bthprops'
 own=()
-while IFS= read -r f; do own+=("$f"); done < <(find "$folder" -maxdepth 1 \( -iname 'Sway*.dll' -o -iname 'Sway*.exe' \) | sort)
+while IFS= read -r f; do own+=("$f"); done < <(find "$folder" -maxdepth 1 \( -iname 'Gander*.dll' -o -iname 'Gander*.exe' \) | sort)
 if ((${#own[@]} == 0)); then
-  fail "no Sway*.dll or Sway*.exe in $folder (publish first)"
+  fail "no Gander*.dll or Gander*.exe in $folder (publish first)"
 fi
 for binary in "${own[@]+"${own[@]}"}"; do
   name=$(basename "$binary")
@@ -74,7 +74,7 @@ done
 net_framework=$(find "$folder" -maxdepth 1 -iname 'System.Net.*.dll' -exec basename {} \; | sort | tr '\n' ' ')
 if [[ -n "$net_framework" ]]; then
   note "the runtime's own networking assemblies are in the folder (self-contained publish): $net_framework"
-  note "they are present but unreferenced by Sway's assemblies, as checked above"
+  note "they are present but unreferenced by Gander's assemblies, as checked above"
 fi
 
 echo "3. Manifests"
@@ -107,7 +107,7 @@ allowed_native=(
   'mscorrc.dll' 'msquic.dll' 'ucrtbase.dll' 'vcruntime140*.dll' 'msvcp140*.dll' 'concrt140.dll' 'api-ms-win-*.dll'
   'System.IO.Compression.Native.dll' 'Microsoft.DiaSymReader.Native.*.dll' 'createdump.exe'
   'D3DCompiler_47_cor3.dll' 'PenImc_cor3.dll' 'PresentationNative_cor3.dll' 'wpfgfx_cor3.dll' 'vcruntime140_cor3.dll'
-  'Sway.exe' 'SwayTools.exe'
+  'Gander.exe' 'SwayTools.exe'
 )
 allowed_native+=("${extra_native[@]+"${extra_native[@]}"}")
 unexpected=""

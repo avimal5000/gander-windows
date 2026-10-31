@@ -34,7 +34,7 @@ public sealed class TrayPresentationTests
     [Fact]
     public void TooltipIsCappedAt63Characters()
     {
-        Assert.Equal("Sway: Tracking", TrayIconAppearance.Tooltip("Tracking"));
+        Assert.Equal("Gander: Tracking", TrayIconAppearance.Tooltip("Tracking"));
         Assert.Equal(63, TrayIconAppearance.Tooltip(new string('x', 200)).Length);
     }
 
@@ -73,7 +73,7 @@ public sealed class TrayPresentationTests
         var menu = TrayMenuModel.Build(Input());
         var texts = menu.Where(e => !e.IsSeparator).Select(e => e.Text).ToList();
         Assert.Equal(
-            ["Sway", "Tracking · Cam", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Pose Debug Window…", "Head-Pose Gate Test…", "Focus Test Window…", "Diagnostics…", "Quit Sway"],
+            ["Gander", "Tracking · Cam", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Pose Debug Window…", "Head-Pose Gate Test…", "Focus Test Window…", "Diagnostics…", "Quit Gander"],
             texts);
         Assert.Equal(TrayEntryRole.Header, menu[0].Role);
         Assert.Equal(TrayEntryRole.Status, menu[1].Role);
@@ -262,7 +262,7 @@ public sealed class TrayPresentationTests
         };
 
         var text = DiagnosticsText.Build(snapshot);
-        Assert.Contains("Sway version: 0.1.0", text, StringComparison.Ordinal);
+        Assert.Contains("Gander version: 0.1.0", text, StringComparison.Ordinal);
         Assert.Contains("Windows: Windows 11 25H2, build 26200.1", text, StringComparison.Ordinal);
         Assert.Contains("- C922 (selected, running)", text, StringComparison.Ordinal);
         Assert.Contains("1. LG 27: 2560x1440, scale 100%, primary, has focus", text, StringComparison.Ordinal);
@@ -276,7 +276,7 @@ public sealed class TrayPresentationTests
         Assert.Contains("== Switching ==", text, StringComparison.Ordinal);
         Assert.Contains("IsTrackingActive: yes (TrackingEnabled: yes, CalibrationRunning: no)", text, StringComparison.Ordinal);
         Assert.Contains("ActiveCalibration: yes, camera C922, layout fingerprint fp-1", text, StringComparison.Ordinal);
-        Assert.Contains("Hold inputs: focus lock no, Sway in front yes, displays changing no, desktop changing no, switching in flight no", text, StringComparison.Ordinal);
+        Assert.Contains("Hold inputs: focus lock no, Gander in front yes, displays changing no, desktop changing no, switching in flight no", text, StringComparison.Ordinal);
         Assert.Contains("Display believed to have focus: d1 (LG 27)", text, StringComparison.Ordinal);
         Assert.Contains("Tracked targets: d1 (LG 27), d2 (Dell)", text, StringComparison.Ordinal);
         Assert.Contains("Last decision: Display, best Dell, margin 0.35; phase Dwelling(0.50) (Dwelling); enter margin 0.30; SwitchTo not set", text, StringComparison.Ordinal);

@@ -1,17 +1,17 @@
 namespace Sway.Core.Calibration;
 
-/// <summary>Wording for the Set Up Sway window that more than one place needs (SPEC F20, F26), in Windows words.</summary>
+/// <summary>Wording for the Set Up Gander window that more than one place needs (SPEC F20, F26), in Windows words.</summary>
 public static class SetupPresentation
 {
     /// <summary>Title of the welcome step.</summary>
-    public const string WelcomeTitle = "Welcome to Sway";
+    public const string WelcomeTitle = "Welcome to Gander";
 
-    /// <summary>What Sway does.</summary>
-    public const string WelcomeLine = "Look at a monitor, and Sway moves your typing there. The pointer never moves.";
+    /// <summary>What Gander does.</summary>
+    public const string WelcomeLine = "Look at a monitor, and Gander moves your typing there. The pointer never moves.";
 
     /// <summary>The privacy promise.</summary>
     public const string WelcomePrivacy =
-        "Your camera stays private. Sway reads only which way your head is turned, on this PC. "
+        "Your camera stays private. Gander reads only which way your head is turned, on this PC. "
         + "Video is never recorded, saved, or sent anywhere.";
 
     /// <summary>The welcome step's button.</summary>
@@ -30,7 +30,7 @@ public static class SetupPresentation
     /// <summary>Title of the "Needs you" step.</summary>
     public const string NeedsYouTitle = "Camera access";
 
-    /// <summary>What to do when Windows blocks the camera for Sway (camera permission Denied).</summary>
+    /// <summary>What to do when Windows blocks the camera for Gander (camera permission Denied).</summary>
     public const string CameraDeniedMessage =
         "Open Windows Settings, go to Privacy & security > Camera, and allow desktop apps to use the camera. "
         + "This window carries on by itself.";

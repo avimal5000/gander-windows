@@ -402,7 +402,7 @@ public sealed class CalibrationSession : IDisposable
     {
         CalibrationFailure.TooFewDisplays =>
             "Not enough face samples on at least two monitors to calibrate. Keep your face in view of the camera and try again.",
-        _ => "Sway could not read your head angles from the camera. Try again.",
+        _ => "Gander could not read your head angles from the camera. Try again.",
     };
 
     /// <summary>The trace as flat labeled samples for the separability analysis (label = display id, round from the segment).</summary>

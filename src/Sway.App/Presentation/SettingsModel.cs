@@ -143,7 +143,7 @@ public static class SettingsText
 
     /// <summary>The line under the camera picker.</summary>
     public static string CameraHint(int deviceCount) =>
-        deviceCount == 0 ? "No camera found." : "Sway uses this camera only while Tracking is on.";
+        deviceCount == 0 ? "No camera found." : "Gander uses this camera only while Tracking is on.";
 
     /// <summary>"Focus Lock shortcut: Ctrl+Alt+Shift+L", or none.</summary>
     public static string ShortcutValue(HotKeyShortcut? shortcut) =>
@@ -154,7 +154,7 @@ public static class SettingsText
 
     /// <summary>A short summary of the third-party notices.</summary>
     public const string NoticesSummary =
-        "Sway uses ONNX Runtime (MIT) and a face-landmark model from Google MediaPipe (Apache-2.0). " +
+        "Gander uses ONNX Runtime (MIT) and a face-landmark model from Google MediaPipe (Apache-2.0). " +
         "Full license texts are in THIRD-PARTY-NOTICES.md.";
 
     /// <summary>"Version 1.2.3", cutting any build metadata after a plus sign.</summary>
@@ -178,6 +178,6 @@ public sealed record MenuPalette(Rgb Background, Rgb Text, Rgb Disabled, Rgb Hov
         theme.Flat(theme.Line),
         theme.Accent);
 
-    /// <summary>The palette for light or dark with Sway green as the accent.</summary>
+    /// <summary>The palette for light or dark with Gander green as the accent.</summary>
     public static MenuPalette For(bool light) => For(Design.SwayTheme.For(light));
 }

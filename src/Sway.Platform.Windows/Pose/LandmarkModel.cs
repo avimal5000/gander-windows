@@ -91,7 +91,7 @@ internal sealed class LandmarkModel : IDisposable
     }
 
     /// <summary>
-    /// ONNX Runtime's Windows build can emit trace events to the OS diagnostic-data provider. Sway promises nothing
+    /// ONNX Runtime's Windows build can emit trace events to the OS diagnostic-data provider. Gander promises nothing
     /// leaves the PC, so turn that off before any session exists.
     /// </summary>
     private static void EnsureTelemetryOff()

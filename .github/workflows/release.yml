@@ -58,37 +58,37 @@ jobs:
         run: dotnet test Sway.sln --configuration Release --no-build
 
       - name: Publish the app (self-contained, so no .NET install is needed)
-        run: dotnet publish src/Sway.App/Sway.App.csproj --configuration Release --runtime win-x64 --self-contained true -p:Version=${{ steps.version.outputs.version }} --output artifacts/Sway
+        run: dotnet publish src/Sway.App/Sway.App.csproj --configuration Release --runtime win-x64 --self-contained true -p:Version=${{ steps.version.outputs.version }} --output artifacts/Gander
 
       - name: Add the notices and install notes
         shell: bash
         run: |
-          cp THIRD-PARTY-NOTICES.md artifacts/Sway/
-          cp docs/INSTALL.md artifacts/Sway/INSTALL.md
-          test -f artifacts/Sway/Sway.exe
-          test -f artifacts/Sway/models/face_landmark.onnx
+          cp THIRD-PARTY-NOTICES.md artifacts/Gander/
+          cp docs/INSTALL.md artifacts/Gander/INSTALL.md
+          test -f artifacts/Gander/Gander.exe
+          test -f artifacts/Gander/models/face_landmark.onnx
 
       - name: Privacy audit of the published folder
         shell: bash
         run: |
-          if [[ -f scripts/audit-privacy.sh ]]; then scripts/audit-privacy.sh artifacts/Sway; else echo "audit script not present yet"; fi
+          if [[ -f scripts/audit-privacy.sh ]]; then scripts/audit-privacy.sh artifacts/Gander; else echo "audit script not present yet"; fi
 
       - name: Build the installer
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
-          & $iscc "/DAppVersion=${{ steps.version.outputs.version }}" "/DSourceDir=..\artifacts\Sway" installer\Sway.iss
+          & $iscc "/DAppVersion=${{ steps.version.outputs.version }}" "/DSourceDir=..\artifacts\Gander" installer\Sway.iss
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          $name = "Sway-${{ steps.version.outputs.version }}-win-x64-setup.exe"
+          $name = "Gander-${{ steps.version.outputs.version }}-win-x64-setup.exe"
           $hash = (Get-FileHash "artifacts/$name" -Algorithm SHA256).Hash.ToLower()
           "$hash  $name" | Out-File -Encoding ascii "artifacts/$name.sha256"
 
       - name: Zip and checksum
         shell: pwsh
         run: |
-          $name = "Sway-${{ steps.version.outputs.version }}-win-x64.zip"
-          Compress-Archive -Path artifacts/Sway -DestinationPath "artifacts/$name"
+          $name = "Gander-${{ steps.version.outputs.version }}-win-x64.zip"
+          Compress-Archive -Path artifacts/Gander -DestinationPath "artifacts/$name"
           $hash = (Get-FileHash "artifacts/$name" -Algorithm SHA256).Hash.ToLower()
           "$hash  $name" | Out-File -Encoding ascii "artifacts/$name.sha256"
 
@@ -98,10 +98,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${{ steps.version.outputs.tag }}"
-          notes="Unsigned build. Windows SmartScreen will warn the first time: choose More info, then Run anyway. Installer (Sway-...-setup.exe) or portable zip; see INSTALL.md inside the zip. Verify the download against the .sha256 file."
+          notes="Unsigned build. Windows SmartScreen will warn the first time: choose More info, then Run anyway. Installer (Gander-...-setup.exe) or portable zip; see INSTALL.md inside the zip. Verify the download against the .sha256 file."
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists; refusing to overwrite its files." >&2
             exit 1
           else
-            gh release create "$tag" artifacts/Sway-*.zip artifacts/Sway-*.zip.sha256 artifacts/Sway-*-setup.exe artifacts/Sway-*-setup.exe.sha256 --title "Sway for Windows $tag" --notes "$notes" --prerelease
+            gh release create "$tag" artifacts/Gander-*.zip artifacts/Gander-*.zip.sha256 artifacts/Gander-*-setup.exe artifacts/Gander-*-setup.exe.sha256 --title "Gander for Windows $tag" --notes "$notes" --prerelease
           fi
