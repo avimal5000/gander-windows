@@ -37,9 +37,13 @@ Turn on **Start with Windows** in Settings. It writes one value under
 
 ## Uninstall
 
-Quit Sway from the tray, delete the folder, and delete `%LocalAppData%\Sway` (settings and logs). If you turned on Start
+Quit Sway from the tray, delete the folder, and delete `%AppData%\Sway` (settings and calibration) and `%LocalAppData%\Sway` (logs). If you turned on Start
 with Windows, turn it off first in Settings.
 
 ## If something is wrong
 
 Tray menu, Diagnostics, **Copy diagnostics** (no window titles, no images). The log is at `%LocalAppData%\Sway\Logs`.
+
+## About, privacy and terms
+
+Sway for Windows is made by Avi Malhotra and is free for personal use. It collects no data and has no network code. Read the [Privacy Policy](PRIVACY.md) and the [Terms of Service](TERMS.md); both also apply to Sway for macOS.
