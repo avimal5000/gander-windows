@@ -212,6 +212,11 @@ public sealed class FakeFocus : IFocusController
 
     public void ReleasePoll() => Inline.Run(() => _pollHold?.SetResult(true));
 
+    public List<CancellationToken> FocusTokens { get; } = [];
+
+    /// <summary>When true, a cancelled token ends a request with OperationCanceledException (as the Windows controller does).</summary>
+    public bool HonorCancellation { get; set; } = true;
+
     public void HoldFocusRequests()
     {
         _holding = true;
@@ -238,13 +243,23 @@ public sealed class FakeFocus : IFocusController
         return FocusedDisplay;
     }
 
-    public async Task<FocusResult> FocusAsync(DisplayId display, DisplayLayout layout)
+    public async Task<FocusResult> FocusAsync(DisplayId display, DisplayLayout layout, CancellationToken cancellationToken = default)
     {
         FocusCalls.Add(display);
         FocusLayouts.Add(layout);
+        FocusTokens.Add(cancellationToken);
         if (_holding && _hold is { } hold)
         {
             await hold.Task.ConfigureAwait(false);
+            if (HonorCancellation)
+            {
+                cancellationToken.ThrowIfCancellationRequested(); // like the real worker: checked when the queued work finally runs
+            }
+        }
+
+        if (HonorCancellation)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         return Result;

@@ -33,7 +33,12 @@ public interface IFocusController
     /// <summary>The display holding the foreground window, or null when it cannot be told.</summary>
     Task<DisplayId?> FocusedDisplayAsync(DisplayLayout layout);
 
-    Task<FocusResult> FocusAsync(DisplayId display, DisplayLayout layout);
+    /// <summary>
+    /// Focuses the last-used window of <paramref name="display"/>. <paramref name="cancellationToken"/> is checked on the
+    /// worker right before the first thing that changes focus: a request that was queued behind a slow call and is no
+    /// longer wanted (paused, Focus Lock, layout change) ends with <see cref="OperationCanceledException"/> and does nothing.
+    /// </summary>
+    Task<FocusResult> FocusAsync(DisplayId display, DisplayLayout layout, CancellationToken cancellationToken = default);
 }
 
 /// <summary>The monitors, in the same shape the engine uses. Ids are stable across runs for the same monitor.</summary>

@@ -257,15 +257,38 @@ public sealed partial class TrackingController
         FocusResult result;
         try
         {
-            result = await _env.Focus.FocusAsync(target, layout).ConfigureAwait(false);
+            result = await _env.Focus.FocusAsync(target, layout, cts.Token).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (OperationCanceledException)
+        {
+            // Not wanted any more (Focus Lock, a hold, a reset): nothing was focused, and no failure is recorded.
+            Post(() => AbortSwitch(target, epoch, cts));
+            return;
+        }
+        catch (Exception ex)
         {
             result = new FocusResult.Failed(null, ex.Message);
         }
 
         Post(() => FinishSwitch(target, result, held, epoch, cts));
     }
+
+    /// <summary>A focus request was cancelled before it acted: frees the loop without recording an outcome.</summary>
+    private void AbortSwitch(DisplayId target, int epoch, CancellationTokenSource cts)
+    {
+        if (ReferenceEquals(_switchCts, cts))
+        {
+            _switchCts = null;
+        }
+
+        if (epoch == _loop.Epoch && _loop.InFlight == target)
+        {
+            _loop.CancelAttempt();
+        }
+    }
+
+    /// <summary>Tells a focus request that is queued or running not to act (it may still be waiting behind a slow window).</summary>
+    private void CancelPendingSwitch() => _switchCts?.Cancel();
 
     /// <summary>A focus request ended. Ignored when tracking stopped or the loop was reset since it began.</summary>
     private void FinishSwitch(DisplayId target, FocusResult result, double held, int epoch, CancellationTokenSource cts)

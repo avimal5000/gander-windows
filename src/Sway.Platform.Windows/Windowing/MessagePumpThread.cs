@@ -15,7 +15,7 @@ internal sealed class MessagePumpThread : IDisposable
     private const uint WmApp = 0x8000;
 
     private readonly Func<uint, nint, nint, bool> _handler;
-    private readonly ConcurrentQueue<Action> _work = new();
+    private readonly ConcurrentQueue<(Action Run, Action<Exception> Fail)> _work = new();
     private readonly ManualResetEventSlim _ready = new(false);
     private readonly Thread _thread;
     private readonly WindowProc _windowProc;
@@ -23,6 +23,7 @@ internal sealed class MessagePumpThread : IDisposable
     private nint _window;
     private int _threadId;
     private volatile bool _disposed;
+    private volatile bool _stopped; // the message loop has ended: queued work will never run
 
     /// <summary>Starts the thread and waits until its window exists.</summary>
     /// <param name="name">Thread name.</param>
@@ -55,20 +56,23 @@ internal sealed class MessagePumpThread : IDisposable
         }
 
         var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _work.Enqueue(() =>
-        {
-            try
+        _work.Enqueue((
+            () =>
             {
-                completion.SetResult(work());
-            }
-            catch (Exception exception)
-            {
-                completion.SetException(exception);
-            }
-        });
-        if (!PostMessageW(_window, WmApp, 0, 0))
+                try
+                {
+                    completion.SetResult(work());
+                }
+                catch (Exception exception)
+                {
+                    completion.SetException(exception);
+                }
+            },
+            exception => completion.TrySetException(exception)));
+        if (_stopped || !PostMessageW(_window, WmApp, 0, 0))
         {
-            throw new ObjectDisposedException(nameof(MessagePumpThread));
+            // The window is gone (or went while this was queued): nothing will drain the queue, so fail it here.
+            FailPending();
         }
 
         return completion.Task.GetAwaiter().GetResult();
@@ -130,7 +134,18 @@ internal sealed class MessagePumpThread : IDisposable
             System.Diagnostics.Trace.TraceError($"Sway message pump ended: {exception.GetType().Name}");
         }
 
+        _stopped = true;
+        FailPending();
         UnregisterClassW(_className, instance);
+    }
+
+    /// <summary>Faults every queued call so a caller blocked in <see cref="Invoke{T}"/> wakes up when the pump has stopped.</summary>
+    private void FailPending()
+    {
+        while (_work.TryDequeue(out var item))
+        {
+            item.Fail(new ObjectDisposedException(nameof(MessagePumpThread)));
+        }
     }
 
     private nint WndProc(nint window, uint message, nint wParam, nint lParam)
@@ -139,9 +154,9 @@ internal sealed class MessagePumpThread : IDisposable
         {
             if (message == WmApp)
             {
-                while (_work.TryDequeue(out var work))
+                while (_work.TryDequeue(out var item))
                 {
-                    work();
+                    item.Run();
                 }
 
                 return 0;

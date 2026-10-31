@@ -68,6 +68,46 @@ public sealed class WindowsFocusControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task ARequestCancelledBeforeItRunsDoesNothing()
+    {
+        _native.Windows.Add(WindowEligibilityTests.Window(handle: 1, monitor: 10));
+        _native.Foreground = 2;
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _controller.FocusAsync("left", Layout, cancelled.Token));
+
+        Assert.Empty(_native.Calls);
+    }
+
+    [Fact]
+    public async Task ARequestCancelledWhileQueuedBehindASlowCallDoesNothing()
+    {
+        _native.Windows.Add(WindowEligibilityTests.Window(handle: 1, monitor: 10));
+        _native.Foreground = 2;
+        _native.Threads[1] = 11;
+        _native.Threads[2] = 22;
+        _native.SetForegroundWorks = true;
+        using var worker = new SerialWorker("slow");
+        using var controller = new WindowsFocusController(_native, Own, worker);
+        var release = new ManualResetEventSlim(false);
+        var slow = worker.Run(() =>
+        {
+            release.Wait(TimeSpan.FromSeconds(10)); // a hung app holding the worker
+            return 0;
+        });
+        using var cts = new CancellationTokenSource();
+
+        var queued = controller.FocusAsync("left", Layout, cts.Token);
+        cts.Cancel(); // the user paused, or Focus Lock went on, while it waited
+        release.Set();
+        await slow;
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => queued);
+        Assert.Empty(_native.Calls);
+    }
+
+    [Fact]
     public async Task FocusUsesTheAttachRecipeInOrderAndDetaches()
     {
         _native.Windows.Add(WindowEligibilityTests.Window(handle: 1, monitor: 10));
