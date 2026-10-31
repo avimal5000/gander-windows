@@ -12,6 +12,7 @@ using Sway.App.Tray;
 using Sway.App.Windows;
 using Sway.Core.Calibration;
 using Sway.Core.Controller;
+using Sway.Core.Platform;
 using Sway.Core.Runtime;
 using Sway.Platform.Windows;
 using Sway.Platform.Windows.Displays;
@@ -42,6 +43,12 @@ public partial class App : Application
     private WindowsCameraCatalog? _cameras;
     private JsonFileSettingsStore? _settings;
     private DiagnosticsWindow? _diagnostics;
+    private PoseDebugWindow? _poseDebug;
+    private GateTestWindow? _gateTest;
+    private FocusTestWindow? _focusTest;
+    private CameraDemand? _cameraDemand;
+    private IFocusController? _focus;
+    private Func<double>? _clock;
     private SettingsWindow? _settingsWindow;
     private SetupWindow? _calibration;
     private SetupSession? _setup;
@@ -106,6 +113,63 @@ public partial class App : Application
 
         _diagnostics.Show();
         _diagnostics.Activate();
+    }
+
+    /// <summary>Opens (or raises) the Pose Debug window.</summary>
+    public void OpenPoseDebug()
+    {
+        if (_controller is null || _cameraDemand is null || _clock is null)
+        {
+            return;
+        }
+
+        if (_poseDebug is null)
+        {
+            _poseDebug = new PoseDebugWindow(_controller, _cameraDemand, new TraceStore(), () => DateTimeOffset.Now);
+            Track(_poseDebug, "pose-debug");
+            _poseDebug.Closed += (_, _) => _poseDebug = null;
+        }
+
+        _poseDebug.Show();
+        _poseDebug.Activate();
+    }
+
+    /// <summary>Opens (or raises) the Head-Pose Gate Test window.</summary>
+    public void OpenGateTest()
+    {
+        if (_controller is null || _cameraDemand is null || _clock is null)
+        {
+            return;
+        }
+
+        if (_gateTest is null)
+        {
+            _gateTest = new GateTestWindow(_controller, _cameraDemand, _clock, () => DateTimeOffset.Now);
+            Track(_gateTest, "gate-test");
+            _gateTest.Closed += (_, _) => _gateTest = null;
+        }
+
+        _gateTest.Show();
+        _gateTest.Activate();
+    }
+
+    /// <summary>Opens (or raises) the Focus Test window.</summary>
+    public void OpenFocusTest()
+    {
+        if (_controller is null || _focus is null || _clock is null)
+        {
+            return;
+        }
+
+        if (_focusTest is null)
+        {
+            _focusTest = new FocusTestWindow(_controller, _focus, _clock, () => DateTimeOffset.Now);
+            Track(_focusTest, "focus-test");
+            _focusTest.Closed += (_, _) => _focusTest = null;
+        }
+
+        _focusTest.Show();
+        _focusTest.Activate();
     }
 
     /// <summary>Quits: turns the camera off first, then ends the process.</summary>
@@ -228,6 +292,12 @@ public partial class App : Application
             Log = _log.Write,
         };
         _controller = new TrackingController(environment);
+        _clock = environment.Clock;
+        _focus = focus;
+        _cameraDemand = new CameraDemand(
+            _controller.SetCalibrationRunningAsync,
+            () => _controller.TrackingEnabled && _controller.ActiveCalibration is not null && _controller.Layout.Displays.Count >= 2,
+            () => _controller.CalibrationRunning && _cameraDemand?.Holding != true);
 
         _setup = new SetupSession(_controller, environment.MainThread, environment.Scheduler, environment.Clock);
         _overlay = new PromptOverlayHost(_setup.Calibration);
@@ -241,6 +311,9 @@ public partial class App : Application
             OpenCalibration,
             OpenSettings,
             OpenDiagnostics,
+            OpenPoseDebug,
+            OpenGateTest,
+            OpenFocusTest,
             () => _ = QuitAsync(),
             open => SetInFront("menu", open),
             _log.Write);
