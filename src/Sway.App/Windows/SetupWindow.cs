@@ -19,6 +19,7 @@ namespace Sway.App.Windows;
 public sealed class SetupWindow : Window
 {
     private static readonly Color Forest = Color.FromRgb(0x2F, 0x5D, 0x3A);
+    private static readonly Color Sage = Color.FromRgb(0x9C, 0xAF, 0x88);
 
     private readonly SetupSession _session;
     private readonly TextBlock _title = new() { FontSize = 24, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
@@ -51,9 +52,12 @@ public sealed class SetupWindow : Window
         Background = new SolidColorBrush(light ? Color.FromRgb(0xF6, 0xF3, 0xEA) : Color.FromRgb(0x2B, 0x2B, 0x2B));
         Foreground = new SolidColorBrush(light ? Color.FromRgb(0x2B, 0x2B, 0x2B) : Color.FromRgb(0xF6, 0xF3, 0xEA));
 
-        _primary.Background = new SolidColorBrush(Forest);
-        _primary.Foreground = Brushes.White;
-        _primary.BorderBrush = new SolidColorBrush(Forest);
+        // Forest green on charcoal is too dim, so dark mode uses sage with charcoal text.
+        var accent = light ? Forest : Sage;
+        _primary.Background = new SolidColorBrush(accent);
+        _primary.Foreground = new SolidColorBrush(light ? Colors.White : Color.FromRgb(0x2B, 0x2B, 0x2B));
+        _primary.BorderBrush = new SolidColorBrush(accent);
+        _bar.Foreground = new SolidColorBrush(accent);
         _primary.Click += (_, _) => Run(_view?.Primary);
         _secondary.Click += (_, _) => Run(_view?.Secondary);
         AutomationProperties.SetName(_primary, "Primary action");
