@@ -1,6 +1,6 @@
 # Gander installer
 
-`Sway.iss` is an [Inno Setup 6](https://jrsoftware.org/isinfo.php) script. It packs the published self-contained folder
+`Gander.iss` is an [Inno Setup 6](https://jrsoftware.org/isinfo.php) script. It packs the published self-contained folder
 into `Gander-<version>-win-x64-setup.exe`.
 
 - Per-user by default (`%LocalAppData%\Programs\Gander`, no administrator prompt). The first page offers "all users"
@@ -14,10 +14,10 @@ into `Gander-<version>-win-x64-setup.exe`.
 ## Build in CI
 
 Inno Setup 6 is preinstalled on `windows-latest` (`C:\Program Files (x86)\Inno Setup 6\ISCC.exe`; otherwise
-`choco install innosetup -y`). After `dotnet publish ... --output artifacts/Sway` and the notices copy step:
+`choco install innosetup -y`). After `dotnet publish ... --output artifacts/Gander` and the notices copy step:
 
 ```powershell
-& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" "/DSourceDir=..\artifacts\Gander" installer\Sway.iss
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" "/DSourceDir=..\artifacts\Gander" installer\Gander.iss
 ```
 
 Output: `artifacts\Gander-<version>-win-x64-setup.exe`. Write a `.sha256` next to it and upload both to the release.
@@ -27,9 +27,9 @@ Output: `artifacts\Gander-<version>-win-x64-setup.exe`. Write a `.sha256` next t
 ## Test locally on Windows
 
 ```powershell
-dotnet publish src\Sway.App\Sway.App.csproj -c Release -r win-x64 --self-contained true -o artifacts\Gander
+dotnet publish src\Gander.App\Gander.App.csproj -c Release -r win-x64 --self-contained true -o artifacts\Gander
 cd installer
-& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=0.1.0 /DSourceDir=..\artifacts\Gander Sway.iss
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=0.1.0 /DSourceDir=..\artifacts\Gander Gander.iss
 ```
 
 Then run `..\artifacts\Gander-0.1.0-win-x64-setup.exe`. Check: install, tick the sign-in task and confirm Gander's Settings

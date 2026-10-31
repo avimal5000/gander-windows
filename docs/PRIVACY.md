@@ -39,7 +39,7 @@ Everything below stays on your computer. None of it is sent to me or anyone else
 
 **macOS**
 
-- Settings and calibration are in the app's preferences (`UserDefaults`), under the bundle ID `com.avimal5000.sway`.
+- Settings and calibration are in the app's preferences (`UserDefaults`), under the bundle ID `com.avimal5000.gander`.
 - Gander writes status messages to the macOS system log (not to its own file). These name the app and the monitor involved in a switch. They never include window titles.
 - In developer (Debug) builds only, you can record a pose trace in Pose Debug. A trace is a list of head angles with timestamps, saved in `~/Library/Application Support/Gander/Traces`. Normal downloads do not save traces.
 - Pose Debug can copy a text summary of a pose trace (head angles, no images) to your clipboard. This happens only when you click the button.
@@ -90,7 +90,7 @@ I hold no personal data about you, so there is nothing for me to access, correct
 
 **Delete your data**
 
-*macOS:* quit Gander, then in Terminal run `defaults delete com.avimal5000.sway`, and delete `~/Library/Application Support/Gander` if it exists. Delete Gander from Applications. To remove permissions, open System Settings, Privacy & Security, and remove Gander from Camera and Accessibility. If you enabled start at login, turn it off first in Gander's settings or in System Settings, General, Login Items.
+*macOS:* quit Gander, then in Terminal run `defaults delete com.avimal5000.gander`, and delete `~/Library/Application Support/Gander` if it exists. Delete Gander from Applications. To remove permissions, open System Settings, Privacy & Security, and remove Gander from Camera and Accessibility. If you enabled start at login, turn it off first in Gander's settings or in System Settings, General, Login Items.
 
 *Windows:* turn off "Start with Windows" in Gander's Settings if you turned it on, then quit Gander from the tray. Delete the Gander folder you unzipped. Delete `%AppData%\Gander` (settings and calibration) and `%LocalAppData%\Gander` (logs).
 

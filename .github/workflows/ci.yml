@@ -33,31 +33,31 @@ jobs:
         run: scripts/fetch-pose-model.sh
 
       - name: Format
-        run: dotnet format Sway.sln --verify-no-changes
+        run: dotnet format Gander.sln --verify-no-changes
 
       - name: Build (warnings are errors)
-        run: dotnet build Sway.sln --configuration Release
+        run: dotnet build Gander.sln --configuration Release
 
       - name: Test
-        run: dotnet test Sway.sln --configuration Release --no-build
+        run: dotnet test Gander.sln --configuration Release --no-build
 
       # The downloads the user tries on the Windows desktop. Self-contained, so no .NET install is needed there.
       - name: Publish the app
-        run: dotnet publish src/Sway.App/Sway.App.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/app
+        run: dotnet publish src/Gander.App/Gander.App.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/app
 
       - name: Build the installer (compile check)
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
-          & $iscc "/DAppVersion=0.0.0-ci" "/DSourceDir=..\artifacts\app" installer\Sway.iss
+          & $iscc "/DAppVersion=0.0.0-ci" "/DSourceDir=..\artifacts\app" installer\Gander.iss
           if ($LASTEXITCODE -ne 0) { exit 1 }
           $name = "Gander-0.0.0-ci-win-x64-setup.exe"
           $hash = (Get-FileHash "artifacts/$name" -Algorithm SHA256).Hash.ToLower()
           "$hash  $name" | Out-File -Encoding ascii "artifacts/$name.sha256"
 
       - name: Publish the spike tools
-        run: dotnet publish src/Sway.Tools/Sway.Tools.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output artifacts/tools
+        run: dotnet publish src/Gander.Tools/Gander.Tools.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output artifacts/tools
 
       - name: Upload the app
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -76,6 +76,6 @@ jobs:
       - name: Upload the spike tools
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: SwayTools-win-x64
+          name: GanderTools-win-x64
           path: artifacts/tools
           retention-days: 14

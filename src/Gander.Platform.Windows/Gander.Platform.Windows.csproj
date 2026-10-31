@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Camera, pose, displays, windows, focus, session events. Windows only. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The one allowed third-party dependency (SPEC D4): local inference only, no network code. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The face model is fetched by scripts/fetch-pose-model.sh and never committed. It flows to every project that
+         references this one. -->
+    <Content Include="models\*.onnx" CopyToOutputDirectory="PreserveNewest" LinkBase="models" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gander.Core\Gander.Core.csproj" />
+  </ItemGroup>
+
+</Project>

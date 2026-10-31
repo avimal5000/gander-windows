@@ -40,9 +40,9 @@ if [[ -n "$hits" ]]; then
   exit 1
 fi
 
-# The model is pinned twice (the fetch script and the runtime check in Sway.Core); the two must agree.
+# The model is pinned twice (the fetch script and the runtime check in Gander.Core); the two must agree.
 script_sha=$(sed -n 's/^SHA256="\([0-9a-f]\{64\}\)"$/\1/p' scripts/fetch-pose-model.sh)
-code_sha=$(sed -n 's/.*PinnedSha256 = "\([0-9a-f]\{64\}\)";.*/\1/p' src/Sway.Core/ModelIntegrity.cs)
+code_sha=$(sed -n 's/.*PinnedSha256 = "\([0-9a-f]\{64\}\)";.*/\1/p' src/Gander.Core/ModelIntegrity.cs)
 if [[ -z "$script_sha" || "$script_sha" != "$code_sha" ]]; then
   echo "Privacy guard FAILED. The model SHA-256 in scripts/fetch-pose-model.sh and ModelIntegrity.PinnedSha256 differ." >&2
   exit 1

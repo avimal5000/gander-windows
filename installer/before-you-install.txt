@@ -4,7 +4,7 @@ Your privacy
 
 - The camera is used on this PC only. Nothing leaves your PC: Gander has no network code.
 - No video and no pictures are saved. Gander keeps only head-angle numbers, your display layout and your settings.
-- Settings are stored in %AppData%\Gander and logs in %LocalAppData%\Sway. The uninstaller asks before deleting them.
+- Settings are stored in %AppData%\Gander and logs in %LocalAppData%\Gander. The uninstaller asks before deleting them.
 - Gander never moves your mouse pointer and never types for you.
 
 Windows SmartScreen

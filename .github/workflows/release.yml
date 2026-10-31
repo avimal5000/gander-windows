@@ -49,16 +49,16 @@ jobs:
         run: scripts/fetch-pose-model.sh
 
       - name: Format
-        run: dotnet format Sway.sln --verify-no-changes
+        run: dotnet format Gander.sln --verify-no-changes
 
       - name: Build
-        run: dotnet build Sway.sln --configuration Release -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet build Gander.sln --configuration Release -p:Version=${{ steps.version.outputs.version }}
 
       - name: Test
-        run: dotnet test Sway.sln --configuration Release --no-build
+        run: dotnet test Gander.sln --configuration Release --no-build
 
       - name: Publish the app (self-contained, so no .NET install is needed)
-        run: dotnet publish src/Sway.App/Sway.App.csproj --configuration Release --runtime win-x64 --self-contained true -p:Version=${{ steps.version.outputs.version }} --output artifacts/Gander
+        run: dotnet publish src/Gander.App/Gander.App.csproj --configuration Release --runtime win-x64 --self-contained true -p:Version=${{ steps.version.outputs.version }} --output artifacts/Gander
 
       - name: Add the notices and install notes
         shell: bash
@@ -78,7 +78,7 @@ jobs:
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
-          & $iscc "/DAppVersion=${{ steps.version.outputs.version }}" "/DSourceDir=..\artifacts\Gander" installer\Sway.iss
+          & $iscc "/DAppVersion=${{ steps.version.outputs.version }}" "/DSourceDir=..\artifacts\Gander" installer\Gander.iss
           if ($LASTEXITCODE -ne 0) { exit 1 }
           $name = "Gander-${{ steps.version.outputs.version }}-win-x64-setup.exe"
           $hash = (Get-FileHash "artifacts/$name" -Algorithm SHA256).Hash.ToLower()
