@@ -93,6 +93,13 @@ public sealed partial class TrackingController : IDisposable
     /// <summary>Raised on the main thread when the Focus Lock shortcut was pressed (the UI may show a notice, SPEC F28).</summary>
     public event Action<bool>? FocusLockToggledByShortcut;
 
+    /// <summary>
+    /// Raised on the main thread for every pose sample the running source delivers (face or no face), before the
+    /// tracking loop sees it. The calibration session and the camera check read the live pose through it. Handlers must
+    /// be quick; it fires at the frame rate.
+    /// </summary>
+    public event Action<TimedPose>? PoseObserved;
+
     // MARK: Observable state
 
     /// <summary>Latest lifecycle state of the camera session.</summary>

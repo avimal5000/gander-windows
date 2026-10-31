@@ -442,6 +442,7 @@ public sealed partial class TrackingController
         }
 
         _backoff.FramesFlowed();
+        PoseObserved?.Invoke(sample);
         ProcessTracking(sample);
     }
 
