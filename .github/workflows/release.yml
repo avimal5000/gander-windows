@@ -73,6 +73,17 @@ jobs:
         run: |
           if [[ -f scripts/audit-privacy.sh ]]; then scripts/audit-privacy.sh artifacts/Sway; else echo "audit script not present yet"; fi
 
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc "/DAppVersion=${{ steps.version.outputs.version }}" "/DSourceDir=..\artifacts\Sway" installer\Sway.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $name = "Sway-${{ steps.version.outputs.version }}-win-x64-setup.exe"
+          $hash = (Get-FileHash "artifacts/$name" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name" | Out-File -Encoding ascii "artifacts/$name.sha256"
+
       - name: Zip and checksum
         shell: pwsh
         run: |
@@ -87,10 +98,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${{ steps.version.outputs.tag }}"
-          notes="Unsigned build. Windows SmartScreen will warn the first time: choose More info, then Run anyway. See INSTALL.md inside the zip. Verify the download against the .sha256 file."
+          notes="Unsigned build. Windows SmartScreen will warn the first time: choose More info, then Run anyway. Installer (Sway-...-setup.exe) or portable zip; see INSTALL.md inside the zip. Verify the download against the .sha256 file."
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists; refusing to overwrite its files." >&2
             exit 1
           else
-            gh release create "$tag" artifacts/Sway-*.zip artifacts/Sway-*.zip.sha256 --title "Sway for Windows $tag" --notes "$notes" --prerelease
+            gh release create "$tag" artifacts/Sway-*.zip artifacts/Sway-*.zip.sha256 artifacts/Sway-*-setup.exe artifacts/Sway-*-setup.exe.sha256 --title "Sway for Windows $tag" --notes "$notes" --prerelease
           fi

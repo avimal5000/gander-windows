@@ -45,6 +45,17 @@ jobs:
       - name: Publish the app
         run: dotnet publish src/Sway.App/Sway.App.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/app
 
+      - name: Build the installer (compile check)
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc "/DAppVersion=0.0.0-ci" "/DSourceDir=..\artifacts\app" installer\Sway.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $name = "Sway-0.0.0-ci-win-x64-setup.exe"
+          $hash = (Get-FileHash "artifacts/$name" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name" | Out-File -Encoding ascii "artifacts/$name.sha256"
+
       - name: Publish the spike tools
         run: dotnet publish src/Sway.Tools/Sway.Tools.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output artifacts/tools
 
@@ -53,6 +64,13 @@ jobs:
         with:
           name: Sway-win-x64
           path: artifacts/app
+          retention-days: 14
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Sway-setup-win-x64
+          path: artifacts/Sway-0.0.0-ci-win-x64-setup.exe
           retention-days: 14
 
       - name: Upload the spike tools
