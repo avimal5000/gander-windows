@@ -17,6 +17,9 @@ public enum TrayCommand
     SelectCamera,
     Calibrate,
     Settings,
+    PoseDebug,
+    GateTest,
+    FocusTest,
     Diagnostics,
     OpenCameraSettings,
     Quit,
@@ -148,7 +151,7 @@ public sealed record TrayMenuInput(
 /// <summary>
 /// Builds the tray menu from state, in the Mac popover's order: the mark and name, the status line, at most one banner,
 /// the Tracking and Focus Lock switches, the "Looking at" line, the camera picker, then Calibrate, Settings,
-/// Diagnostics and Quit. Pure, so the order, the check marks and the wording are tested.
+/// the three debug windows (Pose Debug, Head-Pose Gate Test, Focus Test, as on the Mac), Diagnostics and Quit. Pure, so the order, the check marks and the wording are tested.
 /// </summary>
 public static class TrayMenuModel
 {
@@ -157,6 +160,15 @@ public static class TrayMenuModel
 
     /// <summary>The camera row that means "whatever Windows picks".</summary>
     public const string DefaultCameraText = SettingsWording.DefaultCamera;
+
+    /// <summary>The Mac's "Pose Debug Window…" row.</summary>
+    public const string PoseDebugText = "Pose Debug Window…";
+
+    /// <summary>The Mac's "Head-Pose Gate Test…" row.</summary>
+    public const string GateTestText = "Head-Pose Gate Test…";
+
+    /// <summary>The Mac's "Focus Test Window…" row.</summary>
+    public const string FocusTestText = "Focus Test Window…";
 
     /// <summary>The menu, top to bottom.</summary>
     public static IReadOnlyList<TrayMenuEntry> Build(TrayMenuInput input)
@@ -189,6 +201,9 @@ public static class TrayMenuModel
         entries.Add(TrayMenuEntry.Separator);
         entries.Add(new TrayMenuEntry("Calibrate…", TrayCommand.Calibrate));
         entries.Add(new TrayMenuEntry("Settings…", TrayCommand.Settings));
+        entries.Add(new TrayMenuEntry(PoseDebugText, TrayCommand.PoseDebug));
+        entries.Add(new TrayMenuEntry(GateTestText, TrayCommand.GateTest));
+        entries.Add(new TrayMenuEntry(FocusTestText, TrayCommand.FocusTest));
         entries.Add(new TrayMenuEntry("Diagnostics…", TrayCommand.Diagnostics));
         entries.Add(TrayMenuEntry.Separator);
         entries.Add(new TrayMenuEntry("Quit Sway", TrayCommand.Quit));

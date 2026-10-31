@@ -12,20 +12,30 @@ namespace Sway.App.Windows;
 /// </summary>
 public sealed class PromptOverlayHost : IDisposable
 {
-    private readonly CalibrationSession _calibration;
+    private readonly CalibrationSession? _calibration;
     private readonly Dictionary<DisplayId, PromptOverlayWindow> _windows = [];
 
-    /// <summary>Starts following <paramref name="calibration"/>.</summary>
-    public PromptOverlayHost(CalibrationSession calibration)
+    /// <summary>
+    /// Starts following <paramref name="calibration"/>. With none, the owner calls <see cref="Show"/> itself (the Gate Test
+    /// window does).
+    /// </summary>
+    public PromptOverlayHost(CalibrationSession? calibration = null)
     {
         _calibration = calibration;
-        _calibration.Changed += Update;
+        if (_calibration is not null)
+        {
+            _calibration.Changed += Update;
+        }
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
-        _calibration.Changed -= Update;
+        if (_calibration is not null)
+        {
+            _calibration.Changed -= Update;
+        }
+
         foreach (var window in _windows.Values)
         {
             window.Close();
@@ -34,9 +44,12 @@ public sealed class PromptOverlayHost : IDisposable
         _windows.Clear();
     }
 
-    private void Update()
+    private void Update() =>
+        Show(_calibration is { State: CalibrationState.Running } calibration ? calibration.Progress : null);
+
+    /// <summary>Shows the marker for <paramref name="progress"/> on its monitor and hides every other; null hides all.</summary>
+    public void Show(GateProgress? progress)
     {
-        var progress = _calibration.State == CalibrationState.Running ? _calibration.Progress : null;
         foreach (var (id, window) in _windows)
         {
             if (progress is null || id != progress.Display.Id)

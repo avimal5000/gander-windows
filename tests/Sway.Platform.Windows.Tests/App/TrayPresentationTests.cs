@@ -73,12 +73,33 @@ public sealed class TrayPresentationTests
         var menu = TrayMenuModel.Build(Input());
         var texts = menu.Where(e => !e.IsSeparator).Select(e => e.Text).ToList();
         Assert.Equal(
-            ["Sway", "Tracking · Cam", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Diagnostics…", "Quit Sway"],
+            ["Sway", "Tracking · Cam", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Pose Debug Window…", "Head-Pose Gate Test…", "Focus Test Window…", "Diagnostics…", "Quit Sway"],
             texts);
         Assert.Equal(TrayEntryRole.Header, menu[0].Role);
         Assert.Equal(TrayEntryRole.Status, menu[1].Role);
         Assert.False(menu[1].Enabled);
         Assert.Equal(StatusTone.Active, menu[1].Tone);
+    }
+
+    [Fact]
+    public void DebugWindowsAreReachableFromTheMenuInTheMacOrder()
+    {
+        var menu = TrayMenuModel.Build(Input()).Where(e => !e.IsSeparator).ToList();
+        var commands = menu.Select(e => e.Command).ToList();
+        var calibrate = commands.IndexOf(TrayCommand.Calibrate);
+        Assert.Equal(
+            [TrayCommand.Calibrate, TrayCommand.Settings, TrayCommand.PoseDebug, TrayCommand.GateTest, TrayCommand.FocusTest, TrayCommand.Diagnostics, TrayCommand.Quit],
+            commands.Skip(calibrate).ToList());
+        Assert.All(
+            menu.Where(e => e.Command is TrayCommand.PoseDebug or TrayCommand.GateTest or TrayCommand.FocusTest),
+            e =>
+            {
+                Assert.True(e.Enabled);
+                Assert.EndsWith("…", e.Text, StringComparison.Ordinal);
+            });
+        Assert.Equal("Pose Debug Window…", TrayMenuModel.PoseDebugText);
+        Assert.Equal("Head-Pose Gate Test…", TrayMenuModel.GateTestText);
+        Assert.Equal("Focus Test Window…", TrayMenuModel.FocusTestText);
     }
 
     [Fact]

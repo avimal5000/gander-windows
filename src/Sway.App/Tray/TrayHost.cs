@@ -20,6 +20,9 @@ public sealed class TrayHost : IDisposable
     private readonly Action _openCalibration;
     private readonly Action _openSettings;
     private readonly Action _openDiagnostics;
+    private readonly Action _openPoseDebug;
+    private readonly Action _openGateTest;
+    private readonly Action _openFocusTest;
     private readonly Action _quit;
     private readonly Action<string> _log;
     private readonly Action<bool> _menuOpen;
@@ -35,6 +38,9 @@ public sealed class TrayHost : IDisposable
         Action openCalibration,
         Action openSettings,
         Action openDiagnostics,
+        Action openPoseDebug,
+        Action openGateTest,
+        Action openFocusTest,
         Action quit,
         Action<bool> menuOpen,
         Action<string> log)
@@ -43,6 +49,9 @@ public sealed class TrayHost : IDisposable
         _openCalibration = openCalibration;
         _openSettings = openSettings;
         _openDiagnostics = openDiagnostics;
+        _openPoseDebug = openPoseDebug;
+        _openGateTest = openGateTest;
+        _openFocusTest = openFocusTest;
         _quit = quit;
         _menuOpen = menuOpen;
         _log = log;
@@ -207,6 +216,15 @@ public sealed class TrayHost : IDisposable
                 break;
             case TrayCommand.Settings:
                 _openSettings();
+                break;
+            case TrayCommand.PoseDebug:
+                _openPoseDebug();
+                break;
+            case TrayCommand.GateTest:
+                _openGateTest();
+                break;
+            case TrayCommand.FocusTest:
+                _openFocusTest();
                 break;
             case TrayCommand.Diagnostics:
                 _openDiagnostics();

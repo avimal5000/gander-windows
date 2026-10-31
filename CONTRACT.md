@@ -459,3 +459,30 @@ minimum width, rounded anti-aliased hover, accent-colored drawn check marks (Tra
 muted disabled text, a bold accent status line at the top (first entry, tagged "status"), and Windows 11 rounded corners
 through `DwmSetWindowAttribute` (ignored on older Windows). `TrayMenuModel` gained one entry, "Settings…", before
 "Calibrate…". Only compiled on the Mac; the look needs a check on the PC.
+
+## Debug windows (Pose Debug, Head-Pose Gate Test, Focus Test)
+
+`src/Sway.App/Windows/{PoseDebug,GateTest,FocusTest}Window.cs` are the Mac tools of the same names, opened from the tray menu
+after Settings ("Pose Debug Window…", "Head-Pose Gate Test…", "Focus Test Window…"; `TrayCommand.PoseDebug/GateTest/FocusTest`).
+Their logic is in `Presentation/PoseDebugModel.cs`, `GateTestModel.cs` and `FocusTestModel.cs` (tests in
+`tests/Sway.Platform.Windows.Tests/App`).
+
+- **Camera.** `Hosting/CameraDemand` is the one owner of `SetCalibrationRunningAsync` for these windows: the first owner turns
+  the hold on, the last turns it off. Pose Debug asks without `exclusive` and so holds only when Tracking is not already
+  running the camera (it re-checks on every `StateChanged`); the Gate Test is `exclusive` (no switching during the run). A hold
+  taken by the Set up window is left alone. Pose Debug also calls `SetPoseDebugVisible` (full frame rate; false when minimized
+  or closed); Focus Test calls `SetFocusTestVisible`.
+- **Pose Debug.** Follows `PoseObserved`. Readout refreshes every 0.2 s of sample time (`LiveReadout`); two 10 s plots (yaw,
+  pitch) draw the face samples and, with an active calibration, one band per display (mean plus or minus 2 standard deviations,
+  at least 1 degree). Recording is `TraceRecorder` (numbers, face flag, times from the first sample; stops at 9000 samples) written
+  by `TraceStore` as the Core `PoseTrace` JSON to `%LocalAppData%\Sway\Traces\pose-trace-<local time>.json` when the user presses
+  Stop and save, the camera stops, or the window closes. "Copy summary" writes `PoseDebugSummary` to the clipboard on click only.
+- **Gate Test.** `GateRun` (camera wait with a 10 s timeout, the Core `GateTestSession`, `SeparabilityAnalyzer`) and `GateReport`
+  (badge GO / MARGINAL / NO-GO / INSUFFICIENT DATA, tables, Markdown). The marker on each display is the existing prompt overlay
+  (`PromptOverlayHost.Show`). The trace is not saved and no calibration is fitted from it.
+- **Focus Test.** Rows from the layout with the last-used window's app name (never a title, which Windows never gives Sway),
+  Focus and Focus in 3 s per display, one request at a time, a log of the last 10 results. Calls `IFocusController.FocusAsync`
+  directly (the same adapter the controller uses); no cursor API.
+- Differences from the Mac: no Accessibility card; no live guess or switch preview card (the "Looking at" line is shown); no
+  schematic face box; the log line also names the display; the Gate Test has no camera picker or Open Trace button and the
+  Windows verdict names come from `SeparabilityAnalyzer`.
