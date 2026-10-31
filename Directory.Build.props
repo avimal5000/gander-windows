@@ -7,6 +7,10 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
     <Deterministic>true</Deterministic>
+    <!-- A known vulnerability at moderate or above in any package (also transitive) fails the build, because warnings are errors. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
     <!-- Lets the Windows-only projects compile on macOS and Linux (they run only on Windows). -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Version>0.1.0</Version>
