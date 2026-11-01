@@ -1,9 +1,9 @@
 # Gander Privacy Policy
 
 **Applies to:** Gander for macOS and Gander for Windows.
-**Effective date:** 2026-10-30
+**Effective date:** 2026-10-31
 **Operator:** Avi Malhotra, an individual developer (GitHub: [avimal5000](https://github.com/avimal5000)).
-**Contact:** [add contact email before publishing]
+**Contact:** [GitHub Issues](https://github.com/avimal5000/gander/issues)
 
 > This is a plain-language draft, not legal advice. It should be reviewed by a lawyer before commercial use.
 
@@ -80,6 +80,10 @@ Gander is distributed through the GitHub Releases page of its repository ([macOS
 
 The downloads may not be signed or notarized, so macOS or Windows SmartScreen may warn you when you first open them. That warning is about who signed the file. It is not about network use.
 
+## This website
+
+This website is a static page. It has no accounts, no forms, no cookies set by the site, and no analytics or advertising scripts. Like any web host, the company that serves the site may keep ordinary server logs (for example your IP address and the page you asked for). I do not receive those logs as personal data about you, and this policy does not cover the host's own handling of them.
+
 ## Children
 
 Gander is a general-purpose utility, not aimed at children. Because Gander collects nothing, it does not knowingly collect data from children. If a child uses a computer with Gander, a parent or guardian is responsible for that use. See also "Camera and other people" in the Terms.
@@ -100,4 +104,4 @@ If I change this policy, I will update the effective date at the top and publish
 
 ## Contact
 
-[add contact email before publishing]. You can also open an issue on the GitHub repository.
+You can reach the operator by [opening an issue on GitHub](https://github.com/avimal5000/gander/issues).
