@@ -224,4 +224,92 @@ public sealed class SetupFlowTests
             Assert.Equal(step, flow.Step);
         }
     }
+
+    [Fact]
+    public void TheIntroOpensOnItsFirstPageAndHasFourPages()
+    {
+        Assert.Equal(4, SetupFlow.IntroPageCount);
+        var flow = new SetupFlow(true, true);
+        Assert.Equal(0, flow.IntroPage);
+        Assert.False(flow.IsLastIntroPage);
+    }
+
+    [Fact]
+    public void NextTurnsThePagesAndTheLastOneLeavesLikeGetStarted()
+    {
+        var flow = new SetupFlow(false, true);
+        for (var page = 1; page < SetupFlow.IntroPageCount; page++)
+        {
+            flow.NextIntro(false);
+            Assert.Equal(page, flow.IntroPage);
+            Assert.Equal(SetupStep.Welcome, flow.Step);
+        }
+
+        Assert.True(flow.IsLastIntroPage);
+        flow.NextIntro(false);
+        Assert.Equal(SetupStep.NeedsYou, flow.Step);
+
+        var allowed = new SetupFlow(true, true);
+        for (var page = 0; page < SetupFlow.IntroPageCount; page++)
+        {
+            allowed.NextIntro(true);
+        }
+
+        Assert.Equal(SetupStep.CameraCheck, allowed.Step);
+    }
+
+    [Fact]
+    public void BackStopsAtTheFirstPage()
+    {
+        var flow = new SetupFlow(true, true);
+        flow.BackIntro();
+        Assert.Equal(0, flow.IntroPage);
+        flow.NextIntro(true);
+        flow.NextIntro(true);
+        flow.BackIntro();
+        Assert.Equal(1, flow.IntroPage);
+        flow.BackIntro();
+        flow.BackIntro();
+        Assert.Equal(0, flow.IntroPage);
+    }
+
+    [Theory]
+    [InlineData(0, true, SetupStep.CameraCheck)]
+    [InlineData(2, true, SetupStep.CameraCheck)]
+    [InlineData(1, false, SetupStep.NeedsYou)]
+    public void SkipLeavesFromAnyPageToTheFirstStepThatApplies(int pages, bool cameraAllowed, SetupStep expected)
+    {
+        var flow = new SetupFlow(cameraAllowed, true);
+        for (var i = 0; i < pages; i++)
+        {
+            flow.NextIntro(cameraAllowed);
+        }
+
+        flow.SkipIntro(cameraAllowed);
+        Assert.Equal(expected, flow.Step);
+    }
+
+    [Fact]
+    public void IntroMovesDoNothingOutsideTheWelcome()
+    {
+        foreach (var step in AllSteps.Where(s => s != SetupStep.Welcome))
+        {
+            var flow = At(step);
+            flow.NextIntro(true);
+            flow.BackIntro();
+            flow.SkipIntro(true);
+            Assert.Equal(step, flow.Step);
+            Assert.Equal(0, flow.IntroPage);
+        }
+    }
+
+    [Fact]
+    public void ThePermissionDoesNotTurnTheIntroPages()
+    {
+        var flow = new SetupFlow(false, true);
+        flow.NextIntro(false);
+        flow.Update(true);
+        Assert.Equal(1, flow.IntroPage);
+        Assert.Equal(SetupStep.Welcome, flow.Step);
+    }
 }

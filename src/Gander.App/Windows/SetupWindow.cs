@@ -33,10 +33,9 @@ public sealed class SetupWindow : Window
     private readonly Button _secondary;
     private readonly StackPanel _header = new() { Orientation = Orientation.Horizontal };
     private readonly StackPanel _content = new();
-    private readonly StackPanel _welcome = new() { HorizontalAlignment = HorizontalAlignment.Center };
-    private TextBlock _welcomeTitle = null!;
-    private TextBlock _welcomeLine = null!;
-    private TextBlock _welcomePrivacy = null!;
+    private readonly OnboardingIntro _intro;
+    private readonly Border _page;
+    private readonly Brush _paper;
     private readonly StackPanel _buttons = new() { Orientation = Orientation.Horizontal };
     private readonly StackPanel _root = new();
     private SetupView? _view;
@@ -97,7 +96,10 @@ public sealed class SetupWindow : Window
         _content.Children.Add(_bar);
         _content.Children.Add(_caption);
 
-        BuildWelcome(theme);
+        // The walkthrough sits on ivory paper (charcoal in dark); the numbered steps keep the window surface.
+        _paper = GanderStyle.Brush(OnboardingArt.PaperColor(theme));
+        _intro = new OnboardingIntro(s);
+        _intro.Invoked += Run;
 
         _buttons.Margin = new Thickness(0, 18, 0, 0);
         _buttons.Children.Add(_primary);
@@ -106,10 +108,11 @@ public sealed class SetupWindow : Window
         _header.Margin = new Thickness(0, 0, 0, 18);
         _root.Margin = new Thickness(GanderDesign.Space.SetupPadding);
         _root.Children.Add(_header);
-        _root.Children.Add(_welcome);
+        _root.Children.Add(_intro.Root);
         _root.Children.Add(_content);
         _root.Children.Add(_buttons);
-        Content = new Border { Child = _root, Background = s.Surface };
+        _page = new Border { Child = _root, Background = s.Surface };
+        Content = _page;
 
         PreviewKeyDown += OnKeyDown;
         Loaded += (_, _) =>
@@ -124,50 +127,6 @@ public sealed class SetupWindow : Window
             _session.Changed -= Apply;
             _session.Close();
         };
-    }
-
-    // The welcome step: the mark on a tile like the app icon, what Gander does, and the privacy promise.
-    private void BuildWelcome(GanderTheme theme)
-    {
-        var side = GanderDesign.Size.WelcomeTile;
-        var tile = new Border
-        {
-            Width = side,
-            Height = side,
-            CornerRadius = new CornerRadius(side * GanderDesign.Radius.TileRatio),
-            Background = GanderStyle.Brush(theme.IsLight ? GanderDesign.Ivory : GanderDesign.Charcoal),
-            BorderBrush = _style.Line,
-            BorderThickness = new Thickness(GanderDesign.Space.Hairline),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Child = GanderStyle.MakeMark(side, theme.Green, GanderDesign.Sage, unitSquare: true),
-        };
-        _welcomeTitle = _style.Label(string.Empty, GanderDesign.Type.Title);
-        _welcomeTitle.TextAlignment = TextAlignment.Center;
-        _welcomeTitle.Margin = new Thickness(0, 14, 0, 0);
-        _welcomeLine = _style.Label(string.Empty, GanderDesign.Type.Title3);
-        _welcomeLine.TextAlignment = TextAlignment.Center;
-        _welcomeLine.MaxWidth = GanderDesign.Size.WelcomeTextWidth;
-        _welcomeLine.Margin = new Thickness(0, 14, 0, 0);
-        _welcomePrivacy = _style.Label(string.Empty, GanderDesign.Type.Callout, secondary: true);
-        _welcomePrivacy.MaxWidth = GanderDesign.Size.WelcomeTextWidth;
-
-        var lockGlyph = new TextBlock
-        {
-            Text = "\uE72E",
-            FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
-            FontSize = GanderDesign.Type.Callout.Size,
-            Foreground = _style.Accent,
-            Margin = new Thickness(0, 1, 8, 0),
-            VerticalAlignment = VerticalAlignment.Top,
-        };
-        var privacy = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 0), HorizontalAlignment = HorizontalAlignment.Center };
-        privacy.Children.Add(lockGlyph);
-        privacy.Children.Add(_welcomePrivacy);
-
-        _welcome.Children.Add(tile);
-        _welcome.Children.Add(_welcomeTitle);
-        _welcome.Children.Add(_welcomeLine);
-        _welcome.Children.Add(privacy);
     }
 
     private void OnKeyDown(object sender, KeyEventArgs e)
@@ -203,21 +162,22 @@ public sealed class SetupWindow : Window
             _session.Calibration.IsActive,
             _session.Calibration.Prompt,
             _session.Calibration.Progress,
-            _session.Result ?? _session.Calibration.Result));
+            _session.Result ?? _session.Calibration.Result,
+            _session.IntroPage));
         _view = view;
 
         var welcome = step == SetupStep.Welcome;
-        _welcome.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
+        _intro.Root.Visibility = welcome ? Visibility.Visible : Visibility.Collapsed;
         _header.Visibility = welcome ? Visibility.Collapsed : Visibility.Visible;
         _content.Visibility = welcome ? Visibility.Collapsed : Visibility.Visible;
-        _buttons.HorizontalAlignment = welcome ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-        _primary.Padding = welcome ? new Thickness(22, 8, 22, 8) : new Thickness(14, 5, 14, 5);
+        _buttons.Visibility = welcome ? Visibility.Collapsed : Visibility.Visible;
+        _primary.IsDefault = !welcome;
+        _page.Background = welcome ? _paper : _style.Surface;
+        Background = welcome ? _paper : _style.Surface;
 
         if (welcome)
         {
-            _welcomeTitle.Text = view.Title;
-            _welcomeLine.Text = view.Lines.Count > 0 ? view.Lines[0] : string.Empty;
-            _welcomePrivacy.Text = view.Lines.Count > 1 ? view.Lines[1] : string.Empty;
+            _intro.Show(view);
         }
         else
         {
@@ -247,12 +207,16 @@ public sealed class SetupWindow : Window
             }
         }
 
-        Show(_primary, view.Primary);
-        Show(_secondary, view.Secondary);
+        if (!welcome)
+        {
+            Show(_primary, view.Primary);
+            Show(_secondary, view.Secondary);
+        }
+
         if (_shownStep != step)
         {
             _shownStep = step;
-            _primary.Focus();
+            (welcome ? _intro.Next : _primary).Focus();
             FadeInStep();
         }
     }
@@ -289,6 +253,15 @@ public sealed class SetupWindow : Window
         {
             case SetupAction.GetStarted:
                 _session.GetStarted();
+                break;
+            case SetupAction.IntroNext:
+                _session.IntroNext();
+                break;
+            case SetupAction.IntroBack:
+                _session.IntroBack();
+                break;
+            case SetupAction.IntroSkip:
+                _session.IntroSkip();
                 break;
             case SetupAction.OpenCameraSettings:
                 ShellLauncher.OpenCameraSettings();

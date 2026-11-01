@@ -16,6 +16,9 @@ public sealed class AppPreferences
     /// <summary>"true" or "false": a notice when the shortcut toggles Focus Lock.</summary>
     public const string FocusLockNoticeKey = "gander.focusLockNoticeEnabled";
 
+    /// <summary>"true" once the onboarding walkthrough has been shown; absent (or anything else) means not yet.</summary>
+    public const string OnboardingSeenKey = "gander.onboardingSeen";
+
     private readonly ISettingsStore _store;
 
     /// <summary>Reads the saved values.</summary>
@@ -25,6 +28,7 @@ public sealed class AppPreferences
         EdgeGlowEnabled = ParseFlag(Read(EdgeGlowKey));
         FocusLockNoticeEnabled = ParseFlag(Read(FocusLockNoticeKey));
         Accent = AccentChoices.Parse(Read(AccentChoices.Key));
+        OnboardingSeen = ParseSeen(Read(OnboardingSeenKey));
     }
 
     /// <summary>Raised after any value changed.</summary>
@@ -38,6 +42,12 @@ public sealed class AppPreferences
 
     /// <summary>The accent choice.</summary>
     public AccentChoice Accent { get; private set; }
+
+    /// <summary>The walkthrough has been shown once. False for a settings file that never had the field.</summary>
+    public bool OnboardingSeen { get; private set; }
+
+    /// <summary>The saved "seen" flag; false unless it is exactly "true".</summary>
+    public static bool ParseSeen(string? stored) => string.Equals(stored, "true", StringComparison.Ordinal);
 
     /// <summary>A saved on/off setting; on when absent or unreadable.</summary>
     public static bool ParseFlag(string? stored) => !string.Equals(stored, "false", StringComparison.Ordinal);
@@ -76,6 +86,25 @@ public sealed class AppPreferences
 
         Accent = choice;
         Save(AccentChoices.Key, AccentChoices.Store(choice));
+    }
+
+    /// <summary>Records that the walkthrough was shown. Saved once; it raises no <see cref="Changed"/> (no appearance changes).</summary>
+    public void MarkOnboardingSeen()
+    {
+        if (OnboardingSeen)
+        {
+            return;
+        }
+
+        OnboardingSeen = true;
+        try
+        {
+            _store.Write(OnboardingSeenKey, "true");
+        }
+        catch (Exception)
+        {
+            // Stays in memory for this run; the window will not reopen before the next start.
+        }
     }
 
     private string? Read(string key)

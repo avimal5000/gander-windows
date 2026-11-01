@@ -33,6 +33,9 @@ public sealed class SetupFlow
     /// <summary>Number of numbered steps, for "Step 3 of 4".</summary>
     public const int StepCount = 4;
 
+    /// <summary>Number of pages in the intro that the welcome step shows.</summary>
+    public const int IntroPageCount = 4;
+
     /// <summary>Opens at the first step that applies to <paramref name="cameraAllowed"/>, or on the welcome step when <paramref name="showsWelcome"/> is set (first setup, empty library).</summary>
     public SetupFlow(bool cameraAllowed, bool showsWelcome = false)
     {
@@ -41,6 +44,12 @@ public sealed class SetupFlow
 
     /// <summary>The step that shows.</summary>
     public SetupStep Step { get; private set; }
+
+    /// <summary>The intro page that shows on the welcome step, 0 to <see cref="IntroPageCount"/> minus one.</summary>
+    public int IntroPage { get; private set; }
+
+    /// <summary>True on the last intro page, where the primary button sets Gander up instead of turning the page.</summary>
+    public bool IsLastIntroPage => IntroPage == IntroPageCount - 1;
 
     /// <summary>True while the window waits for the user to allow the camera in Windows Settings.</summary>
     public bool IsPermissionStep => Step == SetupStep.NeedsYou;
@@ -84,6 +93,36 @@ public sealed class SetupFlow
                 break;
         }
     }
+
+    /// <summary>"Next" on the intro: the next page, or on the last page on to the first step that applies (as <see cref="GetStarted"/>).</summary>
+    public void NextIntro(bool cameraAllowed)
+    {
+        if (Step != SetupStep.Welcome)
+        {
+            return;
+        }
+
+        if (IsLastIntroPage)
+        {
+            GetStarted(cameraAllowed);
+        }
+        else
+        {
+            IntroPage++;
+        }
+    }
+
+    /// <summary>"Back" on the intro: the page before; nothing on the first page.</summary>
+    public void BackIntro()
+    {
+        if (Step == SetupStep.Welcome && IntroPage > 0)
+        {
+            IntroPage--;
+        }
+    }
+
+    /// <summary>"Skip intro": straight on to the first step that applies.</summary>
+    public void SkipIntro(bool cameraAllowed) => GetStarted(cameraAllowed);
 
     /// <summary>"Get Started" on the welcome step: on to the first step that applies.</summary>
     public void GetStarted(bool cameraAllowed)

@@ -127,6 +127,36 @@ public sealed class SetupSession : IDisposable
         Mutate(f => f.GetStarted(CameraAllowed()));
     }
 
+    /// <summary>The intro page that shows on the welcome step (0 when closed).</summary>
+    public int IntroPage => _flow?.IntroPage ?? 0;
+
+    /// <summary>"Next" on the intro; on the last page the permission is read again and the setup steps begin.</summary>
+    public void IntroNext()
+    {
+        if (_flow?.Step != SetupStep.Welcome)
+        {
+            return;
+        }
+
+        _controller.RefreshEnvironment();
+        Mutate(f => f.NextIntro(CameraAllowed()));
+    }
+
+    /// <summary>"Back" on the intro.</summary>
+    public void IntroBack() => Mutate(f => f.BackIntro());
+
+    /// <summary>"Skip intro": the permission is read again and the setup steps begin.</summary>
+    public void IntroSkip()
+    {
+        if (_flow?.Step != SetupStep.Welcome)
+        {
+            return;
+        }
+
+        _controller.RefreshEnvironment();
+        Mutate(f => f.SkipIntro(CameraAllowed()));
+    }
+
     /// <summary>Re-reads the camera permission and moves the flow. The timer calls it each second on the "Needs you" step.</summary>
     public void Tick()
     {
@@ -217,10 +247,15 @@ public sealed class SetupSession : IDisposable
         }
 
         var old = _flow.Step;
+        var oldPage = _flow.IntroPage;
         change(_flow);
         if (_flow.Step != old)
         {
             FlowDidChange(old, forced: false);
+            Raise();
+        }
+        else if (_flow.IntroPage != oldPage)
+        {
             Raise();
         }
     }

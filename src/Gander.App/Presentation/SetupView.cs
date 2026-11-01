@@ -9,6 +9,9 @@ namespace Gander.App.Presentation;
 public enum SetupAction
 {
     GetStarted,
+    IntroNext,
+    IntroBack,
+    IntroSkip,
     OpenCameraSettings,
     StartCalibration,
     CancelCalibration,
@@ -22,6 +25,9 @@ public sealed record SetupButton(string Label, SetupAction Action, bool Enabled 
 /// <summary>The progress bar and its caption.</summary>
 public sealed record SetupProgress(double Fraction, string Caption);
 
+/// <summary>The intro on the welcome step: which page, its content, and the quiet "Skip intro" button (null on the last page).</summary>
+public sealed record SetupIntro(int Page, int PageCount, IntroPage Content, string PageLine, SetupButton? Skip);
+
 /// <summary>Everything the window shows for one moment (pure data; the WPF window only copies it onto controls).</summary>
 public sealed record SetupView(
     string Title,
@@ -32,7 +38,8 @@ public sealed record SetupView(
     bool MessageIsError,
     SetupProgress? Progress,
     SetupButton? Primary,
-    SetupButton? Secondary);
+    SetupButton? Secondary,
+    SetupIntro? Intro = null);
 
 /// <summary>The session's state, copied so the view can be built without a session.</summary>
 public sealed record SetupViewInput(
@@ -44,7 +51,8 @@ public sealed record SetupViewInput(
     bool CalibrationActive,
     string? Prompt,
     GateProgress? Progress,
-    SetupResult? Result);
+    SetupResult? Result,
+    int IntroPage = 0);
 
 /// <summary>Builds the window's content from the session's state, step by step.</summary>
 public static class SetupViewBuilder
@@ -60,9 +68,7 @@ public static class SetupViewBuilder
         switch (input.Step)
         {
             case SetupStep.Welcome:
-                return new SetupView(
-                    title, stepLine, [SetupPresentation.WelcomeLine, SetupPresentation.WelcomePrivacy], null, null, false, null,
-                    new SetupButton(SetupPresentation.WelcomeButton, SetupAction.GetStarted), null);
+                return BuildIntro(input.IntroPage);
 
             case SetupStep.NeedsYou:
                 return new SetupView(
@@ -99,6 +105,32 @@ public static class SetupViewBuilder
                 var secondary = result is { IsSaved: true } ? new SetupButton("Calibrate again", SetupAction.CalibrateAgain) : null;
                 return new SetupView(title, stepLine, lines, result is null ? null : QualityLabel(result.Quality), message, isError, null, primary, secondary);
         }
+    }
+
+    /// <summary>
+    /// The welcome step: one intro page. Back shows from the second page on; the primary button turns the page, and on
+    /// the last page sets Gander up. "Skip intro" shows on every page but the last. An out-of-range page is clamped.
+    /// </summary>
+    public static SetupView BuildIntro(int page)
+    {
+        var last = SetupFlow.IntroPageCount - 1;
+        page = Math.Clamp(page, 0, last);
+        var content = SetupPresentation.IntroPages[page];
+        var primary = page == last
+            ? new SetupButton(SetupPresentation.WelcomeButton, SetupAction.GetStarted)
+            : new SetupButton(SetupPresentation.IntroNextButton, SetupAction.IntroNext);
+        var back = page > 0 ? new SetupButton(SetupPresentation.IntroBackButton, SetupAction.IntroBack) : null;
+        var skip = page < last ? new SetupButton(SetupPresentation.IntroSkipButton, SetupAction.IntroSkip) : null;
+        var lines = new List<string>();
+        if (content.Headline is not null)
+        {
+            lines.Add(content.Headline);
+        }
+
+        lines.AddRange(content.Lines);
+        return new SetupView(
+            content.Title, null, lines, null, null, false, null, primary, back,
+            new SetupIntro(page, SetupFlow.IntroPageCount, content, SetupPresentation.IntroPageLine(page), skip));
     }
 
     /// <summary>"Step 2 of 4 · 1.5 s left" style caption.</summary>
