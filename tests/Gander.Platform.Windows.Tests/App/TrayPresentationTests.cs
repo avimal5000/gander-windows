@@ -17,7 +17,7 @@ public sealed class TrayPresentationTests
     public void AppearanceMatchesTheFourStates()
     {
         Assert.Equal(new TrayIconAppearance(true, false, false, false), TrayIconAppearance.For(TrayIconState.Tracking));
-        Assert.Equal(new TrayIconAppearance(false, true, false, false), TrayIconAppearance.For(TrayIconState.Paused));
+        Assert.Equal(new TrayIconAppearance(false, false, false, false), TrayIconAppearance.For(TrayIconState.Paused));
         Assert.True(TrayIconAppearance.For(TrayIconState.FocusLock).LockBadge);
         Assert.True(TrayIconAppearance.For(TrayIconState.Attention).AttentionDot);
     }

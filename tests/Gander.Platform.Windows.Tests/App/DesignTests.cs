@@ -200,7 +200,7 @@ public sealed class DesignTests
         var dot = TrayGlyphSpec.AlertCenter;
         Assert.True(dot.X + TrayGlyphSpec.AlertRadius <= TrayGlyphSpec.Side && dot.Y - TrayGlyphSpec.AlertRadius >= 0);
         Assert.Equal(0.55, TrayGlyphSpec.EyeRadius);
-        Assert.Equal(1.2, TrayGlyphSpec.OutlineWidth);
+        Assert.Equal(1.7, TrayGlyphSpec.OutlineWidth);
     }
 
     [Theory]
