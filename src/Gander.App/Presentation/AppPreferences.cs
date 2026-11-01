@@ -19,6 +19,9 @@ public sealed class AppPreferences
     /// <summary>"true" once the onboarding walkthrough has been shown; absent (or anything else) means not yet.</summary>
     public const string OnboardingSeenKey = "gander.onboardingSeen";
 
+    /// <summary>"true" once the walkthrough reached the camera check; absent (or anything else) means not yet.</summary>
+    public const string SetupCompletedKey = "gander.setupCompleted";
+
     private readonly ISettingsStore _store;
 
     /// <summary>Reads the saved values.</summary>
@@ -29,6 +32,7 @@ public sealed class AppPreferences
         FocusLockNoticeEnabled = ParseFlag(Read(FocusLockNoticeKey));
         Accent = AccentChoices.Parse(Read(AccentChoices.Key));
         OnboardingSeen = ParseSeen(Read(OnboardingSeenKey));
+        SetupCompleted = ParseSeen(Read(SetupCompletedKey));
     }
 
     /// <summary>Raised after any value changed.</summary>
@@ -45,6 +49,9 @@ public sealed class AppPreferences
 
     /// <summary>The walkthrough has been shown once. False for a settings file that never had the field.</summary>
     public bool OnboardingSeen { get; private set; }
+
+    /// <summary>The first setup is done: the menu stops offering it and the intro does not replay by itself.</summary>
+    public bool SetupCompleted { get; private set; }
 
     /// <summary>The saved "seen" flag; false unless it is exactly "true".</summary>
     public static bool ParseSeen(string? stored) => string.Equals(stored, "true", StringComparison.Ordinal);
@@ -104,6 +111,25 @@ public sealed class AppPreferences
         catch (Exception)
         {
             // Stays in memory for this run; the window will not reopen before the next start.
+        }
+    }
+
+    /// <summary>Records that the first setup is done. Saved once; it raises no <see cref="Changed"/>.</summary>
+    public void MarkSetupCompleted()
+    {
+        if (SetupCompleted)
+        {
+            return;
+        }
+
+        SetupCompleted = true;
+        try
+        {
+            _store.Write(SetupCompletedKey, "true");
+        }
+        catch (Exception)
+        {
+            // Stays in memory for this run.
         }
     }
 

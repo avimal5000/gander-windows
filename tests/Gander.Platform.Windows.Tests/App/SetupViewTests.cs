@@ -95,9 +95,10 @@ public sealed class SetupViewTests
         Assert.True(ok.Primary!.Enabled);
 
         var one = SetupViewBuilder.Build(Input(SetupStep.CameraCheck, canStart: false));
-        Assert.False(one.Primary!.Enabled);
-        Assert.Equal(SetupPresentation.NeedsSecondDisplay, one.Message);
-        Assert.True(one.MessageIsError);
+        Assert.Equal(SetupAction.Finish, one.Primary!.Action);
+        Assert.Equal("Done", one.Primary.Label);
+        Assert.Equal(SetupPresentation.CalibrateLater, one.Message);
+        Assert.False(one.MessageIsError);
     }
 
     [Fact]

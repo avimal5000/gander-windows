@@ -351,10 +351,13 @@ public partial class App : Application
 
         _preferences = new AppPreferences(_settings);
         AppTheme.Preferences = _preferences;
+        _setup.SetupCompleted = _preferences.SetupCompleted;
+        _setup.SetupFinished += _preferences.MarkSetupCompleted;
         _feedback = new FeedbackHost(_controller, _preferences);
 
         _tray = new TrayHost(
             _controller,
+            () => _setup.SetupCompleted,
             OpenCalibration,
             OpenSettings,
             OpenWelcomeTour,

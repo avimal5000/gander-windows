@@ -155,6 +155,16 @@ public sealed class TrayPresentationTests
     }
 
     [Fact]
+    public void AfterTheWalkthroughTheFirstSetupIsNotOfferedAgain()
+    {
+        var done = new TrayBannerFacts(null, LibraryIsEmpty: true, TrackingEnabled: false, DisplayCount: 1, HasCalibration: false, ShortcutMessage: null, SetupCompleted: true);
+        Assert.Null(TrayBanner.Current(done));
+        Assert.Equal(TrayBanner.NeedsCalibrationText, TrayBanner.Current(done with { DisplayCount = 2 })!.Text);
+        Assert.Null(TrayBanner.Current(done with { DisplayCount = 2, LibraryIsEmpty = false }));
+        Assert.Equal(TrayBanner.FirstSetupText, TrayBanner.Current(done with { SetupCompleted = false })!.Text);
+    }
+
+    [Fact]
     public void WrapKeepsEveryWordAndRespectsTheWidth()
     {
         var lines = TrayMenuModel.Wrap("one two three four five six seven", 12);
