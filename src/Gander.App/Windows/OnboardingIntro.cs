@@ -4,6 +4,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using Gander.App.Hosting;
 using Gander.App.Presentation;
 using Gander.App.Presentation.Design;
 using Gander.Core.Calibration;
@@ -117,7 +118,7 @@ internal sealed class OnboardingIntro
         SetButton(_next, view.Primary);
         SetButton(_back, view.Secondary);
         SetButton(_skip, intro.Skip);
-        if (changed && _shownPage >= 0 && SystemParameters.ClientAreaAnimation)
+        if (changed && _shownPage >= 0 && AppTheme.Animate)
         {
             _pages.BeginAnimation(
                 UIElement.OpacityProperty,

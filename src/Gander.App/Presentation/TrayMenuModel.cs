@@ -23,6 +23,7 @@ public enum TrayCommand
     FocusTest,
     Diagnostics,
     OpenCameraSettings,
+    OpenMain,
     Quit,
 }
 
@@ -165,6 +166,9 @@ public static class TrayMenuModel
     /// <summary>The camera row that means "whatever Windows picks".</summary>
     public const string DefaultCameraText = SettingsWording.DefaultCamera;
 
+    /// <summary>The row that opens the Gander window (a left click on the goose does the same).</summary>
+    public const string OpenMainText = "Open Gander";
+
     /// <summary>The row that replays the walkthrough, for anyone, any time.</summary>
     public const string WelcomeTourText = "Welcome Tour";
 
@@ -195,6 +199,7 @@ public static class TrayMenuModel
             }
         }
 
+        entries.Add(new TrayMenuEntry(OpenMainText, TrayCommand.OpenMain, Help: Help.OpenMain));
         entries.Add(TrayMenuEntry.Separator);
         entries.Add(new TrayMenuEntry("Tracking", TrayCommand.ToggleTracking, Checked: input.TrackingEnabled, Help: Help.Tracking));
         entries.Add(new TrayMenuEntry(
@@ -229,6 +234,8 @@ public static class TrayMenuModel
     /// <summary>The tooltips that explain each row when you hover over it.</summary>
     public static class Help
     {
+        public const string OpenMain = "Opens the Gander window. Clicking the goose does the same; right-click shows this menu.";
+
         public const string Tracking =
             "Turns Gander on or off. When it is on, the camera watches which way your head is turned and keyboard focus follows the display you look at.";
 

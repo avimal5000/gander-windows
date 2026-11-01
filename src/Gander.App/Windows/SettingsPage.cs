@@ -15,13 +15,13 @@ using Gander.Core.Platform;
 namespace Gander.App.Windows;
 
 /// <summary>
-/// The Settings window, laid out like the Mac's: Appearance, General, Switching, Focus Lock shortcut, Camera and
+/// The Settings page of the Gander window, laid out like the Mac's Settings window: Appearance, General, Switching, Focus Lock shortcut, Camera and
 /// Calibrations, each in a card, then an About block that only Windows has. Thin: the controller owns the settings,
 /// <see cref="SettingsWording"/> and <see cref="TimingPresets"/> decide words and numbers, <see cref="GanderStyle"/> decides
-/// how things look, and this lays out controls and copies state onto them. The shortcut is captured by this window's
+/// how things look, and this lays out controls and copies state onto them. The shortcut is captured by this page's
 /// own key handler (never a keyboard hook) and only while "Record Shortcut" is active.
 /// </summary>
-public sealed class SettingsWindow : Window
+public sealed class SettingsPage : UserControl
 {
     private readonly TrackingController _controller;
     private readonly ILoginItem _loginItem;
@@ -31,6 +31,7 @@ public sealed class SettingsWindow : Window
     private bool _updating;
     private bool _capturing;
     private string _rowsKey = string.Empty;
+    private Window? _window;
 
     private RadioButton _accentGander = null!;
     private RadioButton _accentSystem = null!;
@@ -56,31 +57,43 @@ public sealed class SettingsWindow : Window
     private TextBlock _cameraHint = null!;
     private StackPanel _calibrationRows = null!;
 
-    /// <summary>Creates the window. <paramref name="calibrateAgain"/> opens the Set up Gander window.</summary>
-    public SettingsWindow(TrackingController controller, ILoginItem loginItem, Action calibrateAgain, AppPreferences preferences)
+    /// <summary>Creates the page. <paramref name="calibrateAgain"/> opens the Set up page.</summary>
+    public SettingsPage(TrackingController controller, ILoginItem loginItem, Action calibrateAgain, AppPreferences preferences)
     {
         _controller = controller;
         _loginItem = loginItem;
         _calibrateAgain = calibrateAgain;
         _preferences = preferences;
 
-        Title = "Gander Settings";
-        Width = GanderDesign.Size.SettingsWidth;
-        Height = Math.Min(640, Math.Max(400, SystemParameters.WorkArea.Height * 0.92));
-        ResizeMode = ResizeMode.NoResize;
-        WindowStartupLocation = WindowStartupLocation.CenterScreen;
-
         BuildContent();
 
         PreviewKeyDown += OnPreviewKeyDown;
-        Deactivated += (_, _) => SetCapturing(false);
         Loaded += (_, _) =>
         {
             _controller.StateChanged += Apply;
+            _window = Window.GetWindow(this);
+            if (_window is not null)
+            {
+                _window.Deactivated += OnWindowDeactivated;
+            }
+
             Apply();
         };
-        Closed += (_, _) => _controller.StateChanged -= Apply;
+        Unloaded += (_, _) =>
+        {
+            _controller.StateChanged -= Apply;
+            if (_window is not null)
+            {
+                _window.Deactivated -= OnWindowDeactivated;
+                _window = null;
+            }
+
+            SetCapturing(false);
+        };
     }
+
+    // Recording a shortcut stops when you switch to another app.
+    private void OnWindowDeactivated(object? sender, EventArgs e) => SetCapturing(false);
 
     private void BuildContent()
     {
@@ -111,7 +124,9 @@ public sealed class SettingsWindow : Window
         _shortcutHint.Foreground = s.Amber;
         _shortcutMessage = s.Label(string.Empty, GanderDesign.Type.Callout);
         _shortcutMessage.Foreground = s.Brick;
-        _cameras = new ComboBox { MinWidth = 280, HorizontalAlignment = HorizontalAlignment.Left, Background = s.Card, Foreground = s.Text };
+        _cameras = s.MakeComboBox();
+        _cameras.MinWidth = 280;
+        _cameras.HorizontalAlignment = HorizontalAlignment.Left;
         _cameraHint = s.Label(string.Empty, GanderDesign.Type.Caption, secondary: true);
         _calibrationRows = new StackPanel();
 

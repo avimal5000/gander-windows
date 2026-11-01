@@ -17,7 +17,7 @@ namespace Gander.App.Windows;
 internal static class FeedbackFade
 {
     /// <summary>True when Windows animations are on (Settings > Accessibility > Visual effects > Animation effects).</summary>
-    public static bool Animated => SystemParameters.ClientAreaAnimation;
+    public static bool Animated => AppTheme.Animate;
 
     /// <summary>Plays <paramref name="timing"/> on the window's opacity and hides the window at the end. <paramref name="generation"/> guards against a newer presentation.</summary>
     public static void Play(Window window, FeedbackTiming timing, bool animated, Func<bool> stillCurrent)

@@ -43,7 +43,11 @@ compare it with the file's contents.
 
 ## Use
 
-- Tray menu: Tracking on or off, Focus Lock, Calibrate, Settings, Diagnostics, Quit.
+- Click the goose in the tray to open the Gander window: the status, Tracking and Focus Lock (each says what it
+  does), the camera, and pages for Calibrate, Settings, the Welcome Tour and Troubleshooting. Back (or Esc) returns
+  to the page before.
+- Right-click the goose for the quick menu: Open Gander, Tracking, Focus Lock, camera, Calibrate, Settings, the
+  debug windows, Diagnostics, Quit. Hover over a row to see what it does.
 - Focus Lock freezes switching: **Ctrl+Alt+Shift+L** by default.
 - Switching waits while a Gander window or the tray menu is in front.
 - Windows running as administrator cannot be focused by a normal program, so Gander skips them. Do not run Gander as

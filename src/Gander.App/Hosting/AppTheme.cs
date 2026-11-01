@@ -16,8 +16,17 @@ public static class AppTheme
     /// <summary>The preferences that hold the accent choice; set once at startup.</summary>
     public static AppPreferences? Preferences { get; set; }
 
+    /// <summary>Light (true) or dark (false) whatever Windows says. Only the screenshot tests set it.</summary>
+    public static bool? LightOverride { get; set; }
+
+    /// <summary>Turns every fade and pulse off. Only the screenshot tests set it, so a frame is never caught mid-fade.</summary>
+    public static bool AnimationsOff { get; set; }
+
+    /// <summary>Whether to animate: the Windows "Animation effects" setting, unless <see cref="AnimationsOff"/>.</summary>
+    public static bool Animate => !AnimationsOff && System.Windows.SystemParameters.ClientAreaAnimation;
+
     /// <summary>The theme for the current Windows appearance and accent choice.</summary>
-    public static GanderTheme Current => GanderTheme.For(SystemInfo.IsLightApps(), AccentOverride());
+    public static GanderTheme Current => GanderTheme.For(LightOverride ?? SystemInfo.IsLightApps(), AccentOverride());
 
     /// <summary>Parses a DWM colorization value (0xAARRGGBB) into a color.</summary>
     public static Rgb FromColorization(int argb) => new((byte)(argb >> 16), (byte)(argb >> 8), (byte)argb);

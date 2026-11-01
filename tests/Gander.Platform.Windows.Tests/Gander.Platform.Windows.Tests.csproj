@@ -17,6 +17,8 @@
     <Using Include="Xunit" />
     <ProjectReference Include="..\..\src\Gander.Platform.Windows\Gander.Platform.Windows.csproj" />
     <ProjectReference Include="..\..\src\Gander.App\Gander.App.csproj" />
+    <!-- For its Harness: a TrackingController on fakes, which the window render tests drive. -->
+    <ProjectReference Include="..\Gander.Core.Tests\Gander.Core.Tests.csproj" />
   </ItemGroup>
 
 </Project>

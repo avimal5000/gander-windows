@@ -88,6 +88,128 @@ public sealed class GanderStyle
         WindowIcons.Apply(window);
     }
 
+    /// <summary>
+    /// A full-width row that goes somewhere: a card with a title, a line saying what is there, and a chevron. The card
+    /// darkens a little on hover and when pressed; keyboard focus shows as an accent border.
+    /// </summary>
+    public Button MakeRowButton(string title, string help)
+    {
+        var text = new StackPanel();
+        text.Children.Add(Label(title, GanderDesign.Type.Headline));
+        var detail = Label(help, GanderDesign.Type.Caption, secondary: true);
+        detail.Margin = new Thickness(0, GanderDesign.Space.Xs, 0, 0);
+        text.Children.Add(detail);
+
+        var chevron = Label("›", GanderDesign.Type.Title3Strong, secondary: true, wrap: false);
+        chevron.VerticalAlignment = VerticalAlignment.Center;
+        chevron.Margin = new Thickness(GanderDesign.Space.Xl, 0, 0, 0);
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(chevron, 1);
+        grid.Children.Add(text);
+        grid.Children.Add(chevron);
+
+        var button = new Button
+        {
+            Content = grid,
+            Background = Card,
+            BorderBrush = Line,
+            Foreground = Text,
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(GanderDesign.Space.Card + 2, GanderDesign.Space.Card, GanderDesign.Space.Card + 2, GanderDesign.Space.Card),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Cursor = System.Windows.Input.Cursors.Hand,
+            ToolTip = help,
+            Template = (ControlTemplate)XamlReader.Parse(
+                $"<ControlTemplate {Xmlns} TargetType=\"Button\">"
+                + $"<Border x:Name=\"B\" Background=\"{{TemplateBinding Background}}\" BorderBrush=\"{{TemplateBinding BorderBrush}}\" BorderThickness=\"{{TemplateBinding BorderThickness}}\" CornerRadius=\"{Num(GanderDesign.Radius.Card)}\" Padding=\"{{TemplateBinding Padding}}\">"
+                + "<ContentPresenter HorizontalAlignment=\"{TemplateBinding HorizontalContentAlignment}\" VerticalAlignment=\"Center\"/></Border>"
+                + "<ControlTemplate.Triggers>"
+                + $"<Trigger Property=\"IsMouseOver\" Value=\"True\"><Setter TargetName=\"B\" Property=\"Background\" Value=\"{Hex(Theme.Hover.Over(Theme.Window))}\"/></Trigger>"
+                + "<Trigger Property=\"IsPressed\" Value=\"True\"><Setter TargetName=\"B\" Property=\"Opacity\" Value=\"0.8\"/></Trigger>"
+                + $"<Trigger Property=\"IsKeyboardFocused\" Value=\"True\"><Setter TargetName=\"B\" Property=\"BorderBrush\" Value=\"{Hex(Theme.Accent)}\"/></Trigger>"
+                + "</ControlTemplate.Triggers></ControlTemplate>"),
+        };
+        System.Windows.Automation.AutomationProperties.SetName(button, title);
+        System.Windows.Automation.AutomationProperties.SetHelpText(button, help);
+        return button;
+    }
+
+    /// <summary>
+    /// A drop-down list in the theme's colors. WPF's own ComboBox keeps its light chrome in dark mode (light gray box,
+    /// light text), so this draws the box, the arrow, the list and its rows from the tokens.
+    /// </summary>
+    public ComboBox MakeComboBox()
+    {
+        var box = Hex(Theme.Card.Over(Theme.Window));
+        var hover = Hex(Theme.Hover.Over(Theme.Window));
+        var line = Hex(Theme.Line.Over(Theme.Window));
+        var text = Hex(Theme.Text);
+        var secondary = Hex(Theme.TextSecondary.Over(Theme.Window));
+        var accent = Hex(Theme.Accent);
+        var menu = Hex(Theme.MenuSurface);
+        var menuHover = Hex(Theme.Hover.Over(Theme.MenuSurface));
+        var radius = Num(GanderDesign.Radius.Chip);
+        var template = (ControlTemplate)XamlReader.Parse(
+            $"<ControlTemplate {Xmlns} TargetType=\"ComboBox\"><Grid>"
+            + "<ToggleButton x:Name=\"Toggle\" Focusable=\"False\" ClickMode=\"Press\" IsChecked=\"{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}\">"
+            + "<ToggleButton.Template><ControlTemplate TargetType=\"ToggleButton\">"
+            + $"<Border x:Name=\"B\" Background=\"{box}\" BorderBrush=\"{line}\" BorderThickness=\"1\" CornerRadius=\"{radius}\">"
+            + $"<Path HorizontalAlignment=\"Right\" VerticalAlignment=\"Center\" Margin=\"0,0,12,0\" Data=\"M0,0 L4.5,4.5 L9,0\" Stroke=\"{secondary}\" StrokeThickness=\"1.5\"/></Border>"
+            + $"<ControlTemplate.Triggers><Trigger Property=\"IsMouseOver\" Value=\"True\"><Setter TargetName=\"B\" Property=\"Background\" Value=\"{hover}\"/></Trigger></ControlTemplate.Triggers>"
+            + "</ControlTemplate></ToggleButton.Template></ToggleButton>"
+            + $"<Border x:Name=\"Focus\" BorderBrush=\"{accent}\" BorderThickness=\"2\" CornerRadius=\"{radius}\" IsHitTestVisible=\"False\" Visibility=\"Collapsed\"/>"
+            + $"<ContentPresenter IsHitTestVisible=\"False\" Margin=\"10,5,32,5\" VerticalAlignment=\"Center\" HorizontalAlignment=\"Left\" Content=\"{{TemplateBinding SelectionBoxItem}}\" ContentTemplate=\"{{TemplateBinding SelectionBoxItemTemplate}}\" TextElement.Foreground=\"{text}\"/>"
+            + "<Popup x:Name=\"PART_Popup\" Placement=\"Bottom\" VerticalOffset=\"4\" IsOpen=\"{TemplateBinding IsDropDownOpen}\" AllowsTransparency=\"True\" Focusable=\"False\" PopupAnimation=\"Fade\">"
+            + $"<Border Background=\"{menu}\" BorderBrush=\"{line}\" BorderThickness=\"1\" CornerRadius=\"{radius}\" Padding=\"4\" MinWidth=\"{{TemplateBinding ActualWidth}}\" MaxHeight=\"{{TemplateBinding MaxDropDownHeight}}\">"
+            + "<ScrollViewer><StackPanel IsItemsHost=\"True\" KeyboardNavigation.DirectionalNavigation=\"Contained\"/></ScrollViewer></Border></Popup>"
+            + "</Grid><ControlTemplate.Triggers>"
+            + "<Trigger Property=\"IsKeyboardFocused\" Value=\"True\"><Setter TargetName=\"Focus\" Property=\"Visibility\" Value=\"Visible\"/></Trigger>"
+            + "<Trigger Property=\"IsEnabled\" Value=\"False\"><Setter Property=\"Opacity\" Value=\"0.45\"/></Trigger>"
+            + "</ControlTemplate.Triggers></ControlTemplate>");
+        var itemStyle = (Style)XamlReader.Parse(
+            $"<Style {Xmlns} TargetType=\"ComboBoxItem\"><Setter Property=\"Foreground\" Value=\"{text}\"/>"
+            + "<Setter Property=\"Template\"><Setter.Value><ControlTemplate TargetType=\"ComboBoxItem\">"
+            + "<Border x:Name=\"B\" Background=\"Transparent\" CornerRadius=\"4\" Padding=\"8,5\"><ContentPresenter/></Border>"
+            + $"<ControlTemplate.Triggers><Trigger Property=\"IsHighlighted\" Value=\"True\"><Setter TargetName=\"B\" Property=\"Background\" Value=\"{menuHover}\"/></Trigger>"
+            + "<Trigger Property=\"IsSelected\" Value=\"True\"><Setter Property=\"FontWeight\" Value=\"SemiBold\"/></Trigger></ControlTemplate.Triggers>"
+            + "</ControlTemplate></Setter.Value></Setter></Style>");
+        return new ComboBox
+        {
+            Template = template,
+            ItemContainerStyle = itemStyle,
+            Foreground = Text,
+            MinHeight = 32,
+            FontFamily = DesignFonts.Wpf(GanderDesign.Text),
+            FontSize = GanderDesign.Type.Body.Size,
+        };
+    }
+
+    /// <summary>A slim scroll bar in the theme's colors (WPF's own stays light in dark mode).</summary>
+    public Style MakeScrollBarStyle()
+    {
+        var thumb = Hex(Theme.TextSecondary.Over(Theme.Window));
+        return (Style)XamlReader.Parse(
+            $"<Style {Xmlns} TargetType=\"ScrollBar\"><Setter Property=\"Width\" Value=\"10\"/><Setter Property=\"MinWidth\" Value=\"10\"/>"
+            + "<Setter Property=\"Template\"><Setter.Value><ControlTemplate TargetType=\"ScrollBar\">"
+            + "<Grid Background=\"Transparent\"><Track x:Name=\"PART_Track\" IsDirectionReversed=\"True\"><Track.Thumb><Thumb>"
+            + $"<Thumb.Template><ControlTemplate TargetType=\"Thumb\"><Border x:Name=\"T\" CornerRadius=\"3\" Background=\"{thumb}\" Opacity=\"0.45\" Margin=\"2,2\"/>"
+            + "<ControlTemplate.Triggers><Trigger Property=\"IsMouseOver\" Value=\"True\"><Setter TargetName=\"T\" Property=\"Opacity\" Value=\"0.75\"/></Trigger></ControlTemplate.Triggers>"
+            + "</ControlTemplate></Thumb.Template></Thumb></Track.Thumb></Track></Grid>"
+            + "</ControlTemplate></Setter.Value></Setter></Style>");
+    }
+
+    /// <summary>Colors and font of a page shown inside the Gander window.</summary>
+    public void ApplyTo(UserControl page)
+    {
+        page.Background = Surface;
+        page.Foreground = Text;
+        page.FontFamily = DesignFonts.Wpf(GanderDesign.Text);
+        page.FontSize = GanderDesign.Type.Body.Size;
+        page.UseLayoutRounding = true;
+    }
+
     /// <summary>Applies a type style to a text block.</summary>
     public TextBlock Label(string text, TextStyle style, bool secondary = false, bool wrap = true)
     {

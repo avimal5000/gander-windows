@@ -60,8 +60,8 @@ public static class SetupPresentation
 
     /// <summary>The paragraph under the tray strip on the last intro page.</summary>
     public const string TrayText =
-        "Click the goose to pause, lock or open Settings. If you do not see it, click the arrow beside the clock. "
-        + "Gander has no window until you open it.";
+        "Click the goose to open Gander: Tracking, Focus Lock, Settings and more. Right-click it for a quick menu. "
+        + "If you do not see it, click the arrow beside the clock.";
 
     /// <summary>Heading of the list of what comes after the intro.</summary>
     public const string NextHeading = "What happens next";

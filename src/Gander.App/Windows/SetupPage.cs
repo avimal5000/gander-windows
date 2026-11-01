@@ -13,11 +13,12 @@ using Gander.Core.Calibration;
 namespace Gander.App.Windows;
 
 /// <summary>
-/// The "Set up Gander" window. Thin: the <see cref="SetupSession"/> decides what happens, <see cref="SetupViewBuilder"/>
-/// decides what is shown, and this copies the view onto a fixed set of controls (so keyboard focus is not lost when the
-/// state ticks ten times a second). Esc cancels a running calibration.
+/// The "Set up Gander" page of the Gander window: the welcome tour, the camera check and calibration. Thin: the
+/// <see cref="SetupSession"/> decides what happens, <see cref="SetupViewBuilder"/> decides what is shown, and this copies
+/// the view onto a fixed set of controls (so keyboard focus is not lost when the state ticks ten times a second). Esc
+/// cancels a running calibration. The session opens when the page is shown and closes when it is left.
 /// </summary>
-public sealed class SetupWindow : Window
+public sealed class SetupPage : UserControl
 {
     private readonly SetupSession _session;
     private readonly GanderStyle _style = GanderStyle.Current();
@@ -42,16 +43,10 @@ public sealed class SetupWindow : Window
     private SetupStep? _shownStep;
     private bool _opened;
 
-    /// <summary>Creates the window for <paramref name="session"/>; the session opens when the window shows.</summary>
-    public SetupWindow(SetupSession session)
+    /// <summary>Creates the page for <paramref name="session"/>; the session opens when the page is shown.</summary>
+    public SetupPage(SetupSession session)
     {
         _session = session;
-        Title = "Set up Gander";
-        Width = GanderDesign.Size.SetupWidth;
-        SizeToContent = SizeToContent.Height;
-        MinHeight = GanderDesign.Size.SetupHeight;
-        ResizeMode = ResizeMode.NoResize;
-        WindowStartupLocation = WindowStartupLocation.CenterScreen;
         _style.ApplyTo(this);
         var s = _style;
         var theme = s.Theme;
@@ -122,12 +117,16 @@ public sealed class SetupWindow : Window
             _opened = true;
             Apply();
         };
-        Closed += (_, _) =>
+        Unloaded += (_, _) =>
         {
             _session.Changed -= Apply;
+            _opened = false;
             _session.Close();
         };
     }
+
+    /// <summary>Setup is over ("Start tracking" or "Done"): the window goes back to the page before.</summary>
+    public event Action? Finished;
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
@@ -142,9 +141,9 @@ public sealed class SetupWindow : Window
     {
         if (_opened && !_session.IsOpen)
         {
-            // "Start tracking" closed the session; the window goes with it.
+            // "Start tracking" closed the session; the page goes with it.
             _opened = false;
-            Close();
+            Finished?.Invoke();
             return;
         }
 
@@ -224,7 +223,7 @@ public sealed class SetupWindow : Window
     // One step at a time, cross-fading in about 0.2 s; none when Windows animations are off.
     private void FadeInStep()
     {
-        if (!SystemParameters.ClientAreaAnimation)
+        if (!AppTheme.Animate)
         {
             return;
         }
@@ -279,7 +278,7 @@ public sealed class SetupWindow : Window
                 _ = _session.StartTrackingAsync();
                 break;
             case SetupAction.Finish:
-                Close();
+                Finished?.Invoke();
                 break;
         }
     }
