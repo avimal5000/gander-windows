@@ -70,9 +70,9 @@ public static class MainWindowModel
     /// <summary>The Troubleshooting page: one row per tool, each opening its own window.</summary>
     public static IReadOnlyList<HomeLink> Troubleshooting { get; } =
     [
-        new("Pose Debug", TrayMenuModel.Help.PoseDebug, Command: TrayCommand.PoseDebug),
-        new("Head-Pose Gate Test", TrayMenuModel.Help.GateTest, Command: TrayCommand.GateTest),
-        new("Focus Test", TrayMenuModel.Help.FocusTest, Command: TrayCommand.FocusTest),
+        new("Pose Debug", "Shows the head angles Gander measures, live, and can record them.", Command: TrayCommand.PoseDebug),
+        new("Head-Pose Gate Test", "Checks that Gander can tell your displays apart by where you look.", Command: TrayCommand.GateTest),
+        new("Focus Test", "Checks that Gander can move keyboard focus between your displays.", Command: TrayCommand.FocusTest),
         new("Diagnostics", TrayMenuModel.Help.Diagnostics, Command: TrayCommand.Diagnostics),
     ];
 

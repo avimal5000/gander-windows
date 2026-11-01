@@ -68,6 +68,7 @@ public sealed class MainWindowRenderTests
                 Settle();
                 Check(window, $"Intro{page + 1}-{Theme(light)}");
                 session.IntroNext();
+                fresh.Drain();
             }
         }
         finally

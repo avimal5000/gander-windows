@@ -118,7 +118,9 @@ public sealed class HomePage : UserControl
         switchCard.Margin = new Thickness(0, GanderDesign.Space.Section, 0, 0);
 
         // The camera, as in the menu and Settings.
-        _cameras = new ComboBox { MinWidth = 220, Background = s.Card, Foreground = s.Text, VerticalAlignment = VerticalAlignment.Center };
+        _cameras = s.MakeComboBox();
+        _cameras.MinWidth = 220;
+        _cameras.VerticalAlignment = VerticalAlignment.Center;
         AutomationProperties.SetName(_cameras, "Camera");
         _cameras.ToolTip = TrayMenuModel.Help.Camera;
         _cameras.SelectionChanged += (_, _) =>
@@ -139,14 +141,16 @@ public sealed class HomePage : UserControl
         var cameraCard = s.MakeCard(cameraRow);
         cameraCard.Margin = new Thickness(0, GanderDesign.Space.Section, 0, 0);
 
-        // Where to go from here.
-        var links = new StackPanel { Margin = new Thickness(0, GanderDesign.Space.Section, 0, 0) };
-        foreach (var link in view.Links)
+        // Where to go from here: two by two, so the page fits without scrolling.
+        var links = new System.Windows.Controls.Primitives.UniformGrid { Columns = 2, Margin = new Thickness(0, GanderDesign.Space.Section, 0, 0) };
+        for (var i = 0; i < view.Links.Count; i++)
         {
-            var row = s.MakeRowButton(link.Title, link.Help);
-            row.Margin = new Thickness(0, 0, 0, GanderDesign.Space.Lg);
-            row.Click += (_, _) => _follow(link);
-            links.Children.Add(row);
+            var link = view.Links[i];
+            var tile = s.MakeRowButton(link.Title, link.Help);
+            var gap = GanderDesign.Space.Lg / 2;
+            tile.Margin = new Thickness(i % 2 == 0 ? 0 : gap, 0, i % 2 == 0 ? gap : 0, GanderDesign.Space.Lg);
+            tile.Click += (_, _) => _follow(link);
+            links.Children.Add(tile);
         }
 
         var quit = s.MakeButton("Quit Gander");

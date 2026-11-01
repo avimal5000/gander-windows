@@ -42,6 +42,7 @@ public sealed class MainWindow : Window
         ResizeMode = ResizeMode.CanMinimize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         _style.ApplyTo(this);
+        Resources.Add(typeof(System.Windows.Controls.Primitives.ScrollBar), _style.MakeScrollBarStyle());
 
         _back = _style.MakeButton($"‹  {MainWindowModel.BackText}");
         _back.Background = System.Windows.Media.Brushes.Transparent;

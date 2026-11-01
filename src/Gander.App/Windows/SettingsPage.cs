@@ -124,7 +124,9 @@ public sealed class SettingsPage : UserControl
         _shortcutHint.Foreground = s.Amber;
         _shortcutMessage = s.Label(string.Empty, GanderDesign.Type.Callout);
         _shortcutMessage.Foreground = s.Brick;
-        _cameras = new ComboBox { MinWidth = 280, HorizontalAlignment = HorizontalAlignment.Left, Background = s.Card, Foreground = s.Text };
+        _cameras = s.MakeComboBox();
+        _cameras.MinWidth = 280;
+        _cameras.HorizontalAlignment = HorizontalAlignment.Left;
         _cameraHint = s.Label(string.Empty, GanderDesign.Type.Caption, secondary: true);
         _calibrationRows = new StackPanel();
 
