@@ -17,6 +17,7 @@ namespace Gander.App.Tray;
 public sealed class TrayHost : IDisposable
 {
     private readonly TrackingController _controller;
+    private readonly Func<bool> _setupCompleted;
     private readonly Action _openCalibration;
     private readonly Action _openSettings;
     private readonly Action _openTour;
@@ -36,6 +37,7 @@ public sealed class TrayHost : IDisposable
     /// <summary>Creates and shows the tray icon. <paramref name="menuOpen"/> is told when the menu opens and closes.</summary>
     public TrayHost(
         TrackingController controller,
+        Func<bool> setupCompleted,
         Action openCalibration,
         Action openSettings,
         Action openTour,
@@ -48,6 +50,7 @@ public sealed class TrayHost : IDisposable
         Action<string> log)
     {
         _controller = controller;
+        _setupCompleted = setupCompleted;
         _openCalibration = openCalibration;
         _openSettings = openSettings;
         _openTour = openTour;
@@ -142,7 +145,8 @@ public sealed class TrayHost : IDisposable
             _controller.TrackingEnabled,
             _controller.Layout.Displays.Count,
             _controller.ActiveCalibration is not null,
-            _controller.MenuShortcutMessage);
+            _controller.MenuShortcutMessage,
+            SetupCompleted: _setupCompleted());
         var input = new TrayMenuInput(
             _controller.StatusLine,
             status.Tone,

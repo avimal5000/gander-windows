@@ -68,6 +68,60 @@ public sealed class SetupSessionTests
     }
 
     [Fact]
+    public void ReachingTheCameraCheckFinishesTheWalkthroughOnceEvenWithOneMonitor()
+    {
+        using var h = Harness.Make(layout: Fixtures.OneDisplay);
+        using var setup = Make(h);
+        var finished = 0;
+        setup.SetupFinished += () => finished++;
+        setup.Open();
+        Assert.Equal(SetupStep.Welcome, setup.Step);
+        Assert.False(setup.SetupCompleted);
+
+        setup.GetStarted();
+
+        Assert.Equal(SetupStep.CameraCheck, setup.Step);
+        Assert.False(setup.CanStartCalibration);
+        Assert.True(setup.SetupCompleted);
+        Assert.Equal(1, finished);
+
+        setup.Close();
+        setup.Open();
+        Assert.Equal(SetupStep.CameraCheck, setup.Step);
+        Assert.Equal(1, finished);
+    }
+
+    [Fact]
+    public void AFinishedWalkthroughSkipsTheIntroUntilATourIsRequested()
+    {
+        using var h = Harness.Make();
+        using var setup = Make(h);
+        setup.SetupCompleted = true;
+        setup.Open();
+        Assert.Equal(SetupStep.CameraCheck, setup.Step);
+
+        setup.Close();
+        setup.RequestTour();
+        setup.Open();
+        Assert.Equal(SetupStep.Welcome, setup.Step);
+    }
+
+    [Fact]
+    public void ClosingBeforeTheCameraCheckLeavesTheWalkthroughUnfinished()
+    {
+        using var h = Harness.Make(authorization: CameraAuthorization.Denied);
+        using var setup = Make(h);
+        setup.Open();
+        setup.GetStarted();
+        Assert.Equal(SetupStep.NeedsYou, setup.Step);
+        setup.Close();
+
+        Assert.False(setup.SetupCompleted);
+        setup.Open();
+        Assert.Equal(SetupStep.Welcome, setup.Step);
+    }
+
+    [Fact]
     public void GetStartedReadsThePermissionAgainAndStartsTheCamera()
     {
         using var h = Harness.Make(authorization: CameraAuthorization.Denied, autoRun: true);

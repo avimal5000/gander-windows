@@ -104,6 +104,10 @@ public static class SetupPresentation
     /// <summary>Shown when fewer than two monitors are connected.</summary>
     public const string NeedsSecondDisplay = "Connect a second monitor to calibrate.";
 
+    /// <summary>The camera check with one monitor: setup ends here, and the tray menu asks once a second one is in.</summary>
+    public const string CalibrateLater =
+        "Connect a second monitor to calibrate. You can finish now: when one is connected, Gander's menu offers the calibration.";
+
     /// <summary>Shown after the user cancelled.</summary>
     public const string CalibrationCancelled = "Calibration cancelled.";
 

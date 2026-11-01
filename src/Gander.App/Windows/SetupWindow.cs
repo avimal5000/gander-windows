@@ -278,6 +278,9 @@ public sealed class SetupWindow : Window
             case SetupAction.StartTracking:
                 _ = _session.StartTrackingAsync();
                 break;
+            case SetupAction.Finish:
+                Close();
+                break;
         }
     }
 }

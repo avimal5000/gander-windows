@@ -87,12 +87,13 @@ public sealed record TrayBanner(string Text, string? ButtonText, TrayCommand Com
                 : new TrayBanner("Camera access is restricted. " + SetupPresentation.CameraRestrictedMessage, "Open Windows Settings", TrayCommand.OpenCameraSettings);
         }
 
-        if (facts.LibraryIsEmpty)
+        if (facts.LibraryIsEmpty && !facts.SetupCompleted)
         {
             return new TrayBanner(FirstSetupText, "Set Up…", TrayCommand.Calibrate);
         }
 
-        if (facts.TrackingEnabled && facts.DisplayCount >= 2 && !facts.HasCalibration)
+        // After the walkthrough with nothing calibrated, a second monitor is the moment to ask, Tracking on or not.
+        if ((facts.TrackingEnabled || facts.LibraryIsEmpty) && facts.DisplayCount >= 2 && !facts.HasCalibration)
         {
             return new TrayBanner(
                 facts.CameraWithoutCalibration is { } camera ? NeedsCameraCalibrationText(camera) : NeedsCalibrationText,
@@ -112,7 +113,8 @@ public sealed record TrayBannerFacts(
     int DisplayCount,
     bool HasCalibration,
     string? ShortcutMessage,
-    string? CameraWithoutCalibration = null);
+    string? CameraWithoutCalibration = null,
+    bool SetupCompleted = false);
 
 /// <summary>What the "Looking at" line says (Mac LookSummary): one short line.</summary>
 public static class LookSummary

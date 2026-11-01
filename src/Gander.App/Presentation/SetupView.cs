@@ -17,6 +17,7 @@ public enum SetupAction
     CancelCalibration,
     CalibrateAgain,
     StartTracking,
+    Finish,
 }
 
 /// <summary>A button: its words, what it does, and whether it can be pressed.</summary>
@@ -78,13 +79,15 @@ public static class SetupViewBuilder
             case SetupStep.CameraCheck:
                 if (!input.CanStartCalibration)
                 {
-                    message = SetupPresentation.NeedsSecondDisplay;
-                    isError = true;
+                    // One monitor: the setup ends here (Mac SPEC D50); the menu asks once a second monitor is in.
+                    return new SetupView(
+                        title, stepLine, [SetupPresentation.CameraAdvice], input.FramingText, message ?? SetupPresentation.CalibrateLater,
+                        message is not null && isError, null, new SetupButton("Done", SetupAction.Finish), null);
                 }
 
                 return new SetupView(
                     title, stepLine, [SetupPresentation.CameraAdvice], input.FramingText, message, isError, null,
-                    new SetupButton("Start calibration", SetupAction.StartCalibration, input.CanStartCalibration), null);
+                    new SetupButton("Start calibration", SetupAction.StartCalibration), null);
 
             case SetupStep.Calibrating:
                 return new SetupView(

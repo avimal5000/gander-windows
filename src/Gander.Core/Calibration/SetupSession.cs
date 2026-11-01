@@ -59,6 +59,15 @@ public sealed class SetupSession : IDisposable
     /// <summary>True while the window is open (between <see cref="Open"/> and <see cref="Close"/>).</summary>
     public bool IsOpen => _flow is not null;
 
+    /// <summary>
+    /// The walkthrough reached the camera check once: the first setup is done, calibrated or not (Mac SPEC D50). The app
+    /// sets it at start from the saved flag; it turns true by itself, raising <see cref="SetupFinished"/>.
+    /// </summary>
+    public bool SetupCompleted { get; set; }
+
+    /// <summary>Raised once, on the main thread, when the walkthrough first reaches the camera check.</summary>
+    public event Action? SetupFinished;
+
     /// <summary>The step that shows; null while closed.</summary>
     public SetupStep? Step => _flow?.Step;
 
@@ -95,7 +104,7 @@ public sealed class SetupSession : IDisposable
         Result = null;
         var tour = _tourRequested;
         _tourRequested = false;
-        _flow = new SetupFlow(CameraAllowed(), showsWelcome: tour || _controller.Library.Profiles.Count == 0);
+        _flow = new SetupFlow(CameraAllowed(), showsWelcome: tour || (_controller.Library.Profiles.Count == 0 && !SetupCompleted));
         FlowDidChange(SetupStep.Welcome, forced: true);
         Raise();
     }
@@ -304,6 +313,12 @@ public sealed class SetupSession : IDisposable
         if (_flow.Step == SetupStep.CameraCheck && (old != SetupStep.CameraCheck || forced))
         {
             ResetFraming();
+        }
+
+        if (_flow.Step >= SetupStep.CameraCheck && !SetupCompleted)
+        {
+            SetupCompleted = true;
+            SetupFinished?.Invoke();
         }
 
         SyncPermissionTimer();
