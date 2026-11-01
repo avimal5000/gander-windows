@@ -1,9 +1,9 @@
 # Gander Terms of Service
 
 **Applies to:** Gander for macOS and Gander for Windows.
-**Effective date:** 2026-10-30
+**Effective date:** 2026-10-31
 **Operator:** Avi Malhotra, an individual developer (GitHub: [avimal5000](https://github.com/avimal5000)).
-**Contact:** [add contact email before publishing]
+**Contact:** [GitHub Issues](https://github.com/avimal5000/gander/issues)
 
 > This is a plain-language draft, not legal advice. It should be reviewed by a lawyer before commercial use.
 
@@ -16,10 +16,9 @@ Gander is a free desktop utility. It uses your webcam to estimate which way your
 ## License
 
 - Gander is free to use for your own personal use.
-- All rights are reserved by the operator. This means you may not copy, redistribute, sell, sublicense, modify, or reverse engineer Gander, or build products from its source code, without written permission, except where the law allows it regardless of this term.
+- The source code in the GitHub repositories is public so that you can read it, but it is not open source. All rights are reserved by the operator. This means you may not copy, redistribute, sell, sublicense, modify, or reverse engineer Gander, or build products from its source code, without written permission, except where the law allows it regardless of this term.
 - Gander includes third-party components with their own licenses (on Windows: ONNX Runtime and a face-landmark model; see `THIRD-PARTY-NOTICES.md` in the download). Those licenses apply to those components.
 
-[Drafting note, delete before publishing: neither repository currently contains a LICENSE file, and both are private. "All rights reserved, free for personal use" is the default position when no license is given. If you want others to use, share, or contribute to the code, choose an open-source license and replace this section.]
 
 ## As is, with no warranty
 
@@ -66,7 +65,7 @@ You can stop at any time by quitting and deleting Gander (see "Delete your data"
 
 ## Governing law
 
-These terms are governed by the laws of [add governing law / jurisdiction before publishing]. Disputes go to the courts of [add venue before publishing], unless the law of your home country gives you a right to a different venue.
+These terms are governed by the laws of Ontario, Canada, and the federal laws of Canada that apply there. Disputes go to the courts of Toronto, Ontario, unless the law of your home country gives you a right to a different venue.
 
 ## Changes
 
@@ -74,4 +73,4 @@ I may change these terms. When I do, I will change the effective date above and 
 
 ## Contact
 
-[add contact email before publishing]. You can also open an issue on the GitHub repository.
+You can reach the operator by [opening an issue on GitHub](https://github.com/avimal5000/gander/issues).
