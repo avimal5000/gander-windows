@@ -13,7 +13,8 @@ namespace Gander.App.Windows;
 
 /// <summary>
 /// The paged intro on the welcome step: four pages stacked in one grid (so the window keeps one size from page to page
-/// and no text is clipped), the page dots, and the Skip / Back / Next buttons. Thin: <see cref="SetupViewBuilder"/> says
+/// and no text is clipped), the page dots centered on their own row, and below them Skip on the left with Back and Next
+/// on the right. (Dots between the buttons on one row left too little room: Next ran off the window's right edge.) Thin: <see cref="SetupViewBuilder"/> says
 /// which page and which buttons; this copies that onto controls and reports clicks.
 /// </summary>
 internal sealed class OnboardingIntro
@@ -50,10 +51,14 @@ internal sealed class OnboardingIntro
         _skip.Background = Brushes.Transparent;
         _skip.BorderBrush = Brushes.Transparent;
         _skip.Foreground = style.Secondary;
+        // Skip is plain text, so the button template's hover fade does nothing visible: darken the text instead.
+        _skip.MouseEnter += (_, _) => _skip.Foreground = style.Text;
+        _skip.MouseLeave += (_, _) => _skip.Foreground = style.Secondary;
+        _skip.Cursor = System.Windows.Input.Cursors.Hand;
         _back = style.MakeButton(SetupPresentation.IntroBackButton);
         _back.MinWidth = 84;
         _next = style.MakeButton(SetupPresentation.IntroNextButton, prominent: true);
-        _next.MinWidth = 140;
+        _next.MinWidth = 120;
         _next.Padding = new Thickness(22, 8, 22, 8);
         _next.Margin = new Thickness(GanderDesign.Space.Xl, 0, 0, 0);
         _next.IsDefault = true;
@@ -65,22 +70,20 @@ internal sealed class OnboardingIntro
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         buttons.Children.Add(_back);
         buttons.Children.Add(_next);
-        var nav = new Grid { Margin = new Thickness(0, 18, 0, 0) };
-        nav.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), SharedSizeGroup = "side" });
+        var nav = new Grid { Margin = new Thickness(0, GanderDesign.Space.Xl, 0, 0) };
         nav.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        nav.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), SharedSizeGroup = "side" });
+        nav.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         _skip.HorizontalAlignment = HorizontalAlignment.Left;
         Grid.SetColumn(_skip, 0);
-        Grid.SetColumn(_dotRow, 1);
-        Grid.SetColumn(buttons, 2);
+        Grid.SetColumn(buttons, 1);
         nav.Children.Add(_skip);
-        nav.Children.Add(_dotRow);
         nav.Children.Add(buttons);
 
+        _dotRow.Margin = new Thickness(0, 18, 0, 0);
         var root = new StackPanel();
         root.Children.Add(_pages);
+        root.Children.Add(_dotRow);
         root.Children.Add(nav);
-        Grid.SetIsSharedSizeScope(root, true);
         Root = root;
     }
 

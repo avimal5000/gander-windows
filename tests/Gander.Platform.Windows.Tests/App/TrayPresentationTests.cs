@@ -82,6 +82,27 @@ public sealed class TrayPresentationTests
     }
 
     [Fact]
+    public void EveryRowYouCanChooseExplainsItselfOnHover()
+    {
+        var menu = TrayMenuModel.Build(Input());
+        Assert.All(
+            menu.Where(e => !e.IsSeparator && e.Enabled && e.Command is not TrayCommand.Quit && e.Role == TrayEntryRole.Normal),
+            e => Assert.False(string.IsNullOrWhiteSpace(e.Help), $"{e.Text} has no tooltip"));
+        Assert.Contains("Freezes switching", menu.Single(e => e.Command == TrayCommand.ToggleFocusLock).Help, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(TrayCommand.ToggleTracking, true)]
+    [InlineData(TrayCommand.ToggleFocusLock, true)]
+    [InlineData(TrayCommand.Settings, false)]
+    [InlineData(TrayCommand.Calibrate, false)]
+    [InlineData(TrayCommand.PoseDebug, false)]
+    [InlineData(TrayCommand.SelectCamera, false)]
+    [InlineData(TrayCommand.Quit, false)]
+    public void OnlyTheSwitchesKeepTheMenuOpen(TrayCommand command, bool keepsOpen) =>
+        Assert.Equal(keepsOpen, TrayMenuModel.KeepsMenuOpen(command));
+
+    [Fact]
     public void DebugWindowsAreReachableFromTheMenuInTheMacOrder()
     {
         var menu = TrayMenuModel.Build(Input()).Where(e => !e.IsSeparator).ToList();

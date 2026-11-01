@@ -33,6 +33,9 @@ public sealed class TrayHost : IDisposable
     private Drawing.Icon? _icon;
     private TrayIconState? _shownState;
     private bool? _shownLight;
+    private Forms.ToolStripMenuItem? _trackingItem;
+    private Forms.ToolStripMenuItem? _focusLockItem;
+    private bool _keepOpen;
 
     /// <summary>Creates and shows the tray icon. <paramref name="menuOpen"/> is told when the menu opens and closes.</summary>
     public TrayHost(
@@ -64,10 +67,22 @@ public sealed class TrayHost : IDisposable
 
         _menu.Opening += (_, _) =>
         {
+            _keepOpen = false;
             _menuOpen(true);
             Rebuild();
         };
+        _menu.Closing += (_, e) =>
+        {
+            // A switch was chosen (TrayMenuModel.KeepsMenuOpen): stay open so the new check mark shows.
+            if (_keepOpen && e.CloseReason == Forms.ToolStripDropDownCloseReason.ItemClicked)
+            {
+                e.Cancel = true;
+            }
+
+            _keepOpen = false;
+        };
         _menu.Closed += (_, _) => _menuOpen(false);
+        _menu.ShowItemToolTips = true;
         _menu.HandleCreated += (_, _) => ThemedMenu.Round(_menu.Handle);
         _tray = new Forms.NotifyIcon { ContextMenuStrip = _menu, Visible = false };
         _tray.MouseClick += OnMouseClick;
@@ -94,6 +109,21 @@ public sealed class TrayHost : IDisposable
         }
 
         _tray.Text = TrayIconAppearance.Tooltip(_controller.StatusLine);
+
+        // The menu can stay open after a switch is flipped; keep its check marks current (Tracking turns on and off
+        // asynchronously, so its new state arrives here, not at the click).
+        if (_menu.Visible)
+        {
+            if (_trackingItem is not null)
+            {
+                _trackingItem.Checked = _controller.TrackingEnabled;
+            }
+
+            if (_focusLockItem is not null)
+            {
+                _focusLockItem.Checked = _controller.FocusLocked;
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -160,11 +190,21 @@ public sealed class TrayHost : IDisposable
         ThemedMenu.Apply(_menu, AppTheme.Current);
         var scale = _menu.DeviceDpi / 96f;
         _menu.Items.Clear();
+        _trackingItem = null;
+        _focusLockItem = null;
         foreach (var entry in TrayMenuModel.Build(input))
         {
             var item = ToItem(entry);
             ThemedMenu.StyleItem(item, entry, scale);
             _menu.Items.Add(item);
+            if (item is Forms.ToolStripMenuItem menuItem && entry.Command == TrayCommand.ToggleTracking)
+            {
+                _trackingItem = menuItem;
+            }
+            else if (item is Forms.ToolStripMenuItem lockItem && entry.Command == TrayCommand.ToggleFocusLock)
+            {
+                _focusLockItem = lockItem;
+            }
         }
     }
 
@@ -176,6 +216,11 @@ public sealed class TrayHost : IDisposable
         }
 
         var item = new Forms.ToolStripMenuItem(entry.Text) { Enabled = entry.Enabled, Checked = entry.Checked };
+        if (entry.Help is { } help)
+        {
+            item.ToolTipText = help;
+        }
+
         if (entry.ShortcutText is { } shortcut)
         {
             item.ShortcutKeyDisplayString = shortcut;
@@ -199,6 +244,13 @@ public sealed class TrayHost : IDisposable
         }
         else if (entry.Command != TrayCommand.None)
         {
+            if (TrayMenuModel.KeepsMenuOpen(entry.Command))
+            {
+                // Set before the menu starts closing, whichever comes first for mouse or keyboard.
+                item.MouseDown += (_, _) => _keepOpen = true;
+                item.Click += (_, _) => _keepOpen = true;
+            }
+
             item.Click += (_, _) => Run(entry);
         }
 

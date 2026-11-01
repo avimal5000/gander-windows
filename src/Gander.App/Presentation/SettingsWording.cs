@@ -34,9 +34,12 @@ public static class SettingsWording
     public const string AccentLabel = "Accent color";
     public const string GlowToggle = "Glow on the display that gets focus";
     public const string NoticeToggle = "Show a notice when the shortcut toggles Focus Lock";
+    public const string GlowHelp = "A soft glow at the edge of the display that just got keyboard focus, so you can see where your typing will go.";
+    public const string NoticeHelp = "A small \"Focus Lock on\" or \"Focus Lock off\" notice, so you know the shortcut worked.";
 
     // General
     public const string StartWithWindows = "Start with Windows";
+    public const string StartWithWindowsHelp = "Opens Gander in the system tray when you sign in to Windows.";
     public const string StartWithWindowsUnavailable = "Starting with Windows is not available for this copy of Gander.";
 
     // Switching
@@ -62,6 +65,9 @@ public static class SettingsWording
     public const string Cancel = "Cancel";
     public const string Clear = "Clear";
     public const string TypeShortcut = "Type a shortcut…";
+    public const string FocusLockExplained =
+        "Focus Lock freezes switching: keyboard focus stays where it is, wherever you look, until you turn it off. Handy while you read one display and type on another.";
+
     public const string ShortcutHelp = "Works from any app. A shortcut needs Ctrl, Alt, or Win. Esc cancels recording.";
 
     // Camera

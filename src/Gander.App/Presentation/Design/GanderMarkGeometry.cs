@@ -132,8 +132,8 @@ public static class TrayGlyphSpec
     /// <summary>The eye's radius: set by hand, because a hole that small must be larger than the mark scaled down.</summary>
     public const double EyeRadius = 0.55;
 
-    /// <summary>Width of the outline that is the hollow (paused) goose.</summary>
-    public const double OutlineWidth = 1.2;
+    /// <summary>Width of the outline that is the hollow (paused) goose: about 1.5 pixels at 16, so it stays visible.</summary>
+    public const double OutlineWidth = 1.7;
 
     /// <summary>The area the mark is fitted into: a little left of and above the center, which leaves a corner for badges.</summary>
     public static readonly MarkRect MarkArea = new(0.75, 0.8, 15, 15);
