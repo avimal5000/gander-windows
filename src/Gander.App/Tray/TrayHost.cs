@@ -209,6 +209,7 @@ public sealed class TrayHost : IDisposable
                 if (item.DropDown is Forms.ToolStripDropDownMenu dropDown)
                 {
                     dropDown.ShowImageMargin = false;
+                    dropDown.ShowItemToolTips = true;
                     dropDown.ShowCheckMargin = true;
                     dropDown.HandleCreated += (_, _) => ThemedMenu.Round(dropDown.Handle);
                 }

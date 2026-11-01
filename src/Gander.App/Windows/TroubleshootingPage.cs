@@ -7,14 +7,15 @@ using Gander.App.Presentation.Design;
 namespace Gander.App.Windows;
 
 /// <summary>
-/// The Troubleshooting page of the Gander window: a row per tool (Pose Debug, Head-Pose Gate Test, Focus Test,
-/// Diagnostics). Each opens a window of its own, because the tools show live data beside whatever you are testing.
+/// The Troubleshooting page of the Gander window: the Welcome Tour, then a row per tool (Pose Debug, Head-Pose Gate
+/// Test, Focus Test, Diagnostics). The tools open windows of their own, because they show live data beside whatever
+/// you are testing.
 /// </summary>
 public sealed class TroubleshootingPage : UserControl
 {
     /// <summary>The line at the top of the page.</summary>
     public const string Intro =
-        "Gander works without these. They help when switching goes wrong: they show what the camera sees, how well Gander tells your displays apart, and whether it can move focus.";
+        "Gander works without these. Replay the introduction, or use the tools when switching goes wrong: they show what the camera sees, how well Gander tells your displays apart, and whether it can move focus.";
 
     /// <summary>Creates the page; <paramref name="run"/> opens a tool's window.</summary>
     public TroubleshootingPage(Action<TrayCommand> run)

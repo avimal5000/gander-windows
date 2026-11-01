@@ -141,16 +141,14 @@ public sealed class HomePage : UserControl
         var cameraCard = s.MakeCard(cameraRow);
         cameraCard.Margin = new Thickness(0, GanderDesign.Space.Section, 0, 0);
 
-        // Where to go from here: two by two, so the page fits without scrolling.
-        var links = new System.Windows.Controls.Primitives.UniformGrid { Columns = 2, Margin = new Thickness(0, GanderDesign.Space.Section, 0, 0) };
-        for (var i = 0; i < view.Links.Count; i++)
+        // Where to go from here: one row each, with a one-line description.
+        var links = new StackPanel { Margin = new Thickness(0, GanderDesign.Space.Section, 0, 0) };
+        foreach (var link in view.Links)
         {
-            var link = view.Links[i];
-            var tile = s.MakeRowButton(link.Title, link.Help);
-            var gap = GanderDesign.Space.Lg / 2;
-            tile.Margin = new Thickness(i % 2 == 0 ? 0 : gap, 0, i % 2 == 0 ? gap : 0, GanderDesign.Space.Lg);
-            tile.Click += (_, _) => _follow(link);
-            links.Children.Add(tile);
+            var row = s.MakeRowButton(link.Title, link.Help);
+            row.Margin = new Thickness(0, 0, 0, GanderDesign.Space.Lg);
+            row.Click += (_, _) => _follow(link);
+            links.Children.Add(row);
         }
 
         var quit = s.MakeButton("Quit Gander");

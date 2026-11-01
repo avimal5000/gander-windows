@@ -60,16 +60,19 @@ public static class MainWindowModel
         [
             new HomeLink("Calibrate", "Look at each display once so Gander learns where they are.", GanderPage.Setup, TrayCommand.Calibrate),
             new HomeLink("Settings", "Accent, start with Windows, switching speed, the shortcut.", GanderPage.Settings),
-            new HomeLink(TrayMenuModel.WelcomeTourText, "Replay the short introduction.", GanderPage.Setup, TrayCommand.WelcomeTour),
             new HomeLink("Troubleshooting", TroubleshootingHelp, GanderPage.Troubleshooting),
         ]);
 
     /// <summary>What the Troubleshooting link leads to.</summary>
-    public const string TroubleshootingHelp = "Tools for when switching goes wrong, and details for a report.";
+    public const string TroubleshootingHelp = "The Welcome Tour, tools for when switching goes wrong, and details for a report.";
 
-    /// <summary>The Troubleshooting page: one row per tool, each opening its own window.</summary>
+    /// <summary>
+    /// The Troubleshooting page: the Welcome Tour (which opens in this window), then one row per tool, each opening its
+    /// own window.
+    /// </summary>
     public static IReadOnlyList<HomeLink> Troubleshooting { get; } =
     [
+        new(TrayMenuModel.WelcomeTourText, TrayMenuModel.Help.WelcomeTour, Command: TrayCommand.WelcomeTour),
         new("Pose Debug", "Shows the head angles Gander measures, live, and can record them.", Command: TrayCommand.PoseDebug),
         new("Head-Pose Gate Test", "Checks that Gander can tell your displays apart by where you look.", Command: TrayCommand.GateTest),
         new("Focus Test", "Checks that Gander can move keyboard focus between your displays.", Command: TrayCommand.FocusTest),

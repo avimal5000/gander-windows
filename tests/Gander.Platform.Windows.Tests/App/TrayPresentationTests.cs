@@ -73,7 +73,7 @@ public sealed class TrayPresentationTests
         var menu = TrayMenuModel.Build(Input());
         var texts = menu.Where(e => !e.IsSeparator).Select(e => e.Text).ToList();
         Assert.Equal(
-            ["Gander", "Tracking · Cam", "Open Gander", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Welcome Tour", "Pose Debug Window…", "Head-Pose Gate Test…", "Focus Test Window…", "Diagnostics…", "Quit Gander"],
+            ["Gander", "Tracking · Cam", "Open Gander", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Troubleshooting", "Quit Gander"],
             texts);
         Assert.Equal(TrayEntryRole.Header, menu[0].Role);
         Assert.Equal(TrayEntryRole.Status, menu[1].Role);
@@ -103,14 +103,15 @@ public sealed class TrayPresentationTests
         Assert.Equal(keepsOpen, TrayMenuModel.KeepsMenuOpen(command));
 
     [Fact]
-    public void DebugWindowsAreReachableFromTheMenuInTheMacOrder()
+    public void TheTourAndDebugWindowsSitInTheTroubleshootingSubmenu()
     {
-        var menu = TrayMenuModel.Build(Input()).Where(e => !e.IsSeparator).ToList();
-        var commands = menu.Select(e => e.Command).ToList();
-        var calibrate = commands.IndexOf(TrayCommand.Calibrate);
+        var troubleshooting = TrayMenuModel.Build(Input()).Single(e => e.Text == TrayMenuModel.TroubleshootingText);
+        Assert.False(string.IsNullOrWhiteSpace(troubleshooting.Help));
+        var menu = troubleshooting.Children!.ToList();
         Assert.Equal(
-            [TrayCommand.Calibrate, TrayCommand.Settings, TrayCommand.WelcomeTour, TrayCommand.PoseDebug, TrayCommand.GateTest, TrayCommand.FocusTest, TrayCommand.Diagnostics, TrayCommand.Quit],
-            commands.Skip(calibrate).ToList());
+            [TrayCommand.WelcomeTour, TrayCommand.PoseDebug, TrayCommand.GateTest, TrayCommand.FocusTest, TrayCommand.Diagnostics],
+            menu.Select(e => e.Command).ToList());
+        Assert.All(menu, e => Assert.False(string.IsNullOrWhiteSpace(e.Help), $"{e.Text} has no tooltip"));
         Assert.All(
             menu.Where(e => e.Command is TrayCommand.PoseDebug or TrayCommand.GateTest or TrayCommand.FocusTest),
             e =>

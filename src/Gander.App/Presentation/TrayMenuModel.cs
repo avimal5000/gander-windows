@@ -169,6 +169,9 @@ public static class TrayMenuModel
     /// <summary>The row that opens the Gander window (a left click on the goose does the same).</summary>
     public const string OpenMainText = "Open Gander";
 
+    /// <summary>The submenu that holds the Welcome Tour and the tools for checking Gander, so the menu stays short.</summary>
+    public const string TroubleshootingText = "Troubleshooting";
+
     /// <summary>The row that replays the walkthrough, for anyone, any time.</summary>
     public const string WelcomeTourText = "Welcome Tour";
 
@@ -214,11 +217,17 @@ public static class TrayMenuModel
         entries.Add(TrayMenuEntry.Separator);
         entries.Add(new TrayMenuEntry("Calibrate…", TrayCommand.Calibrate, Help: Help.Calibrate));
         entries.Add(new TrayMenuEntry("Settings…", TrayCommand.Settings, Help: Help.Settings));
-        entries.Add(new TrayMenuEntry(WelcomeTourText, TrayCommand.WelcomeTour, Help: Help.WelcomeTour));
-        entries.Add(new TrayMenuEntry(PoseDebugText, TrayCommand.PoseDebug, Help: Help.PoseDebug));
-        entries.Add(new TrayMenuEntry(GateTestText, TrayCommand.GateTest, Help: Help.GateTest));
-        entries.Add(new TrayMenuEntry(FocusTestText, TrayCommand.FocusTest, Help: Help.FocusTest));
-        entries.Add(new TrayMenuEntry("Diagnostics…", TrayCommand.Diagnostics, Help: Help.Diagnostics));
+        entries.Add(new TrayMenuEntry(
+            TroubleshootingText,
+            Help: Help.Troubleshooting,
+            Children:
+            [
+                new TrayMenuEntry(WelcomeTourText, TrayCommand.WelcomeTour, Help: Help.WelcomeTour),
+                new TrayMenuEntry(PoseDebugText, TrayCommand.PoseDebug, Help: Help.PoseDebug),
+                new TrayMenuEntry(GateTestText, TrayCommand.GateTest, Help: Help.GateTest),
+                new TrayMenuEntry(FocusTestText, TrayCommand.FocusTest, Help: Help.FocusTest),
+                new TrayMenuEntry("Diagnostics…", TrayCommand.Diagnostics, Help: Help.Diagnostics),
+            ]));
         entries.Add(TrayMenuEntry.Separator);
         entries.Add(new TrayMenuEntry("Quit Gander", TrayCommand.Quit));
         return entries;
@@ -250,6 +259,9 @@ public static class TrayMenuModel
         public const string Settings = "Accent color, start with Windows, switching speed, the Focus Lock shortcut and saved calibrations.";
 
         public const string WelcomeTour = "Replays the short introduction to Gander.";
+
+        /// <summary>The Troubleshooting submenu.</summary>
+        public const string Troubleshooting = "The Welcome Tour, the test windows and Diagnostics.";
 
         public const string PoseDebug = "For troubleshooting: shows the head angles Gander measures, live.";
 
