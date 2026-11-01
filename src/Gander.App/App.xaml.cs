@@ -75,6 +75,26 @@ public partial class App : Application
 
         _calibration.Show();
         _calibration.Activate();
+        _preferences?.MarkOnboardingSeen();
+    }
+
+    // First run: the walkthrough opens by itself once, in front of the other windows, when nothing is calibrated.
+    private void OpenFirstRunSetup()
+    {
+        if (_controller is null || _preferences is null
+            || !FirstRunRule.ShouldOpenSetup(_preferences.OnboardingSeen, _controller.Library.Profiles.Count))
+        {
+            return;
+        }
+
+        OpenCalibration();
+        if (_calibration is { } window)
+        {
+            // Topmost for a moment so a window opened from the startup shortcut is not left behind another app.
+            window.Topmost = true;
+            window.Activate();
+            window.Topmost = false;
+        }
     }
 
     /// <summary>Opens (or raises) the Settings window.</summary>
@@ -338,11 +358,8 @@ public partial class App : Application
             _tray?.Refresh();
         };
 
-        // First launch: no saved choice and no calibration yet, so start with the setup window.
-        if (_settings.Read(SettingsKeys.TrackingEnabled) is null && _controller.Library.Profiles.Count == 0)
-        {
-            Dispatcher.BeginInvoke(OpenCalibration);
-        }
+        // First launch: nothing calibrated and the walkthrough not yet seen. Runs after the tray icon exists.
+        Dispatcher.BeginInvoke(OpenFirstRunSetup);
     }
 
     private void Track(Window window, string name)

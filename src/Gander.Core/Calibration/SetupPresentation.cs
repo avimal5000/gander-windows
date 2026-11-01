@@ -1,21 +1,101 @@
+using System.Collections.Generic;
+
 namespace Gander.Core.Calibration;
+
+/// <summary>The picture that goes with an intro page.</summary>
+public enum IntroArt
+{
+    /// <summary>Two monitors, a head that turns, a focus ring that follows.</summary>
+    Scene,
+
+    /// <summary>Three drawn moves: look, settle, type.</summary>
+    Moves,
+
+    /// <summary>The goose in a padlock.</summary>
+    Privacy,
+
+    /// <summary>The taskbar tray strip with the goose.</summary>
+    Tray,
+}
+
+/// <summary>One page of the intro: its picture, words and figure label.</summary>
+/// <param name="Art">Which picture the page draws.</param>
+/// <param name="Title">The page title.</param>
+/// <param name="Headline">A line under the title, or null.</param>
+/// <param name="Figure">"Fig. 1".</param>
+/// <param name="Caption">The italic caption under the plate.</param>
+/// <param name="Lines">The page's text lines (the three moves, the promises, the paragraph).</param>
+public sealed record IntroPage(IntroArt Art, string Title, string? Headline, string Figure, string Caption, IReadOnlyList<string> Lines);
 
 /// <summary>Wording for the Set Up Gander window that more than one place needs (SPEC F20, F26), in Windows words.</summary>
 public static class SetupPresentation
 {
-    /// <summary>Title of the welcome step.</summary>
+    /// <summary>Title of the welcome step (its first intro page).</summary>
     public const string WelcomeTitle = "Welcome to Gander";
 
-    /// <summary>What Gander does.</summary>
-    public const string WelcomeLine = "Look at a monitor, and Gander moves your typing there. The pointer never moves.";
+    /// <summary>The headline under the welcome title.</summary>
+    public const string WelcomeHeadline = "Look at a screen. Start typing.";
 
-    /// <summary>The privacy promise.</summary>
-    public const string WelcomePrivacy =
-        "Your camera stays private. Gander reads only which way your head is turned, on this PC. "
-        + "Video is never recorded, saved, or sent anywhere.";
+    /// <summary>Caption of the first plate.</summary>
+    public const string SceneCaption = "Gander at work: the head turns, focus follows, the pointer stays.";
 
-    /// <summary>The welcome step's button.</summary>
-    public const string WelcomeButton = "Get Started";
+    /// <summary>The words typed into the second monitor in the first plate's scene.</summary>
+    public const string SceneTyped = "ship it";
+
+    /// <summary>The three moves on the second intro page, in order.</summary>
+    public static readonly IReadOnlyList<string> Moves =
+    [
+        "Gander watches your head turn",
+        "You settle on another screen",
+        "Focus follows your gaze; the pointer stays where it was",
+    ];
+
+    /// <summary>The three promises on the privacy page.</summary>
+    public static readonly IReadOnlyList<string> PrivacyLines =
+    [
+        "Gander reads only which way your head is turned, on this PC.",
+        "No video or images are saved or sent.",
+        "The camera light goes off when you pause.",
+    ];
+
+    /// <summary>The paragraph under the tray strip on the last intro page.</summary>
+    public const string TrayText =
+        "Click the goose to pause, lock or open Settings. If you do not see it, click the arrow beside the clock. "
+        + "Gander has no window until you open it.";
+
+    /// <summary>Heading of the list of what comes after the intro.</summary>
+    public const string NextHeading = "What happens next";
+
+    /// <summary>What comes after the intro.</summary>
+    public static readonly IReadOnlyList<string> NextItems =
+    [
+        "Allow the camera when Windows asks.",
+        "Look at each screen once.",
+    ];
+
+    /// <summary>The intro's pages, in order.</summary>
+    public static readonly IReadOnlyList<IntroPage> IntroPages =
+    [
+        new(IntroArt.Scene, WelcomeTitle, WelcomeHeadline, "Fig. 1", SceneCaption, []),
+        new(IntroArt.Moves, "Look. Settle. Type.", null, "Fig. 2", "Three moves, no clicking.", Moves),
+        new(IntroArt.Privacy, "Your camera stays yours.", null, "Fig. 3", "Everything happens on this PC.", PrivacyLines),
+        new(IntroArt.Tray, "Find Gander in the system tray", null, "Fig. 4", "Gander lives by the clock.", [TrayText]),
+    ];
+
+    /// <summary>The primary button on every intro page but the last.</summary>
+    public const string IntroNextButton = "Next";
+
+    /// <summary>The primary button on the last intro page (and the old welcome's "Get Started").</summary>
+    public const string WelcomeButton = "Set Up Gander";
+
+    /// <summary>The Back button.</summary>
+    public const string IntroBackButton = "Back";
+
+    /// <summary>The quiet button that leaves the intro early.</summary>
+    public const string IntroSkipButton = "Skip intro";
+
+    /// <summary>"Page 2 of 4" for assistive technology and the page dots.</summary>
+    public static string IntroPageLine(int page) => $"Page {page + 1} of {SetupFlow.IntroPageCount}";
 
     /// <summary>The advice on the camera check.</summary>
     public const string CameraAdvice =

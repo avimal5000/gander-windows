@@ -87,6 +87,48 @@ public sealed class SetupSessionTests
     }
 
     [Fact]
+    public void TheIntroPagesRaiseChangedAndTheLastOneStartsTheSetup()
+    {
+        using var h = Harness.Make(authorization: CameraAuthorization.Authorized, autoRun: true);
+        using var setup = Make(h);
+        var raised = 0;
+        setup.Changed += () => raised++;
+        setup.Open();
+        h.Drain();
+        var afterOpen = raised;
+
+        setup.IntroBack();
+        Assert.Equal(0, setup.IntroPage);
+        setup.IntroNext();
+        setup.IntroNext();
+        h.Drain();
+        Assert.Equal(2, setup.IntroPage);
+        Assert.Equal(afterOpen + 2, raised);
+        setup.IntroBack();
+        Assert.Equal(1, setup.IntroPage);
+        Assert.Equal(SetupStep.Welcome, setup.Step);
+
+        setup.IntroNext();
+        setup.IntroNext();
+        setup.IntroNext();
+        h.Drain();
+        Assert.Equal(SetupStep.CameraCheck, setup.Step);
+        Assert.True(h.Controller.CalibrationRunning);
+    }
+
+    [Fact]
+    public void SkipIntroLeavesFromTheFirstPage()
+    {
+        using var h = Harness.Make(authorization: CameraAuthorization.Denied, autoRun: true);
+        using var setup = Make(h);
+        setup.Open();
+        setup.IntroSkip();
+        Assert.Equal(SetupStep.NeedsYou, setup.Step);
+        setup.IntroNext();
+        Assert.Equal(SetupStep.NeedsYou, setup.Step);
+    }
+
+    [Fact]
     public async Task TheCameraRunsForTheCameraCheckAndTrackingStaysOff()
     {
         var (h, setup) = await OpenOnCameraCheck();
