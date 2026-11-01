@@ -88,9 +88,35 @@ public partial class App : Application
         }
 
         OpenCalibration();
+        BringSetupToFront();
+    }
+
+    /// <summary>Opens Set Up on the first intro page whatever the library holds; an open Set Up window starts over on page 1.</summary>
+    public void OpenWelcomeTour()
+    {
+        if (_setup is null)
+        {
+            return;
+        }
+
+        if (_calibration is not null && _setup.IsOpen)
+        {
+            _setup.RestartTour();
+        }
+        else
+        {
+            _setup.RequestTour();
+        }
+
+        OpenCalibration();
+        BringSetupToFront();
+    }
+
+    // Topmost for a moment so the window is not left behind another app.
+    private void BringSetupToFront()
+    {
         if (_calibration is { } window)
         {
-            // Topmost for a moment so a window opened from the startup shortcut is not left behind another app.
             window.Topmost = true;
             window.Activate();
             window.Topmost = false;
@@ -331,6 +357,7 @@ public partial class App : Application
             _controller,
             OpenCalibration,
             OpenSettings,
+            OpenWelcomeTour,
             OpenDiagnostics,
             OpenPoseDebug,
             OpenGateTest,

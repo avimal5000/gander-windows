@@ -117,6 +117,54 @@ public sealed class SetupSessionTests
     }
 
     [Fact]
+    public void AnOrdinaryOpenWithCalibrationsStillSkipsTheIntroAndATourRequestIsUsedOnce()
+    {
+        using var h = Harness.Make(authorization: CameraAuthorization.Authorized, calibrated: true);
+        using var setup = Make(h);
+        setup.RequestTour();
+        setup.Open();
+        Assert.Equal(SetupStep.Welcome, setup.Step);
+        Assert.Equal(0, setup.IntroPage);
+        setup.Close();
+
+        setup.Open();
+        Assert.Equal(SetupStep.CameraCheck, setup.Step);
+    }
+
+    [Fact]
+    public void RestartTourGoesBackToTheFirstIntroPageFromAnyStepAndLetsTheCameraGo()
+    {
+        using var h = Harness.Make(authorization: CameraAuthorization.Authorized, autoRun: true, calibrated: true);
+        using var setup = Make(h);
+        setup.Open();
+        h.Drain();
+        Assert.Equal(SetupStep.CameraCheck, setup.Step);
+        Assert.True(h.Controller.CalibrationRunning);
+
+        setup.RestartTour();
+        h.Drain();
+        Assert.True(setup.IsOpen);
+        Assert.Equal(SetupStep.Welcome, setup.Step);
+        Assert.Equal(0, setup.IntroPage);
+        Assert.False(h.Controller.CalibrationRunning);
+
+        setup.IntroNext();
+        setup.IntroNext();
+        setup.RestartTour();
+        Assert.Equal(0, setup.IntroPage);
+    }
+
+    [Fact]
+    public void TourCallsDoNothingWhileClosedBeyondTheRequest()
+    {
+        using var h = Harness.Make(calibrated: true);
+        using var setup = Make(h);
+        setup.RestartTour();
+        Assert.False(setup.IsOpen);
+        Assert.Null(setup.Step);
+    }
+
+    [Fact]
     public void SkipIntroLeavesFromTheFirstPage()
     {
         using var h = Harness.Make(authorization: CameraAuthorization.Denied, autoRun: true);

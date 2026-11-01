@@ -27,6 +27,7 @@ public sealed class SetupSession : IDisposable
     private readonly IDelayScheduler _scheduler;
     private SetupFlow? _flow;
     private IScheduledAction? _permissionTimer;
+    private bool _tourRequested;
     private bool _holdingCamera;
     private double? _lastFramingRefresh;
     private bool _disposed;
@@ -92,8 +93,41 @@ public sealed class SetupSession : IDisposable
         _controller.RefreshEnvironment();
         Calibration.Reset();
         Result = null;
-        _flow = new SetupFlow(CameraAllowed(), showsWelcome: _controller.Library.Profiles.Count == 0);
+        var tour = _tourRequested;
+        _tourRequested = false;
+        _flow = new SetupFlow(CameraAllowed(), showsWelcome: tour || _controller.Library.Profiles.Count == 0);
         FlowDidChange(SetupStep.Welcome, forced: true);
+        Raise();
+    }
+
+    /// <summary>The next <see cref="Open"/> starts on the first intro page even when calibrations exist (the "Welcome Tour" menu item).</summary>
+    public void RequestTour()
+    {
+        if (!_disposed && _flow is null)
+        {
+            _tourRequested = true;
+        }
+    }
+
+    /// <summary>
+    /// While open: starts over on the first intro page, from any step. A running calibration is cancelled and the
+    /// camera is let go. Does nothing while closed.
+    /// </summary>
+    public void RestartTour()
+    {
+        if (_flow is null || _disposed)
+        {
+            return;
+        }
+
+        var old = _flow.Step;
+        Calibration.Cancel(null);
+        Calibration.Reset();
+        Result = null;
+        ResetFraming();
+        _controller.RefreshEnvironment();
+        _flow = new SetupFlow(CameraAllowed(), showsWelcome: true);
+        FlowDidChange(old, forced: true);
         Raise();
     }
 

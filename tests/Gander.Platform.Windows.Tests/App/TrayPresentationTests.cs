@@ -73,7 +73,7 @@ public sealed class TrayPresentationTests
         var menu = TrayMenuModel.Build(Input());
         var texts = menu.Where(e => !e.IsSeparator).Select(e => e.Text).ToList();
         Assert.Equal(
-            ["Gander", "Tracking · Cam", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Pose Debug Window…", "Head-Pose Gate Test…", "Focus Test Window…", "Diagnostics…", "Quit Gander"],
+            ["Gander", "Tracking · Cam", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Welcome Tour", "Pose Debug Window…", "Head-Pose Gate Test…", "Focus Test Window…", "Diagnostics…", "Quit Gander"],
             texts);
         Assert.Equal(TrayEntryRole.Header, menu[0].Role);
         Assert.Equal(TrayEntryRole.Status, menu[1].Role);
@@ -88,7 +88,7 @@ public sealed class TrayPresentationTests
         var commands = menu.Select(e => e.Command).ToList();
         var calibrate = commands.IndexOf(TrayCommand.Calibrate);
         Assert.Equal(
-            [TrayCommand.Calibrate, TrayCommand.Settings, TrayCommand.PoseDebug, TrayCommand.GateTest, TrayCommand.FocusTest, TrayCommand.Diagnostics, TrayCommand.Quit],
+            [TrayCommand.Calibrate, TrayCommand.Settings, TrayCommand.WelcomeTour, TrayCommand.PoseDebug, TrayCommand.GateTest, TrayCommand.FocusTest, TrayCommand.Diagnostics, TrayCommand.Quit],
             commands.Skip(calibrate).ToList());
         Assert.All(
             menu.Where(e => e.Command is TrayCommand.PoseDebug or TrayCommand.GateTest or TrayCommand.FocusTest),
