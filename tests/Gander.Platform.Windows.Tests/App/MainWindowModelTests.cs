@@ -25,23 +25,22 @@ public sealed class MainWindowModelTests
     }
 
     [Fact]
-    public void HomeLinksGoToCalibrateSettingsTourAndTroubleshooting()
+    public void HomeLinksGoToCalibrateSettingsAndTroubleshooting()
     {
         var links = MainWindowModel.Home(Input()).Links;
-        Assert.Equal(["Calibrate", "Settings", "Welcome Tour", "Troubleshooting"], links.Select(l => l.Title));
+        Assert.Equal(["Calibrate", "Settings", "Troubleshooting"], links.Select(l => l.Title));
         Assert.Equal(TrayCommand.Calibrate, links[0].Command);
         Assert.Equal(GanderPage.Settings, links[1].Page);
-        Assert.Equal(TrayCommand.WelcomeTour, links[2].Command);
-        Assert.Equal(GanderPage.Troubleshooting, links[3].Page);
-        Assert.Equal(TrayCommand.None, links[3].Command);
+        Assert.Equal(GanderPage.Troubleshooting, links[2].Page);
+        Assert.Equal(TrayCommand.None, links[2].Command);
         Assert.All(links, l => Assert.False(string.IsNullOrWhiteSpace(l.Help)));
     }
 
     [Fact]
-    public void TroubleshootingOpensTheFourTools()
+    public void TroubleshootingHasTheTourThenTheFourTools()
     {
         Assert.Equal(
-            [TrayCommand.PoseDebug, TrayCommand.GateTest, TrayCommand.FocusTest, TrayCommand.Diagnostics],
+            [TrayCommand.WelcomeTour, TrayCommand.PoseDebug, TrayCommand.GateTest, TrayCommand.FocusTest, TrayCommand.Diagnostics],
             MainWindowModel.Troubleshooting.Select(t => t.Command));
         Assert.All(MainWindowModel.Troubleshooting, t => Assert.Null(t.Page));
     }
