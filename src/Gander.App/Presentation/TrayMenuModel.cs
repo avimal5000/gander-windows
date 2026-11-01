@@ -17,6 +17,7 @@ public enum TrayCommand
     SelectCamera,
     Calibrate,
     Settings,
+    WelcomeTour,
     PoseDebug,
     GateTest,
     FocusTest,
@@ -161,6 +162,9 @@ public static class TrayMenuModel
     /// <summary>The camera row that means "whatever Windows picks".</summary>
     public const string DefaultCameraText = SettingsWording.DefaultCamera;
 
+    /// <summary>The row that replays the walkthrough, for anyone, any time.</summary>
+    public const string WelcomeTourText = "Welcome Tour";
+
     /// <summary>The Mac's "Pose Debug Window…" row.</summary>
     public const string PoseDebugText = "Pose Debug Window…";
 
@@ -201,6 +205,7 @@ public static class TrayMenuModel
         entries.Add(TrayMenuEntry.Separator);
         entries.Add(new TrayMenuEntry("Calibrate…", TrayCommand.Calibrate));
         entries.Add(new TrayMenuEntry("Settings…", TrayCommand.Settings));
+        entries.Add(new TrayMenuEntry(WelcomeTourText, TrayCommand.WelcomeTour));
         entries.Add(new TrayMenuEntry(PoseDebugText, TrayCommand.PoseDebug));
         entries.Add(new TrayMenuEntry(GateTestText, TrayCommand.GateTest));
         entries.Add(new TrayMenuEntry(FocusTestText, TrayCommand.FocusTest));

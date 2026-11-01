@@ -19,6 +19,7 @@ public sealed class TrayHost : IDisposable
     private readonly TrackingController _controller;
     private readonly Action _openCalibration;
     private readonly Action _openSettings;
+    private readonly Action _openTour;
     private readonly Action _openDiagnostics;
     private readonly Action _openPoseDebug;
     private readonly Action _openGateTest;
@@ -37,6 +38,7 @@ public sealed class TrayHost : IDisposable
         TrackingController controller,
         Action openCalibration,
         Action openSettings,
+        Action openTour,
         Action openDiagnostics,
         Action openPoseDebug,
         Action openGateTest,
@@ -48,6 +50,7 @@ public sealed class TrayHost : IDisposable
         _controller = controller;
         _openCalibration = openCalibration;
         _openSettings = openSettings;
+        _openTour = openTour;
         _openDiagnostics = openDiagnostics;
         _openPoseDebug = openPoseDebug;
         _openGateTest = openGateTest;
@@ -216,6 +219,9 @@ public sealed class TrayHost : IDisposable
                 break;
             case TrayCommand.Settings:
                 _openSettings();
+                break;
+            case TrayCommand.WelcomeTour:
+                _openTour();
                 break;
             case TrayCommand.PoseDebug:
                 _openPoseDebug();
