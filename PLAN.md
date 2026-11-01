@@ -1,8 +1,8 @@
-# Sway for Windows: Build Plan
+# Gander for Windows: Build Plan
 
 **Look. Focus. Flow.** A quiet Windows system tray utility that switches keyboard focus to the monitor you are looking at, using head pose from a webcam, entirely on-device.
 
-Status: planning only. No code until the go-ahead. This follows the macOS plan (`avimal5000/sway`, `PLAN.md`) and reuses its product decisions, its behavior spec, and its working method. The code is a rewrite: nothing in Swift, SwiftUI, AppKit, Vision, or the Accessibility API exists on Windows.
+Status: planning only. No code until the go-ahead. This follows the macOS plan (`avimal5000/gander`, `PLAN.md`) and reuses its product decisions, its behavior spec, and its working method. The code is a rewrite: nothing in Swift, SwiftUI, AppKit, Vision, or the Accessibility API exists on Windows.
 
 ## 1. Decisions locked in
 
@@ -10,7 +10,7 @@ Status: planning only. No code until the go-ahead. This follows the macOS plan (
 |---|---|
 | Behavior | Same as the Mac app: per-display focus, head pose only, last-used window on the target display, cursor never moved, silent feedback (tray icon state plus an optional thin edge glow), "uncertain = do nothing" |
 | Source of truth for behavior | The Mac repo's `SPEC.md` and `CONTRACT.md`. Where Windows must differ, the difference is a numbered decision in this repo's `SPEC.md`, with its reason |
-| Repo | `avimal5000/sway-windows`, private |
+| Repo | `avimal5000/gander-windows`, private |
 | Where the work happens | On the Mac (this orchestrator session). Windows is reached through GitHub: every PR builds on a Windows runner and publishes a downloadable build for the user to try on the Windows desktop |
 | Distribution | Free download first, unsigned (SmartScreen shows a warning, as Gatekeeper does on the Mac). Code signing later |
 | Windows versions | Windows 11 is the target; Windows 10 22H2 best effort. To confirm with the user's desktop (section 9) |
@@ -26,8 +26,8 @@ The Mac app has zero third-party dependencies. Windows has no equivalent of Visi
 - **Camera:** Windows Media Capture (`Windows.Media.Capture`) with a frame reader, or Media Foundation. The spike picks one.
 - **Head pose:** a bundled face-landmark model run locally with ONNX Runtime, then a pose solve (landmarks to yaw, pitch, roll). Candidate: MediaPipe Face Mesh converted to ONNX (Apache-2.0). Alternative: MediaPipe's own runtime through a native bridge. The model file ships inside the app and is never downloaded. Decided by spike S1.
 - **Windows APIs (P/Invoke, no packages):** `EnumDisplayMonitors`, `GetMonitorInfo`, `EnumWindows` (z-order, topmost first), `DwmGetWindowAttribute` (cloaked windows), `IVirtualDesktopManager`, `SetForegroundWindow` and its workarounds, `RegisterHotKey` for Focus Lock, `WTSRegisterSessionNotification` and power notifications for lock and sleep.
-- **Settings:** JSON under `%AppData%\Sway\`. Autostart through the per-user `Run` key, off by default. No other registry writes.
-- **Logs:** `Microsoft.Extensions.Logging` is avoided; a small local file logger writes to `%LocalAppData%\Sway\Logs` with a size cap. Nothing leaves the machine.
+- **Settings:** JSON under `%AppData%\Gander\`. Autostart through the per-user `Run` key, off by default. No other registry writes.
+- **Logs:** `Microsoft.Extensions.Logging` is avoided; a small local file logger writes to `%LocalAppData%\Gander\Logs` with a size cap. Nothing leaves the machine.
 - **Quality:** `dotnet format` (style gate), Roslyn analyzers with warnings as errors, xUnit tests, a privacy guard script.
 
 ## 3. Architecture
@@ -35,18 +35,18 @@ The Mac app has zero third-party dependencies. Windows has no equivalent of Visi
 Mirrors the Mac modules so the contracts carry over. The portable half builds and tests on the Mac; the Windows half compiles on the Mac (`EnableWindowsTargeting`) and runs on Windows.
 
 ```
-Sway.App          (WPF, net8.0-windows)  tray, settings, setup, glow overlay, notice
- ├─ Sway.Core            (net8.0, portable: builds and tests on macOS, Linux, and Windows)
+Gander.App          (WPF, net8.0-windows)  tray, settings, setup, glow overlay, notice
+ ├─ Gander.Core            (net8.0, portable: builds and tests on macOS, Linux, and Windows)
  │    models, CalibrationModel, classifier, SwitchDecider state machine, SwitchSensitivity,
  │    AdaptiveFrameRate, SuspendTracker, RetryBackoff, TrackingHold priority, pose trace replay
- ├─ Sway.Platform.Windows (net8.0-windows)
+ ├─ Gander.Platform.Windows (net8.0-windows)
  │    CameraService, PoseEstimator, DisplayTracker, WindowTracker, FocusController,
  │    SessionMonitor (lock, sleep, display sleep), HotKey
- └─ Sway.Tools            (spike and diagnostic console programs, run on the Windows desktop)
-Sway.Core.Tests / Sway.Platform.Windows.Tests
+ └─ Gander.Tools            (spike and diagnostic console programs, run on the Windows desktop)
+Gander.Core.Tests / Gander.Platform.Windows.Tests
 ```
 
-Rule: `Sway.Core` never references a Windows API. Everything Windows-specific sits behind an interface that Core defines (`IPoseSource`, `IFocusPlatform`, `IDisplayCatalog`, `ISessionEvents`), so the engine is testable with fakes and replayed traces, exactly as on the Mac.
+Rule: `Gander.Core` never references a Windows API. Everything Windows-specific sits behind an interface that Core defines (`IPoseSource`, `IFocusPlatform`, `IDisplayCatalog`, `ISessionEvents`), so the engine is testable with fakes and replayed traces, exactly as on the Mac.
 
 ## 4. Parity strategy (how we know the port behaves like the Mac app)
 
@@ -81,7 +81,7 @@ Same promises as the Mac app, same enforcement style:
 |---|---|---|
 | W0 | Foundations | Repo, solution skeleton, CI on `windows-latest` (build, test, format, privacy guard), PR template, issue templates, labels, milestones and issues seeded from this plan, PR builds publish a downloadable artifact |
 | W1 | Spikes (go/no-go) | S1 pose pipeline, S2 focus switching, S3 monitors and windows, each a small console program the user downloads and runs on the Windows desktop. Results recorded in `docs/decisions/`. Gate: head pose separates the user's displays, and focus can be moved reliably |
-| W2 | Core engine port | `Sway.Core`: models, calibration, classifier, decider, sensitivity, adaptive frame rate, suspend tracker, hold priority. All golden-vector tests pass. Runs on the Mac with no Windows involved |
+| W2 | Core engine port | `Gander.Core`: models, calibration, classifier, decider, sensitivity, adaptive frame rate, suspend tracker, hold priority. All golden-vector tests pass. Runs on the Mac with no Windows involved |
 | W3 | Camera and live pose | Camera capture and the chosen pose pipeline behind `IPoseSource`; debug window showing live yaw and pitch; trace recorder |
 | W4 | Focus and displays | Monitor tracking, last-used window per monitor, verified focus switch from a debug button without moving the cursor, layout-change detection |
 | W5 | End-to-end loop | Tray app: camera to pose to decider to focus. Pause and Resume, Focus Lock hotkey, status icon. First daily-driver build |
@@ -98,8 +98,8 @@ Same method as the Mac project:
 - **Roles.** The orchestrator (this Mac session) plans, writes the specs, creates and owns the solution and project files and CI, reviews, and merges only with the user's approval. Builders (Sonnet agents) implement one module per PR in isolation. An Opus review reports findings, and the orchestrator fixes them.
 - **Docs.** `SPEC.md` (numbered decisions D#, features F#), `CONTRACT.md` (interfaces and rules), `STATUS.md` (kept current), `docs/decisions/` (spike results).
 - **Branches and PRs.** Branch per issue, PR template with a privacy and behavior checklist, squash merge with `--delete-branch` and a clean `--body`. Never put the CI-skip marker in any commit message or PR body: it silences CI, and a squash merge copies it into main.
-- **CI on Windows runners.** On a private repo on the Free plan, Windows minutes bill at 2x. PR-only CI. Each PR publishes `Sway-win-x64.zip` as a workflow artifact.
-- **Windows testing loop.** The user downloads the artifact from the PR's checks, runs it, and reports what happened. A "Copy diagnostics" button comes early (W3) so reports are easy: Sway version, Windows build, settings, cameras, monitors, status, recent log lines. Local only.
+- **CI on Windows runners.** On a private repo on the Free plan, Windows minutes bill at 2x. PR-only CI. Each PR publishes `Gander-win-x64.zip` as a workflow artifact.
+- **Windows testing loop.** The user downloads the artifact from the PR's checks, runs it, and reports what happened. A "Copy diagnostics" button comes early (W3) so reports are easy: Gander version, Windows build, settings, cameras, monitors, status, recent log lines. Local only.
 - **Hardware checks list** (user-run) is kept in `SPEC.md` like the Mac's section 9.
 
 ## 9. Needed from the user before W1
@@ -111,7 +111,7 @@ Same method as the Mac project:
 5. **Consent to one third-party dependency** (ONNX Runtime plus a bundled face model), audited for network use.
 6. **Policy on the Alt-key workaround** if S2 shows it is the only reliable way: allowed as a last resort with the privacy wording changed, or not allowed.
 
-Defaults if not answered: private repo, name "Sway", Focus Lock default `Ctrl+Alt+Shift+L` (Win-key combinations are reserved by Windows), x64, Windows 11, unsigned first release.
+Defaults if not answered: private repo, name "Gander", Focus Lock default `Ctrl+Alt+Shift+L` (Win-key combinations are reserved by Windows), x64, Windows 11, unsigned first release.
 
 ## 10. Definition of done for the first release
 
