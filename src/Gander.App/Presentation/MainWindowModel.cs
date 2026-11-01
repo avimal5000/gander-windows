@@ -58,14 +58,14 @@ public static class MainWindowModel
         ],
         input.LookText,
         [
-            new HomeLink("Calibrate", TrayMenuModel.Help.Calibrate, GanderPage.Setup, TrayCommand.Calibrate),
-            new HomeLink("Settings", TrayMenuModel.Help.Settings, GanderPage.Settings),
-            new HomeLink(TrayMenuModel.WelcomeTourText, TrayMenuModel.Help.WelcomeTour, GanderPage.Setup, TrayCommand.WelcomeTour),
+            new HomeLink("Calibrate", "Look at each display once so Gander learns where they are.", GanderPage.Setup, TrayCommand.Calibrate),
+            new HomeLink("Settings", "Accent, start with Windows, switching speed, the shortcut.", GanderPage.Settings),
+            new HomeLink(TrayMenuModel.WelcomeTourText, "Replay the short introduction.", GanderPage.Setup, TrayCommand.WelcomeTour),
             new HomeLink("Troubleshooting", TroubleshootingHelp, GanderPage.Troubleshooting),
         ]);
 
     /// <summary>What the Troubleshooting link leads to.</summary>
-    public const string TroubleshootingHelp = "Tools that show what Gander sees, and details to send with a problem report.";
+    public const string TroubleshootingHelp = "Tools for when switching goes wrong, and details for a report.";
 
     /// <summary>The Troubleshooting page: one row per tool, each opening its own window.</summary>
     public static IReadOnlyList<HomeLink> Troubleshooting { get; } =
@@ -85,6 +85,12 @@ public static class MainWindowModel
         _ => WindowTitle,
     };
 
+    /// <summary>
+    /// The Back button names where it goes ("Home", "Settings"), so on the tour it is not confused with the tour's own
+    /// Back, which goes to the previous intro page.
+    /// </summary>
+    public static string BackTo(GanderPage previous) => previous == GanderPage.Home ? "Home" : PageTitle(previous);
+
     /// <summary>Home has no Back button; every other page does.</summary>
     public static bool HasBack(GanderPage page) => page != GanderPage.Home;
 }
@@ -102,6 +108,9 @@ public sealed class PageHistory
 
     /// <summary>The pages from Home to the current one.</summary>
     public IReadOnlyList<GanderPage> Pages => _pages;
+
+    /// <summary>The page Back returns to (Home on Home).</summary>
+    public GanderPage Previous => _pages.Count > 1 ? _pages[^2] : GanderPage.Home;
 
     /// <summary>Goes to <paramref name="page"/>: Home clears the history; a page already in it is popped back to.</summary>
     public void Open(GanderPage page)

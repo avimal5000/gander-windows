@@ -37,7 +37,7 @@ public sealed class MainWindow : Window
         _makePage = makePage;
         Title = MainWindowModel.WindowTitle;
         Width = PageWidth;
-        Height = Math.Min(720, Math.Max(480, SystemParameters.WorkArea.Height * 0.9));
+        Height = Math.Min(780, Math.Max(480, SystemParameters.WorkArea.Height * 0.9));
         MinHeight = 420;
         ResizeMode = ResizeMode.CanMinimize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -129,6 +129,9 @@ public sealed class MainWindow : Window
 
         var home = !MainWindowModel.HasBack(page);
         _back.Visibility = home ? Visibility.Collapsed : Visibility.Visible;
+        var backTo = MainWindowModel.BackTo(_history.Previous);
+        _back.Content = $"‹  {backTo}";
+        AutomationProperties.SetName(_back, $"{MainWindowModel.BackText} to {backTo}");
         _mark.Visibility = home ? Visibility.Visible : Visibility.Collapsed;
         _title.Text = MainWindowModel.PageTitle(page);
 

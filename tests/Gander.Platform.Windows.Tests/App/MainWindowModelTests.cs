@@ -69,6 +69,16 @@ public sealed class MainWindowModelTests
     }
 
     [Fact]
+    public void BackSaysWhereItGoes()
+    {
+        var history = new PageHistory();
+        history.Open(GanderPage.Settings);
+        Assert.Equal("Home", MainWindowModel.BackTo(history.Previous));
+        history.Open(GanderPage.Setup);
+        Assert.Equal("Settings", MainWindowModel.BackTo(history.Previous));
+    }
+
+    [Fact]
     public void OpeningAPageOnTheWayBackPopsToItInsteadOfStackingIt()
     {
         var history = new PageHistory();
