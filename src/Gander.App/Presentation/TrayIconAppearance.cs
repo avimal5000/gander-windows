@@ -19,11 +19,15 @@ public readonly record struct TrayIconAppearance(bool FilledEnd, bool Dimmed, bo
     /// <summary>Sizes drawn at runtime, for 100%, 125%, 150% and 200% scaling.</summary>
     public static readonly int[] Sizes = [16, 20, 24, 32];
 
-    /// <summary>The look for a state: solid when tracking, hollow and dimmed when paused, padlock for Focus Lock, dot for Needs you.</summary>
+    /// <summary>
+    /// The look for a state: solid when tracking, an outline when paused, padlock for Focus Lock, dot for Needs you.
+    /// The Mac also dims the paused glyph; Windows does not, because a one-pixel outline at half strength all but
+    /// disappears on a dark taskbar at 16 pixels, and paused is what a new user sees until they calibrate.
+    /// </summary>
     public static TrayIconAppearance For(TrayIconState state) => state switch
     {
         TrayIconState.Tracking => new TrayIconAppearance(true, false, false, false),
-        TrayIconState.Paused => new TrayIconAppearance(false, true, false, false),
+        TrayIconState.Paused => new TrayIconAppearance(false, false, false, false),
         TrayIconState.FocusLock => new TrayIconAppearance(true, false, true, false),
         _ => new TrayIconAppearance(true, false, false, true),
     };

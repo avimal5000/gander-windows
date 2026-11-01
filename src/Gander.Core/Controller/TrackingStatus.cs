@@ -68,7 +68,7 @@ public enum TrayIconState
     /// <summary>Solid mark: Tracking, No face, Calibrating, Starting.</summary>
     Tracking,
 
-    /// <summary>Dimmed mark with a hollow end point: Paused, One display, Suspended.</summary>
+    /// <summary>Hollow mark (also dimmed on the Mac): Paused, One display, Suspended.</summary>
     Paused,
 
     /// <summary>Mark with a lock badge: Focus Lock.</summary>

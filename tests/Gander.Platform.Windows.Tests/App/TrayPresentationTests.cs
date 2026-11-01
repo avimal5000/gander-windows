@@ -17,7 +17,7 @@ public sealed class TrayPresentationTests
     public void AppearanceMatchesTheFourStates()
     {
         Assert.Equal(new TrayIconAppearance(true, false, false, false), TrayIconAppearance.For(TrayIconState.Tracking));
-        Assert.Equal(new TrayIconAppearance(false, true, false, false), TrayIconAppearance.For(TrayIconState.Paused));
+        Assert.Equal(new TrayIconAppearance(false, false, false, false), TrayIconAppearance.For(TrayIconState.Paused));
         Assert.True(TrayIconAppearance.For(TrayIconState.FocusLock).LockBadge);
         Assert.True(TrayIconAppearance.For(TrayIconState.Attention).AttentionDot);
     }
@@ -80,6 +80,27 @@ public sealed class TrayPresentationTests
         Assert.False(menu[1].Enabled);
         Assert.Equal(StatusTone.Active, menu[1].Tone);
     }
+
+    [Fact]
+    public void EveryRowYouCanChooseExplainsItselfOnHover()
+    {
+        var menu = TrayMenuModel.Build(Input());
+        Assert.All(
+            menu.Where(e => !e.IsSeparator && e.Enabled && e.Command is not TrayCommand.Quit && e.Role == TrayEntryRole.Normal),
+            e => Assert.False(string.IsNullOrWhiteSpace(e.Help), $"{e.Text} has no tooltip"));
+        Assert.Contains("Freezes switching", menu.Single(e => e.Command == TrayCommand.ToggleFocusLock).Help, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(TrayCommand.ToggleTracking, true)]
+    [InlineData(TrayCommand.ToggleFocusLock, true)]
+    [InlineData(TrayCommand.Settings, false)]
+    [InlineData(TrayCommand.Calibrate, false)]
+    [InlineData(TrayCommand.PoseDebug, false)]
+    [InlineData(TrayCommand.SelectCamera, false)]
+    [InlineData(TrayCommand.Quit, false)]
+    public void OnlyTheSwitchesKeepTheMenuOpen(TrayCommand command, bool keepsOpen) =>
+        Assert.Equal(keepsOpen, TrayMenuModel.KeepsMenuOpen(command));
 
     [Fact]
     public void DebugWindowsAreReachableFromTheMenuInTheMacOrder()

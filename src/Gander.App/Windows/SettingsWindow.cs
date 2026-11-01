@@ -185,9 +185,10 @@ public sealed class SettingsWindow : Window
         var host = _style.MakeSegmentHost(segments);
         host.Margin = new Thickness(0, GanderDesign.Space.Md, 0, GanderDesign.Space.Xl);
         panel.Children.Add(host);
-        _glow.Margin = new Thickness(0, 0, 0, GanderDesign.Space.Xl);
         panel.Children.Add(_glow);
+        panel.Children.Add(Explain(_glow, SettingsWording.GlowHelp, GanderDesign.Space.Xl));
         panel.Children.Add(_notice);
+        panel.Children.Add(Explain(_notice, SettingsWording.NoticeHelp, 0));
         return panel;
     }
 
@@ -195,9 +196,19 @@ public sealed class SettingsWindow : Window
     {
         var panel = new StackPanel();
         panel.Children.Add(_login);
+        panel.Children.Add(Explain(_login, SettingsWording.StartWithWindowsHelp, 0));
         _loginNote.Margin = new Thickness(0, GanderDesign.Space.Lg, 0, 0);
         panel.Children.Add(_loginNote);
         return panel;
+    }
+
+    // The explanation under a switch, also shown as the switch's tooltip when you hover over it.
+    private TextBlock Explain(FrameworkElement control, string help, double bottom)
+    {
+        control.ToolTip = help;
+        var text = _style.Label(help, GanderDesign.Type.Caption, secondary: true);
+        text.Margin = new Thickness(0, GanderDesign.Space.Sm, 0, bottom);
+        return text;
     }
 
     private UIElement SwitchingBody()
@@ -246,12 +257,16 @@ public sealed class SettingsWindow : Window
         }
 
         block.Children.Add(_style.Label(help, GanderDesign.Type.Caption, secondary: true));
+        slider.ToolTip = help;
         return block;
     }
 
     private UIElement ShortcutBody()
     {
         var panel = new StackPanel();
+        var explained = _style.Label(SettingsWording.FocusLockExplained, GanderDesign.Type.Caption, secondary: true);
+        explained.Margin = new Thickness(0, 0, 0, GanderDesign.Space.Lg);
+        panel.Children.Add(explained);
         var row = new Grid();
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });

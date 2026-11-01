@@ -7,7 +7,7 @@ namespace Gander.App.Tray;
 
 /// <summary>
 /// Draws the tray icon at runtime with GDI+ from the Mac's glyph geometry (<see cref="MarkPainter"/>): solid when
-/// tracking, dimmed with a hollow end point when paused, a padlock badge for Focus Lock, a dot for Needs you. One flat
+/// tracking, an outline when paused, a padlock badge for Focus Lock, a dot for Needs you. One flat
 /// color that follows the taskbar theme, like the Mac's template image. Nothing is written to disk: the bitmap becomes
 /// an icon through its handle, which is copied and then destroyed.
 /// </summary>

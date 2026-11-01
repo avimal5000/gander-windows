@@ -56,7 +56,8 @@ public sealed record TrayMenuEntry(
     IReadOnlyList<TrayMenuEntry>? Children = null,
     TrayEntryRole Role = TrayEntryRole.Normal,
     string? ShortcutText = null,
-    StatusTone? Tone = null)
+    StatusTone? Tone = null,
+    string? Help = null)
 {
     /// <summary>A separator line.</summary>
     public static TrayMenuEntry Separator { get; } = new(string.Empty, IsSeparator: true);
@@ -195,26 +196,61 @@ public static class TrayMenuModel
         }
 
         entries.Add(TrayMenuEntry.Separator);
-        entries.Add(new TrayMenuEntry("Tracking", TrayCommand.ToggleTracking, Checked: input.TrackingEnabled));
+        entries.Add(new TrayMenuEntry("Tracking", TrayCommand.ToggleTracking, Checked: input.TrackingEnabled, Help: Help.Tracking));
         entries.Add(new TrayMenuEntry(
             "Focus Lock",
             TrayCommand.ToggleFocusLock,
             Checked: input.FocusLocked,
-            ShortcutText: input.FocusLockShortcut is { IsValid: true } shortcut ? shortcut.DisplayString : null));
+            ShortcutText: input.FocusLockShortcut is { IsValid: true } shortcut ? shortcut.DisplayString : null,
+            Help: Help.FocusLock));
         entries.Add(new TrayMenuEntry(input.LookText, Enabled: false, Role: TrayEntryRole.Look));
         entries.Add(TrayMenuEntry.Separator);
         entries.Add(CameraMenu(input));
         entries.Add(TrayMenuEntry.Separator);
-        entries.Add(new TrayMenuEntry("Calibrate…", TrayCommand.Calibrate));
-        entries.Add(new TrayMenuEntry("Settings…", TrayCommand.Settings));
-        entries.Add(new TrayMenuEntry(WelcomeTourText, TrayCommand.WelcomeTour));
-        entries.Add(new TrayMenuEntry(PoseDebugText, TrayCommand.PoseDebug));
-        entries.Add(new TrayMenuEntry(GateTestText, TrayCommand.GateTest));
-        entries.Add(new TrayMenuEntry(FocusTestText, TrayCommand.FocusTest));
-        entries.Add(new TrayMenuEntry("Diagnostics…", TrayCommand.Diagnostics));
+        entries.Add(new TrayMenuEntry("Calibrate…", TrayCommand.Calibrate, Help: Help.Calibrate));
+        entries.Add(new TrayMenuEntry("Settings…", TrayCommand.Settings, Help: Help.Settings));
+        entries.Add(new TrayMenuEntry(WelcomeTourText, TrayCommand.WelcomeTour, Help: Help.WelcomeTour));
+        entries.Add(new TrayMenuEntry(PoseDebugText, TrayCommand.PoseDebug, Help: Help.PoseDebug));
+        entries.Add(new TrayMenuEntry(GateTestText, TrayCommand.GateTest, Help: Help.GateTest));
+        entries.Add(new TrayMenuEntry(FocusTestText, TrayCommand.FocusTest, Help: Help.FocusTest));
+        entries.Add(new TrayMenuEntry("Diagnostics…", TrayCommand.Diagnostics, Help: Help.Diagnostics));
         entries.Add(TrayMenuEntry.Separator);
         entries.Add(new TrayMenuEntry("Quit Gander", TrayCommand.Quit));
         return entries;
+    }
+
+    /// <summary>
+    /// True for the switches (Tracking, Focus Lock): choosing one flips it and leaves the menu open, so you see the
+    /// check mark change and can flip the other. Rows that open a window close the menu, as the window takes over.
+    /// </summary>
+    public static bool KeepsMenuOpen(TrayCommand command) =>
+        command is TrayCommand.ToggleTracking or TrayCommand.ToggleFocusLock;
+
+    /// <summary>The tooltips that explain each row when you hover over it.</summary>
+    public static class Help
+    {
+        public const string Tracking =
+            "Turns Gander on or off. When it is on, the camera watches which way your head is turned and keyboard focus follows the display you look at.";
+
+        public const string FocusLock =
+            "Freezes switching: keyboard focus stays where it is, wherever you look, until you turn Focus Lock off. Useful while you read one screen and type on another.";
+
+        public const string Camera = "The webcam Gander uses. Put it where it sees your face from every display.";
+
+        public const string Calibrate =
+            "Teaches Gander where your displays are: you look at each one for a moment. Needs two or more displays.";
+
+        public const string Settings = "Accent color, start with Windows, switching speed, the Focus Lock shortcut and saved calibrations.";
+
+        public const string WelcomeTour = "Replays the short introduction to Gander.";
+
+        public const string PoseDebug = "For troubleshooting: shows the head angles Gander measures, live.";
+
+        public const string GateTest = "For troubleshooting: checks that Gander can tell your displays apart by where you look.";
+
+        public const string FocusTest = "For troubleshooting: checks that Gander can move keyboard focus between your displays.";
+
+        public const string Diagnostics = "Version, camera and display details to include when you report a problem.";
     }
 
     /// <summary>"Focus Lock"; the shortcut is shown beside it, right aligned, not in the text.</summary>
@@ -253,7 +289,7 @@ public static class TrayMenuModel
     {
         if (input.Cameras.Count == 0)
         {
-            return new TrayMenuEntry("Camera", Children: [new TrayMenuEntry("No camera found", Enabled: false)]);
+            return new TrayMenuEntry("Camera", Children: [new TrayMenuEntry("No camera found", Enabled: false)], Help: Help.Camera);
         }
 
         var children = new List<TrayMenuEntry>
@@ -270,7 +306,7 @@ public static class TrayMenuModel
             children.Add(new TrayMenuEntry(SettingsWording.UnavailableCamera, TrayCommand.SelectCamera, Checked: true, Argument: id));
         }
 
-        return new TrayMenuEntry("Camera", Children: children);
+        return new TrayMenuEntry("Camera", Children: children, Help: Help.Camera);
     }
 }
 

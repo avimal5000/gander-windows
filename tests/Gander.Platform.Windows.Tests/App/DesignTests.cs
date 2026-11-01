@@ -117,10 +117,10 @@ public sealed class DesignTests
 
     [Theory]
     [InlineData(TrayIconState.Tracking, 1.0, false, false, false)]
-    [InlineData(TrayIconState.Paused, 0.5, true, false, false)]
+    [InlineData(TrayIconState.Paused, 1.0, true, false, false)]
     [InlineData(TrayIconState.FocusLock, 1.0, false, true, false)]
     [InlineData(TrayIconState.Attention, 1.0, false, false, true)]
-    public void GlyphStylesAreTheMacsTable(TrayIconState state, double opacity, bool hollow, bool lockBadge, bool dot)
+    public void GlyphStylesFollowTheMacsTableExceptThePausedDimming(TrayIconState state, double opacity, bool hollow, bool lockBadge, bool dot)
     {
         var look = TrayIconAppearance.For(state);
         Assert.Equal(opacity, look.Opacity);
@@ -200,7 +200,7 @@ public sealed class DesignTests
         var dot = TrayGlyphSpec.AlertCenter;
         Assert.True(dot.X + TrayGlyphSpec.AlertRadius <= TrayGlyphSpec.Side && dot.Y - TrayGlyphSpec.AlertRadius >= 0);
         Assert.Equal(0.55, TrayGlyphSpec.EyeRadius);
-        Assert.Equal(1.2, TrayGlyphSpec.OutlineWidth);
+        Assert.Equal(1.7, TrayGlyphSpec.OutlineWidth);
     }
 
     [Theory]
