@@ -244,7 +244,7 @@ internal sealed class OnboardingArt
 
         canvas.IsVisibleChanged += (_, e) =>
         {
-            if (e.NewValue is true && SystemParameters.ClientAreaAnimation)
+            if (e.NewValue is true && AppTheme.Animate)
             {
                 Start();
             }
@@ -438,7 +438,7 @@ internal sealed class OnboardingArt
         c.IsVisibleChanged += (_, e) =>
         {
             Stop();
-            if (e.NewValue is true && SystemParameters.ClientAreaAnimation)
+            if (e.NewValue is true && AppTheme.Animate)
             {
                 DoubleAnimation Grow(double from, double to) => new(from, to, TimeSpan.FromSeconds(2.2))
                 {

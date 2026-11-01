@@ -73,7 +73,7 @@ public sealed class TrayPresentationTests
         var menu = TrayMenuModel.Build(Input());
         var texts = menu.Where(e => !e.IsSeparator).Select(e => e.Text).ToList();
         Assert.Equal(
-            ["Gander", "Tracking · Cam", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Welcome Tour", "Pose Debug Window…", "Head-Pose Gate Test…", "Focus Test Window…", "Diagnostics…", "Quit Gander"],
+            ["Gander", "Tracking · Cam", "Open Gander", "Tracking", "Focus Lock", "Looking at Left", "Camera", "Calibrate…", "Settings…", "Welcome Tour", "Pose Debug Window…", "Head-Pose Gate Test…", "Focus Test Window…", "Diagnostics…", "Quit Gander"],
             texts);
         Assert.Equal(TrayEntryRole.Header, menu[0].Role);
         Assert.Equal(TrayEntryRole.Status, menu[1].Role);

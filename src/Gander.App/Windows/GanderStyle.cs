@@ -88,6 +88,64 @@ public sealed class GanderStyle
         WindowIcons.Apply(window);
     }
 
+    /// <summary>
+    /// A full-width row that goes somewhere: a card with a title, a line saying what is there, and a chevron. The card
+    /// darkens a little on hover and when pressed; keyboard focus shows as an accent border.
+    /// </summary>
+    public Button MakeRowButton(string title, string help)
+    {
+        var text = new StackPanel();
+        text.Children.Add(Label(title, GanderDesign.Type.Headline));
+        var detail = Label(help, GanderDesign.Type.Caption, secondary: true);
+        detail.Margin = new Thickness(0, GanderDesign.Space.Xs, 0, 0);
+        text.Children.Add(detail);
+
+        var chevron = Label("›", GanderDesign.Type.Title3Strong, secondary: true, wrap: false);
+        chevron.VerticalAlignment = VerticalAlignment.Center;
+        chevron.Margin = new Thickness(GanderDesign.Space.Xl, 0, 0, 0);
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(chevron, 1);
+        grid.Children.Add(text);
+        grid.Children.Add(chevron);
+
+        var button = new Button
+        {
+            Content = grid,
+            Background = Card,
+            BorderBrush = Line,
+            Foreground = Text,
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(GanderDesign.Space.Card + 2, GanderDesign.Space.Card, GanderDesign.Space.Card + 2, GanderDesign.Space.Card),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Cursor = System.Windows.Input.Cursors.Hand,
+            ToolTip = help,
+            Template = (ControlTemplate)XamlReader.Parse(
+                $"<ControlTemplate {Xmlns} TargetType=\"Button\">"
+                + $"<Border x:Name=\"B\" Background=\"{{TemplateBinding Background}}\" BorderBrush=\"{{TemplateBinding BorderBrush}}\" BorderThickness=\"{{TemplateBinding BorderThickness}}\" CornerRadius=\"{Num(GanderDesign.Radius.Card)}\" Padding=\"{{TemplateBinding Padding}}\">"
+                + "<ContentPresenter HorizontalAlignment=\"{TemplateBinding HorizontalContentAlignment}\" VerticalAlignment=\"Center\"/></Border>"
+                + "<ControlTemplate.Triggers>"
+                + $"<Trigger Property=\"IsMouseOver\" Value=\"True\"><Setter TargetName=\"B\" Property=\"Background\" Value=\"{Hex(Theme.Hover.Over(Theme.Window))}\"/></Trigger>"
+                + "<Trigger Property=\"IsPressed\" Value=\"True\"><Setter TargetName=\"B\" Property=\"Opacity\" Value=\"0.8\"/></Trigger>"
+                + $"<Trigger Property=\"IsKeyboardFocused\" Value=\"True\"><Setter TargetName=\"B\" Property=\"BorderBrush\" Value=\"{Hex(Theme.Accent)}\"/></Trigger>"
+                + "</ControlTemplate.Triggers></ControlTemplate>"),
+        };
+        System.Windows.Automation.AutomationProperties.SetName(button, title);
+        System.Windows.Automation.AutomationProperties.SetHelpText(button, help);
+        return button;
+    }
+
+    /// <summary>Colors and font of a page shown inside the Gander window.</summary>
+    public void ApplyTo(UserControl page)
+    {
+        page.Background = Surface;
+        page.Foreground = Text;
+        page.FontFamily = DesignFonts.Wpf(GanderDesign.Text);
+        page.FontSize = GanderDesign.Type.Body.Size;
+        page.UseLayoutRounding = true;
+    }
+
     /// <summary>Applies a type style to a text block.</summary>
     public TextBlock Label(string text, TextStyle style, bool secondary = false, bool wrap = true)
     {

@@ -18,6 +18,7 @@ public sealed class TrayHost : IDisposable
 {
     private readonly TrackingController _controller;
     private readonly Func<bool> _setupCompleted;
+    private readonly Action _openMain;
     private readonly Action _openCalibration;
     private readonly Action _openSettings;
     private readonly Action _openTour;
@@ -37,10 +38,14 @@ public sealed class TrayHost : IDisposable
     private Forms.ToolStripMenuItem? _focusLockItem;
     private bool _keepOpen;
 
-    /// <summary>Creates and shows the tray icon. <paramref name="menuOpen"/> is told when the menu opens and closes.</summary>
+    /// <summary>
+    /// Creates and shows the tray icon. A left click runs <paramref name="openMain"/> (the Gander window); a right click
+    /// shows the menu. <paramref name="menuOpen"/> is told when the menu opens and closes.
+    /// </summary>
     public TrayHost(
         TrackingController controller,
         Func<bool> setupCompleted,
+        Action openMain,
         Action openCalibration,
         Action openSettings,
         Action openTour,
@@ -54,6 +59,7 @@ public sealed class TrayHost : IDisposable
     {
         _controller = controller;
         _setupCompleted = setupCompleted;
+        _openMain = openMain;
         _openCalibration = openCalibration;
         _openSettings = openSettings;
         _openTour = openTour;
@@ -145,48 +151,18 @@ public sealed class TrayHost : IDisposable
         }
     }
 
-    // Left click opens the same menu as right click. NotifyIcon has no public call for this; the private one places the
-    // menu at the icon and handles focus, and we never read the cursor ourselves.
+    // Left click opens the Gander window; right click shows the menu (NotifyIcon does that by itself).
     private void OnMouseClick(object? sender, Forms.MouseEventArgs e)
     {
-        if (e.Button != Forms.MouseButtons.Left)
+        if (e.Button == Forms.MouseButtons.Left)
         {
-            return;
-        }
-
-        try
-        {
-            typeof(Forms.NotifyIcon)
-                .GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?.Invoke(_tray, null);
-        }
-        catch (Exception exception)
-        {
-            _log($"Could not open the tray menu on left click: {exception.Message}");
+            _openMain();
         }
     }
 
     private void Rebuild()
     {
-        var status = _controller.TrackingStatus;
-        var facts = new TrayBannerFacts(
-            _controller.PermissionPrompt,
-            _controller.Library.Profiles.Count == 0,
-            _controller.TrackingEnabled,
-            _controller.Layout.Displays.Count,
-            _controller.ActiveCalibration is not null,
-            _controller.MenuShortcutMessage,
-            SetupCompleted: _setupCompleted());
-        var input = new TrayMenuInput(
-            _controller.StatusLine,
-            status.Tone,
-            _controller.TrackingEnabled,
-            _controller.FocusLocked,
-            _controller.FocusLockShortcut,
-            TrayBanner.Current(facts),
-            LookSummary.Text(_controller.IsCameraActive, _controller.LastDecision?.Classification, _controller.DisplayName),
-            _controller.Devices,
-            _controller.SelectedCameraId);
+        var input = MenuState.Read(_controller, _setupCompleted());
         ThemedMenu.Apply(_menu, AppTheme.Current);
         var scale = _menu.DeviceDpi / 96f;
         _menu.Items.Clear();
@@ -293,6 +269,9 @@ public sealed class TrayHost : IDisposable
                 break;
             case TrayCommand.OpenCameraSettings:
                 ShellLauncher.OpenCameraSettings();
+                break;
+            case TrayCommand.OpenMain:
+                _openMain();
                 break;
             case TrayCommand.Quit:
                 _quit();

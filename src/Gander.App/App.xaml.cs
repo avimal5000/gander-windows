@@ -10,6 +10,7 @@ using Gander.App.Hosting;
 using Gander.App.Presentation;
 using Gander.App.Tray;
 using Gander.App.Windows;
+using Gander.Core;
 using Gander.Core.Calibration;
 using Gander.Core.Controller;
 using Gander.Core.Platform;
@@ -49,8 +50,7 @@ public partial class App : Application
     private CameraDemand? _cameraDemand;
     private IFocusController? _focus;
     private Func<double>? _clock;
-    private SettingsWindow? _settingsWindow;
-    private SetupWindow? _calibration;
+    private MainWindow? _main;
     private SetupSession? _setup;
     private RegistryLoginItem? _loginItem;
     private PromptOverlayHost? _overlay;
@@ -58,7 +58,32 @@ public partial class App : Application
     private AppPreferences? _preferences;
     private bool _quitting;
 
-    /// <summary>Opens (or raises) the Set up Gander window.</summary>
+    /// <summary>Opens (or raises) the Gander window on <paramref name="page"/>.</summary>
+    public void OpenMain(GanderPage page = GanderPage.Home)
+    {
+        if (_controller is null)
+        {
+            return;
+        }
+
+        if (_main is null)
+        {
+            _main = new MainWindow(MakePage);
+            Track(_main, "main");
+            _main.Closed += (_, _) => _main = null;
+        }
+
+        _main.Open(page);
+        _main.Show();
+        if (_main.WindowState == WindowState.Minimized)
+        {
+            _main.WindowState = WindowState.Normal;
+        }
+
+        _main.Activate();
+    }
+
+    /// <summary>Opens the Gander window on the Set up page.</summary>
     public void OpenCalibration()
     {
         if (_setup is null)
@@ -66,15 +91,7 @@ public partial class App : Application
             return;
         }
 
-        if (_calibration is null)
-        {
-            _calibration = new SetupWindow(_setup);
-            Track(_calibration, "setup");
-            _calibration.Closed += (_, _) => _calibration = null;
-        }
-
-        _calibration.Show();
-        _calibration.Activate();
+        OpenMain(GanderPage.Setup);
         _preferences?.MarkOnboardingSeen();
     }
 
@@ -99,7 +116,7 @@ public partial class App : Application
             return;
         }
 
-        if (_calibration is not null && _setup.IsOpen)
+        if (_main?.CurrentPage == GanderPage.Setup && _setup.IsOpen)
         {
             _setup.RestartTour();
         }
@@ -115,7 +132,7 @@ public partial class App : Application
     // Topmost for a moment so the window is not left behind another app.
     private void BringSetupToFront()
     {
-        if (_calibration is { } window)
+        if (_main is { } window)
         {
             window.Topmost = true;
             window.Activate();
@@ -123,7 +140,7 @@ public partial class App : Application
         }
     }
 
-    /// <summary>Opens (or raises) the Settings window.</summary>
+    /// <summary>Opens the Gander window on the Settings page.</summary>
     public void OpenSettings()
     {
         if (_controller is null || _loginItem is null || _preferences is null)
@@ -131,15 +148,102 @@ public partial class App : Application
             return;
         }
 
-        if (_settingsWindow is null)
+        OpenMain(GanderPage.Settings);
+    }
+
+    // Builds a page of the Gander window when it is shown.
+    private FrameworkElement MakePage(GanderPage page)
+    {
+        var controller = _controller!;
+        switch (page)
         {
-            _settingsWindow = new SettingsWindow(_controller, _loginItem, OpenCalibration, _preferences!);
-            Track(_settingsWindow, "settings");
-            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            case GanderPage.Settings:
+                return new SettingsPage(controller, _loginItem!, OpenCalibration, _preferences!);
+            case GanderPage.Setup:
+                var setup = new SetupPage(_setup!);
+                setup.Finished += () => _main?.Leave(GanderPage.Setup);
+                return setup;
+            case GanderPage.Troubleshooting:
+                return new TroubleshootingPage(command => RunCommand(command, null));
+            default:
+                return new HomePage(
+                    () => MenuState.Read(controller, _setup?.SetupCompleted ?? false),
+                    RunCommand,
+                    link =>
+                    {
+                        if (link.Command != TrayCommand.None)
+                        {
+                            RunCommand(link.Command, null);
+                        }
+                        else if (link.Page is { } target)
+                        {
+                            OpenMain(target);
+                        }
+                    },
+                    changed =>
+                    {
+                        void OnSwitched(DisplayId _) => changed();
+                        controller.StateChanged += changed;
+                        controller.FocusSwitched += OnSwitched;
+                        return () =>
+                        {
+                            controller.StateChanged -= changed;
+                            controller.FocusSwitched -= OnSwitched;
+                        };
+                    });
+        }
+    }
+
+    // What a switch, banner, row or tool in the Gander window does: the same commands as the tray menu.
+    private void RunCommand(TrayCommand command, string? argument)
+    {
+        if (_controller is not { } controller)
+        {
+            return;
         }
 
-        _settingsWindow.Show();
-        _settingsWindow.Activate();
+        switch (command)
+        {
+            case TrayCommand.ToggleTracking:
+                _ = controller.SetTrackingEnabledAsync(!controller.TrackingEnabled);
+                break;
+            case TrayCommand.ToggleFocusLock:
+                controller.ToggleFocusLock();
+                break;
+            case TrayCommand.SelectCamera:
+                _ = controller.SelectCameraAsync(argument);
+                break;
+            case TrayCommand.Calibrate:
+                OpenCalibration();
+                break;
+            case TrayCommand.Settings:
+                OpenSettings();
+                break;
+            case TrayCommand.WelcomeTour:
+                OpenWelcomeTour();
+                break;
+            case TrayCommand.PoseDebug:
+                OpenPoseDebug();
+                break;
+            case TrayCommand.GateTest:
+                OpenGateTest();
+                break;
+            case TrayCommand.FocusTest:
+                OpenFocusTest();
+                break;
+            case TrayCommand.Diagnostics:
+                OpenDiagnostics();
+                break;
+            case TrayCommand.OpenCameraSettings:
+                ShellLauncher.OpenCameraSettings();
+                break;
+            case TrayCommand.OpenMain:
+                OpenMain();
+                break;
+            case TrayCommand.Quit:
+                _ = QuitAsync();
+                break;
+        }
     }
 
     /// <summary>Opens (or raises) the diagnostics window.</summary>
@@ -358,6 +462,7 @@ public partial class App : Application
         _tray = new TrayHost(
             _controller,
             () => _setup.SetupCompleted,
+            () => OpenMain(),
             OpenCalibration,
             OpenSettings,
             OpenWelcomeTour,
