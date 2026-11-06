@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <!-- The one allowed third-party dependency (SPEC D4): local inference only, no network code. -->
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" />
   </ItemGroup>
 
   <ItemGroup>
